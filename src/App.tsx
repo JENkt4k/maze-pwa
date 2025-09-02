@@ -179,10 +179,10 @@ export default function App() {
   const [cell, setCell] = useState(24);
   useEffect(() => {
     const hostW = hostRect?.width ?? 0;
-    const basis = hostW > 0 ? hostW : Math.min(window.innerWidth || 360, 480); // fallback for first paint / emulation
-    const targetInner = basis - 32; // leave space for SVG margins
+    const basis = hostW > 0 ? hostW : Math.min(window.innerWidth || 360, 480);
+    const targetInner = basis - 32;
     const px = Math.floor(targetInner / width);
-    setCell(clamp(px, 18, 36)); // good range for phones/tablets
+    setCell(clamp(px, 18, 36));
   }, [hostRect, width]);
 
   /* Generate maze + SVG + stats */
@@ -200,6 +200,20 @@ export default function App() {
     });
     return { svg, stats, currentParams: params };
   }, [width, height, seed, g, b, tau, cell]);
+
+  /* Controls panel: responsive placement + collapsed on mobile */
+  const [isMobile, setIsMobile] = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 840px)");
+    const set = () => {
+      setIsMobile(mq.matches);
+      setControlsOpen(!mq.matches); // open on desktop, collapsed on mobile
+    };
+    set();
+    mq.addEventListener("change", set);
+    return () => mq.removeEventListener("change", set);
+  }, []);
 
   function newMaze() {
     setSeed((s) => s + 1);
@@ -276,12 +290,16 @@ export default function App() {
     >
       <style>
         {`
-        /* Default: 2 columns on wide screens */
-        .shell { grid-template-columns: minmax(0, 360px) 1fr; }
+        /* Desktop: main | controls (right) */
+        .shell { grid-template-columns: 1fr minmax(0, 360px); }
+        .main { order: 1; }
+        .controls { order: 2; }
 
-        /* Collapse to 1 column on mobile/tablet */
+        /* Mobile: single column; controls below main, collapsed by default */
         @media (max-width: 840px) {
           .shell { grid-template-columns: 1fr; }
+          .main { order: 1; }
+          .controls { order: 2; }
         }
 
         button { min-height: 44px; }
@@ -291,14 +309,70 @@ export default function App() {
       `}
       </style>
 
-      {/* Sidebar */}
+      {/* MAIN (first on all sizes) */}
+      <main
+        className="main"
+        style={{
+          minWidth: 0,
+          background: "#fff",
+          borderRadius: 16,
+          boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+          padding: 16,
+          display: "grid",
+          gridTemplateRows: "auto auto 1fr",
+          gap: 12,
+        }}
+      >
+        <header
+          className="sticky-top"
+          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}
+        >
+          <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
+            <h1 style={{ margin: 0, fontSize: 22 }}>Kid-Friendly Maze</h1>
+            <div style={{ color: "#6b7280", fontSize: 12 }}>seed {seed}</div>
+          </div>
+
+          {/* Controls toggle (visible on mobile; harmless on desktop) */}
+          <button
+            onClick={() => setControlsOpen((v) => !v)}
+            style={{ ...btn, padding: "8px 12px" }}
+            aria-expanded={controlsOpen}
+            aria-controls="controls-panel"
+            title="Show/Hide Controls"
+          >
+            {controlsOpen ? "Hide Controls" : "Show Controls"}
+          </button>
+        </header>
+
+        <section style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "start", gap: 16 }}>
+          <div
+            ref={svgHostRef as any}
+            id="print-maze-only"
+            style={{ width: "100%" }}
+            dangerouslySetInnerHTML={{ __html: svg }}
+          />
+          <div style={{ border: "1px solid #e6e9ef", borderRadius: 12, padding: 12, minWidth: 220, background: "#f9fbff" }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>Stats</div>
+            <Stat label="Length L" value={stats.L} />
+            <Stat label="Turn rate T" value={stats.T.toFixed(2)} />
+            <Stat label="Junctions J" value={stats.J} />
+            <Stat label="Dead ends E" value={stats.E} />
+            <div style={{ height: 1, background: "#e6e9ef", margin: "8px 0" }} />
+            <Stat label="Difficulty D" value={stats.D.toFixed(3)} strong />
+          </div>
+        </section>
+      </main>
+
+      {/* CONTROLS (right on desktop, below on mobile) */}
       <aside
+        id="controls-panel"
+        className="controls"
         style={{
           background: "#fff",
           borderRadius: 16,
           boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
           padding: 16,
-          display: "flex",
+          display: isMobile ? (controlsOpen ? "flex" : "none") : "flex", // collapse only on mobile
           flexDirection: "column",
           gap: 16,
         }}
@@ -392,61 +466,25 @@ export default function App() {
         </fieldset>
       </aside>
 
-      {/* Main panel */}
-      <main
-        style={{
-          minWidth: 0, /* allow grid item to shrink on narrow screens */
-          background: "#fff",
-          borderRadius: 16,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
-          padding: 16,
-          display: "grid",
-          gridTemplateRows: "auto auto 1fr",
-          gap: 12,
-        }}
-      >
-        <header className="sticky-top" style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-          <h1 style={{ margin: 0, fontSize: 22 }}>Kid-Friendly Maze</h1>
-          <div style={{ color: "#6b7280", fontSize: 12 }}>seed {seed}</div>
-        </header>
-
-        <section style={{ display: "grid", gridTemplateColumns: "1fr auto", alignItems: "start", gap: 16 }}>
-          <div
-            ref={svgHostRef as any}
-            id="print-maze-only"
-            style={{ width: "100%" }}
-            dangerouslySetInnerHTML={{ __html: svg }}
-          />
-          <div style={{ border: "1px solid #e6e9ef", borderRadius: 12, padding: 12, minWidth: 220, background: "#f9fbff" }}>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>Stats</div>
-            <Stat label="Length L" value={stats.L} />
-            <Stat label="Turn rate T" value={stats.T.toFixed(2)} />
-            <Stat label="Junctions J" value={stats.J} />
-            <Stat label="Dead ends E" value={stats.E} />
-            <div style={{ height: 1, background: "#e6e9ef", margin: "8px 0" }} />
-            <Stat label="Difficulty D" value={stats.D.toFixed(3)} strong />
-          </div>
-        </section>
-      </main>
-
-      {/* Floating quick actions on mobile */}
-      <div
-        aria-hidden
-        style={{
-          position: "fixed",
-          right: 16,
-          bottom: `calc(16px + var(--safe-bottom, 0px))`,
-          display: "flex",
-          gap: 10,
-          zIndex: 60,
-        }}
-      >
-        <button title="New" onClick={newMaze} style={{ ...btn, borderRadius: 999, padding: "10px 14px" }}>↻</button>
-        <button title="Print" onClick={handlePrint} style={{ ...btn, borderRadius: 999, padding: "10px 14px" }}>🖨️</button>
-        {canInstall && (
-          <button title="Install" onClick={install} style={{ ...btnPrimary, borderRadius: 999, padding: "10px 14px" }}>⬇️</button>
-        )}
-      </div>
+      {/* Mobile gear FAB to open controls quickly */}
+      {isMobile && !controlsOpen && (
+        <button
+          aria-label="Show controls"
+          onClick={() => setControlsOpen(true)}
+          style={{
+            position: "fixed",
+            right: 16,
+            bottom: `calc(16px + var(--safe-bottom, 0px))`,
+            zIndex: 60,
+            borderRadius: 999,
+            padding: "12px 14px",
+            ...btnPrimary,
+          }}
+          title="Show Controls"
+        >
+          ⚙️
+        </button>
+      )}
 
       {/* Update/Offline banner */}
       <PWABanner
