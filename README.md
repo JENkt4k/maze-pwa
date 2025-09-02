@@ -1,13 +1,19 @@
 ```
 src/
   app/
-    App.tsx                 // shell + layout + wires
+    App.tsx
+    main.tsx
+    maze.ts
     components/
-      Sidebar.tsx           // controls + Save/Load list
-      StatsCard.tsx         // small presentational card
-      PWABanner.tsx         // update/offline prompt
-      Fab.tsx               // floating actions for mobile
+      Sidebar.tsx
+      StatsCard.tsx
+      PWABanner.tsx
+      Fab.tsx
     hooks/
-      usePWAInstall.ts      // beforeinstallprompt helper
-      useResizeObserver.ts  // small RO wrapper
-      useMaze.ts            // state + SVG + stats (optional)
+      usePWAInstall.ts
+      useResizeObserver.ts
+  style.css
+  vite.config.ts
+
+
+
