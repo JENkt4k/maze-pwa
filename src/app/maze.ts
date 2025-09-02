@@ -262,6 +262,9 @@ export interface SvgOptions {
   stroke?: number;     // wall thickness (px)
   margin?: number;     // outer margin (px)
   showStartGoal?: boolean;
+  startIcon?: string; 
+  goalIcon?: string;
+  iconScale?: number;
 }
 
 export function toSVG(m: Maze, opts: SvgOptions): string {
@@ -292,14 +295,31 @@ export function toSVG(m: Maze, opts: SvgOptions): string {
   // Start/Goal markers
   const marks: string[] = [];
   if (opts.showStartGoal !== false) {
-    const sX = margin + m.start.x * cell + cell/2;
-    const sY = margin + m.start.y * cell + cell/2;
-    const gX = margin + m.goal.x  * cell + cell/2;
-    const gY = margin + m.goal.y  * cell + cell/2;
-    const r = Math.max(3, Math.round(cell*0.25));
-    marks.push(`<circle cx="${sX}" cy="${sY}" r="${r}" fill="limegreen"/>`);
-    marks.push(`<circle cx="${gX}" cy="${gY}" r="${r}" fill="crimson"/>`);
+    const sX = margin + m.start.x * cell + cell / 2;
+    const sY = margin + m.start.y * cell + cell / 2;
+    const gX = margin + m.goal.x * cell + cell / 2;
+    const gY = margin + m.goal.y * cell + cell / 2;
+    const r = Math.max(3, Math.round(cell * 0.25));
+
+    const fontSize = Math.max(10, cell * (opts.iconScale ?? 0.8));
+
+    if (opts.startIcon) {
+      marks.push(
+        `<text x="${sX}" y="${sY}" font-size="${fontSize}" text-anchor="middle" dominant-baseline="central" style="pointer-events:none">${opts.startIcon}</text>`
+      );
+    } else {
+      marks.push(`<circle cx="${sX}" cy="${sY}" r="${r}" fill="limegreen"/>`);
+    }
+
+    if (opts.goalIcon) {
+      marks.push(
+        `<text x="${gX}" y="${gY}" font-size="${fontSize}" text-anchor="middle" dominant-baseline="central" style="pointer-events:none">${opts.goalIcon}</text>`
+      );
+    } else {
+      marks.push(`<circle cx="${gX}" cy="${gY}" r="${r}" fill="crimson"/>`);
+    }
   }
+
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <rect x="0" y="0" width="${W}" height="${H}" fill="white"/>

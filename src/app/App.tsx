@@ -22,6 +22,69 @@ const loadSaved = ():SavedMaze[] => { try{ const raw = localStorage.getItem(STOR
 const saveAll = (list:SavedMaze[]) => localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
 const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 
+// put at module scope (top of App.tsx, outside the component)
+let __printing = false;
+
+export function handlePrint(svg: string) {
+  if (__printing) return;         // prevent accidental double-clicks / re-entry
+  __printing = true;
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Maze Print</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #fff; }
+  .wrap { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:16px; }
+  svg { width: 95vw; height: auto; max-height: 95vh; }
+  @page { margin: 10mm; }
+  @media print { .wrap { padding: 0; } }
+</style>
+</head>
+<body>
+  <div class="wrap">${svg}</div>
+</body>
+</html>`;
+
+  // hidden iframe approach (works in iOS/Android PWAs and mobile browsers)
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  iframe.referrerPolicy = 'no-referrer';
+
+  iframe.onload = () => {
+    const iw = iframe.contentWindow;
+    if (!iw) return;
+    // Reset guard when printing is finished (best-effort)
+    const done = () => {
+      try { iframe.remove(); } catch {}
+      __printing = false;
+      iw.removeEventListener?.('afterprint', done as any);
+    };
+    iw.addEventListener?.('afterprint', done as any);
+
+    // Trigger print exactly once (no script in srcdoc)
+    try {
+      iw.focus();
+      // let layout settle
+      iw.requestAnimationFrame?.(() => iw.print());
+      setTimeout(() => iw.print(), 50); // fallback if rAF not available
+    } catch {
+      // last-resort cleanup
+      setTimeout(done, 1500);
+    }
+  };
+
+  (iframe as any).srcdoc = html;
+  document.body.appendChild(iframe);
+}
+
 export default function App() {
   /* PWA */
   const [needRefresh, setNeedRefresh] = useState(false);
@@ -107,16 +170,6 @@ export default function App() {
     setSaved(next); saveAll(next);
     if (selectedId === id) setSelectedId(null);
   };
-  const handlePrint = () => {
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Maze Print</title>
-<style>html,body{margin:0;padding:0;background:#fff}.wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}svg{width:95vw;height:auto;max-height:95vh}@page{margin:10mm}@media print{.wrap{padding:0}}</style>
-</head><body><div class="wrap">${svg}</div><script>addEventListener('load',()=>setTimeout(()=>print(),0));addEventListener('afterprint',()=>close());<\/script></body></html>`;
-    const url = URL.createObjectURL(new Blob([html],{type:"text/html"}));
-    const win = window.open(url,"_blank","noopener,noreferrer,width=900,height=1200");
-    if (!win) return;
-    const cleanup = () => URL.revokeObjectURL(url);
-    win.addEventListener?.("load", cleanup); setTimeout(cleanup, 10000);
-  };
 
   return (
     <div className="shell">
@@ -157,7 +210,7 @@ export default function App() {
         canInstall={canInstall} onInstall={install}
         width={width} height={height} g={g} b={b} tau={tau}
         setWidth={setWidth} setHeight={setHeight} setG={setG} setB={setB} setTau={setTau}
-        onNew={newMaze} onPrint={handlePrint}
+        onNew={newMaze} onPrint={() => handlePrint(svg)}
         saveName={saveName} setSaveName={setSaveName}
         saved={saved} selectedId={selectedId}
         onSave={handleSave} onLoad={handleLoad} onDelete={handleDelete}
@@ -170,7 +223,7 @@ export default function App() {
       <Fab
         showInstall={canInstall}
         onNew={newMaze}
-        onPrint={handlePrint}
+        onPrint={() => handlePrint(svg)}
         onInstall={install}
         showGear={isMobile && !controlsOpen}
         onGear={() => setControlsOpen(true)}
