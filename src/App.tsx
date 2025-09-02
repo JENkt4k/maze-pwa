@@ -96,32 +96,6 @@ export default function App() {
     if (selectedId === id) setSelectedId(null);
   }
 
-//   function handlePrint() {
-//     // Open a lightweight print-only window with just the SVG
-//     const w = window.open('', '_blank', 'noopener,noreferrer,width=900,height=1200');
-//     if (!w) return;
-//     const html = `<!DOCTYPE html>
-// <html>
-// <head>
-// <meta charset="utf-8">
-// <title>Maze Print</title>
-// <style>
-//   * { box-sizing: border-box; }
-//   html, body { margin: 0; padding: 0; background: #fff; }
-//   .wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 16px; }
-//   svg { width: 95vw; height: auto; max-height: 95vh; }
-//   @page { margin: 10mm; }
-// </style>
-// </head>
-// <body>
-//   <div class="wrap">${svg}</div>
-//   <script>window.addEventListener('load', () => setTimeout(() => window.print(), 0));</script>
-// </body>
-// </html>`;
-//     w.document.open();
-//     w.document.write(html);
-//     w.document.close();
-//   }
   function handlePrint() {
     // Build a full minimal HTML doc with ONLY the SVG
     const html = `<!DOCTYPE html>
