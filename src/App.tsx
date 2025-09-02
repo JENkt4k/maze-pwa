@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
-import { createMaze, toSVG } from './maze';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { registerSW } from "virtual:pwa-register";   // ✅ keep this
+import { createMaze, toSVG } from "./maze";
+
 
 type SavedMaze = {
   id: string;                  // uuid-ish
@@ -35,6 +37,10 @@ function uid() {
 }
 
 export default function App() {
+    // PWA status via registerSW (no React hook)
+  const [needRefresh, setNeedRefresh] = useState(false);
+  const [offlineReady, setOfflineReady] = useState(false);
+  const updateSWRef = useRef<((reloadPage?: boolean) => void) | null>(null);
   // --- Parameters / state ---
   const [seed, setSeed] = useState(42);
   const [width, setWidth] = useState(19);
@@ -285,6 +291,47 @@ export default function App() {
           </div>
         </section>
       </main>
+{(offlineReady || needRefresh) && (
+  <div style={{
+    position:'fixed', left:16, right:16, bottom:16, zIndex:50,
+    background:'#111827', color:'#fff', borderRadius:12, padding:12,
+    display:'flex', gap:8, alignItems:'center', justifyContent:'space-between',
+    boxShadow:'0 12px 30px rgba(0,0,0,.25)'
+  }}>
+    <span>
+      {offlineReady ? 'App is ready to work offline.' : 'A new version is available.'}
+    </span>
+    <div style={{display:'flex', gap:8}}>
+      {needRefresh && (
+        <button
+          onClick={() => updateSWRef.current?.(true)}  // ✅ use ref
+          style={{
+            padding:'6px 10px',
+            borderRadius:8,
+            border:'none',
+            background:'#34d399',
+            color:'#111'
+          }}
+        >
+          Update
+        </button>
+      )}
+      <button
+        onClick={() => { setNeedRefresh(false); setOfflineReady(false); }}
+        style={{
+          padding:'6px 10px',
+          borderRadius:8,
+          border:'1px solid #374151',
+          background:'transparent',
+          color:'#fff'
+        }}
+      >
+        Close
+      </button>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }
