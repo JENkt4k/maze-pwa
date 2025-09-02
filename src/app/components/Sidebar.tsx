@@ -1,0 +1,109 @@
+import React from "react";
+
+type SavedMaze = {
+  id: string;
+  name: string;
+  params: { width:number;height:number;seed:number;g:number;b:number;tau:number };
+  createdAt: number;
+};
+
+type Props = {
+  canInstall: boolean;
+  onInstall: () => void;
+  width: number; height: number; g: number; b: number; tau: number;
+  setWidth: (n:number)=>void; setHeight:(n:number)=>void; setG:(n:number)=>void; setB:(n:number)=>void; setTau:(n:number)=>void;
+  onNew: () => void; onPrint: () => void;
+  saveName: string; setSaveName: (s:string)=>void;
+  saved: SavedMaze[]; selectedId: string|null;
+  onSave: () => void; onLoad: (id:string)=>void; onDelete: (id:string)=>void;
+  isMobile: boolean;
+  controlsOpen: boolean;
+  onMinimize: () => void;     // << minimize button
+};
+
+export default function Sidebar(props: Props){
+  const {
+    canInstall, onInstall,
+    width, height, g, b, tau,
+    setWidth, setHeight, setG, setB, setTau,
+    onNew, onPrint,
+    saveName, setSaveName, saved, selectedId, onSave, onLoad, onDelete,
+    isMobile, controlsOpen, onMinimize
+  } = props;
+
+  const display = isMobile ? (controlsOpen ? "flex" : "none") : "flex";
+
+  return (
+    <aside className="panel controls" style={{ display, flexDirection:"column", gap:16 }}>
+      <div className="sticky-top hstack" style={{ justifyContent:"space-between", paddingBottom:8 }}>
+        <h2 style={{ margin:0, fontSize:20 }}>Maze Controls</h2>
+        <div className="hstack" style={{ gap:6 }}>
+          {/* Minimize button shows when expanded */}
+          <button className="btn btn-sm" title="Minimize controls" onClick={onMinimize}>Minimize</button>
+          {canInstall && <button className="btn btn-sm" onClick={onInstall} title="Install app">Install</button>}
+        </div>
+      </div>
+
+      <fieldset>
+        <legend>Size</legend>
+        <details>
+          <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>Adjust size</summary>
+          <label>Width: {width}
+            <input type="range" min={7} max={41} step={2} value={width} onChange={e=>setWidth(parseInt(e.target.value))}/>
+          </label>
+          <label>Height: {height}
+            <input type="range" min={7} max={41} step={2} value={height} onChange={e=>setHeight(parseInt(e.target.value))}/>
+          </label>
+        </details>
+      </fieldset>
+
+      <fieldset>
+        <legend>Difficulty</legend>
+        <details open>
+          <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>Adjust difficulty</summary>
+          <label>Goal bias g: {g.toFixed(2)}
+            <input type="range" min={0} max={1} step={0.01} value={g} onChange={e=>setG(parseFloat(e.target.value))}/>
+          </label>
+          <label>Braid b: {b.toFixed(2)}
+            <input type="range" min={0} max={0.5} step={0.01} value={b} onChange={e=>setB(parseFloat(e.target.value))}/>
+          </label>
+          <label>Turn penalty τ: {tau.toFixed(2)}
+            <input type="range" min={0} max={1} step={0.01} value={tau} onChange={e=>setTau(parseFloat(e.target.value))}/>
+          </label>
+        </details>
+      </fieldset>
+
+      <div className="grid-2">
+        <button className="btn" onClick={onNew}>New Maze</button>
+        <button className="btn" onClick={onPrint}>Print</button>
+      </div>
+
+      <fieldset>
+        <legend>Save / Load</legend>
+        <div className="stack">
+          <input className="input" placeholder="Name this maze…" value={saveName} onChange={e=>setSaveName(e.target.value)}/>
+          <button className="btn btn-primary" onClick={onSave}>Save current</button>
+        </div>
+
+        {saved.length ? (
+          <div style={{ marginTop:12, display:"grid", gap:6, maxHeight:220, overflow:"auto" }}>
+            {saved.map(sv => (
+              <div key={sv.id} className="hstack" style={{ border:"1px solid #e6e9ef", borderRadius:10, padding:8, justifyContent:"space-between", background: sv.id===selectedId ? "#f0f6ff" : "#fafbff" }}>
+                <div>
+                  <div style={{ fontWeight:600, fontSize:14 }}>{sv.name}</div>
+                  <div style={{ fontSize:12, color:"#586174" }}>
+                    {sv.params.width}×{sv.params.height}, seed {sv.params.seed}, g {sv.params.g.toFixed(2)}, b {sv.params.b.toFixed(2)}, τ {sv.params.tau.toFixed(2)}
+                  </div>
+                </div>
+                <div className="hstack" style={{ gap:6 }}>
+                  <button className="btn btn-sm" onClick={()=>onLoad(sv.id)}>Load</button>
+                  <button className="btn btn-danger btn-sm" onClick={()=>onDelete(sv.id)}>Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : <div style={{ fontSize:12, color:"#7a879b" }}>No saved mazes yet.</div>}
+      </fieldset>
+    </aside>
+  );
+}
