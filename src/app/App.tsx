@@ -117,37 +117,28 @@ function stepsOverlaySVG(
   opts: { cell:number; margin:number; stroke:number; segMs:number; w:number; h:number }
 ) {
   const { cell, margin, stroke, segMs, w, h } = opts;
-  const cx = (c:number) => margin + c * cell + cell / 2;
+  const px = (c: number) => margin + c * cell + cell / 2;
 
+  // overall SVG box matches the main SVG
   const widthPx  = w * cell + margin * 2;
   const heightPx = h * cell + margin * 2;
 
-  if (!steps?.length) {
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${widthPx} ${heightPx}"></svg>`;
+  // Each step becomes one short line from (x,y) center to (nx,ny) center.
+  // We give each an animation delay = index * segMs.
+  const segDur = Math.max(10, segMs); // guard
+  let out = `<svg xmlns="http://www.w3.org/2000/svg" class="dfs-anim" width="${widthPx}" height="${heightPx}" viewBox="0 0 ${widthPx} ${heightPx}">`;
+  out += `<g style="--seg-dur:${Math.max(0.03, segDur/1000)}s">`;
+
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i];
+    const x1 = px(s.x), y1 = px(s.y);
+    const x2 = px(s.nx), y2 = px(s.ny);
+    const delay = (i * segDur) / 1000; // seconds
+    out += `<path d="M ${x1} ${y1} L ${x2} ${y2}" stroke="#3b82f6" stroke-width="${Math.max(2, Math.round(stroke*0.8))}" fill="none" pathLength="1" style="animation-delay:${delay}s"/>`;
   }
 
-  // Build a continuous path through the DFS order:
-  // Start at the center of the first cell, then line to each next center.
-  let d = `M ${cx(steps[0].x)} ${cx(steps[0].y)}`;
-  for (const s of steps) {
-    d += ` L ${cx(s.nx)} ${cx(s.ny)}`;
-  }
-
-  // Total duration based on edges count (same feel as per-segment anim)
-  const totalSec = Math.max(0.2, (steps.length * segMs) / 1000);
-
-  return `
-<svg xmlns="http://www.w3.org/2000/svg" class="dfs-anim"
-     viewBox="0 0 ${widthPx} ${heightPx}" style="--dur:${totalSec}s">
-  <path d="${d}"
-        fill="none"
-        stroke="#3b82f6"
-        stroke-width="${Math.max(2, Math.round(stroke*0.9))}"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        vector-effect="non-scaling-stroke"
-        pathLength="1" />
-</svg>`;
+  out += `</g></svg>`;
+  return out;
 }
 
 
