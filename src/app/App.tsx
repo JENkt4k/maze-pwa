@@ -216,6 +216,7 @@ export default function App() {
 
       {/* Mobile FABs: show gear when controls are minimized */}
       <Fab
+        visible={true}                                 // ← always render when you intend to show
         showInstall={canInstall}
         onNew={newMaze}
         onPrint={() => handlePrint(svg)}
@@ -223,6 +224,7 @@ export default function App() {
         showGear={isMobile && !controlsOpen}
         onGear={() => setControlsOpen(true)}
       />
+
 
       <PWABanner
         offlineReady={offlineReady}
