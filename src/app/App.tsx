@@ -25,8 +25,8 @@ const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 // put at module scope (top of App.tsx, outside the component)
 let __printing = false;
 
-export function handlePrint(svg: string) {
-  if (__printing) return;         // prevent accidental double-clicks / re-entry
+function handlePrint(svg: string) {
+  if (__printing) return;
   __printing = true;
 
   const html = `<!DOCTYPE html>
@@ -48,35 +48,29 @@ export function handlePrint(svg: string) {
 </body>
 </html>`;
 
-  // hidden iframe approach (works in iOS/Android PWAs and mobile browsers)
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = '0';
-  iframe.referrerPolicy = 'no-referrer';
+  const iframe = document.createElement("iframe");
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.referrerPolicy = "no-referrer";
 
   iframe.onload = () => {
     const iw = iframe.contentWindow;
     if (!iw) return;
-    // Reset guard when printing is finished (best-effort)
     const done = () => {
       try { iframe.remove(); } catch {}
       __printing = false;
-      iw.removeEventListener?.('afterprint', done as any);
+      iw.removeEventListener?.("afterprint", done as any);
     };
-    iw.addEventListener?.('afterprint', done as any);
+    iw.addEventListener?.("afterprint", done as any);
 
-    // Trigger print exactly once (no script in srcdoc)
     try {
       iw.focus();
-      // let layout settle
-      iw.requestAnimationFrame?.(() => iw.print());
-      setTimeout(() => iw.print(), 50); // fallback if rAF not available
+      iw.print();
     } catch {
-      // last-resort cleanup
       setTimeout(done, 1500);
     }
   };
@@ -84,6 +78,7 @@ export function handlePrint(svg: string) {
   (iframe as any).srcdoc = html;
   document.body.appendChild(iframe);
 }
+
 
 export default function App() {
   /* PWA */
