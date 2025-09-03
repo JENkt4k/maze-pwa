@@ -111,7 +111,7 @@ function handlePrint(svg: string) {
   document.body.appendChild(iframe);
 }
 
-// Replace your stepsOverlaySVG with this one-path version.
+// // Replace your stepsOverlaySVG with this one-path version.
 function stepsOverlaySVG(
   steps: { x:number; y:number; nx:number; ny:number }[],
   opts: { cell:number; margin:number; stroke:number; segMs:number; w:number; h:number }
@@ -128,7 +128,10 @@ function stepsOverlaySVG(
   // Each step becomes one short line from (x,y) center to (nx,ny) center.
   // We give each an animation delay = index * segMs.
   const segDur = Math.max(10, segMs); // guard
-  let out = `<svg xmlns="http://www.w3.org/2000/svg" class="dfs-anim" width="${widthPx}" height="${heightPx}" viewBox="0 0 ${widthPx} ${heightPx}">`;
+  let out = `<svg xmlns="http://www.w3.org/2000/svg" 
+              class="dfs-anim" 
+
+              viewBox="0 0 ${widthPx} ${heightPx}">`;
   out += `<g style="--seg-dur:${Math.max(0.03, segDur/1000)}s">`;
 
   for (let i = 0; i < steps.length; i++) {
@@ -146,11 +149,38 @@ function stepsOverlaySVG(
   return out;
 }
 
+// function stepsOverlaySVG(steps:  { x:number; y:number; nx:number; ny:number }[],
+//    opts: { cell:number, margin:number, stroke:number, segMs:number, w:number, h:number }) {
+//   const { cell, margin, stroke, segMs, w, h } = opts;
+//   const widthPx  = w * cell + margin * 2;
+//   const heightPx = h * cell + margin * 2;
+
+//   // build 'd' as before...
+
+//   const passageWidth = cell - stroke; // wall-to-wall fill
+//   const totalSec = Math.max(0.2, (steps.length * segMs) / 1000);
+
+//   return `
+// <svg xmlns="http://www.w3.org/2000/svg"
+//      class="dfs-anim"
+//      viewBox="0 0 ${widthPx} ${heightPx}"
+//      style="--dur:${totalSec}s">
+//   <path d="${d}"
+//         fill="none"
+//         stroke="#3b82f6"
+//         stroke-width="${Math.max(1, passageWidth - 1)}"
+//         stroke-linecap="round"
+//         stroke-linejoin="round"
+//         vector-effect="non-scaling-stroke"
+//         pathLength="1" />
+// </svg>`;
+// }
 
 
 
 export default function App() {
   const hostRef = useRef<HTMLDivElement | null>(null);
+  const frameRef = useRef<HTMLDivElement | null>(null); 
   /* PWA */
   const [needRefresh, setNeedRefresh] = useState(false);
   const [offlineReady, setOfflineReady] = useState(false);
@@ -375,14 +405,9 @@ export default function App() {
 
         {/* Stack: Maze first, Stats below */}
         <section className="stack">
-          {/* <div
-            ref={svgHostRef as any}
-            id="print-maze-only"
-            dangerouslySetInnerHTML={{ __html: svg }}
-          /> */}
           {/* Maze and drawing overlay */}
           <div className="draw-wrap">
-            <div ref={hostRef} className="maze-host">
+            <div ref={frameRef} className="maze-host">
               {/* Base maze SVG */}
               <div
                 id="print-maze-only"
@@ -400,7 +425,7 @@ export default function App() {
               )}
 
               {/* ⬇️ Drawing canvas MUST be inside .maze-host */}
-              <DrawingCanvas hostRef={hostRef} />
+              <DrawingCanvas hostRef={frameRef} />
             </div>
           </div>
           <StatsCard stats={stats}/>
