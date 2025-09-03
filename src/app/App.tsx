@@ -8,6 +8,8 @@ import Fab from "./components/Fab";
 import { usePWAInstall } from "./hooks/usePWAInstall";
 import { useResizeObserver } from "./hooks/useResizeObserver";
 import "../style.css";
+import DrawingCanvas from "./components/DrawingCanvas";
+
 
 const SETTINGS_KEY = "maze:settings:v1";
 
@@ -123,6 +125,11 @@ export default function App() {
   }, []);
   const { canInstall, install } = usePWAInstall();
 
+  // Start/Goal markers (emoji string OR data URL from image)
+  const [startIcon, setStartIcon] = useState<string | null>("🚀");
+  const [goalIcon, setGoalIcon]   = useState<string | null>("🏁");
+
+
   /* Maze params */
   // const [seed, setSeed] = useState(42);
   // const [width, setWidth] = useState(19);
@@ -166,12 +173,12 @@ export default function App() {
       stroke: Math.max(2, Math.round(cell/8)),
       margin: Math.round(cell/2),
       showStartGoal: true,
-      startIcon: "🚀",
-      goalIcon: "🏁",
+      startIcon: startIcon ?? undefined,
+      goalIcon: goalIcon ?? undefined,
       iconScale: 0.7,
     });
     return { svg, stats, currentParams: params };
-  }, [width, height, seed, g, b, tau, cell]);
+  }, [width, height, seed, g, b, tau, cell, startIcon, goalIcon]);
 
   /* Controls placement & state */
   const [isMobile, setIsMobile]   = useState(false);
@@ -281,11 +288,20 @@ export default function App() {
 
         {/* Stack: Maze first, Stats below */}
         <section className="stack">
-          <div
+          {/* <div
             ref={svgHostRef as any}
             id="print-maze-only"
             dangerouslySetInnerHTML={{ __html: svg }}
-          />
+          /> */}
+          {/* Maze and drawing overlay */}
+          <div className="draw-wrap">
+            <div
+              ref={svgHostRef as any}
+              id="print-maze-only"
+              dangerouslySetInnerHTML={{ __html: svg }}
+            />
+            <DrawingCanvas hostRef={svgHostRef} />
+          </div>
           <StatsCard stats={stats}/>
         </section>
       </main>
@@ -306,6 +322,10 @@ export default function App() {
         lockSize={lockSize}                         // ← NEW
         setLockSize={setLockSize}                   // ← NEW
         onMaxDifficulty={findMaxDifficulty}         // ← NEW
+        startIcon={startIcon}
+        goalIcon={goalIcon}
+        setStartIcon={setStartIcon}
+        setGoalIcon={setGoalIcon}
       />
 
       {/* Mobile FABs: show gear when controls are minimized */}

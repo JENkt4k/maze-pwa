@@ -104,3 +104,86 @@ input[type="range"]{ width:100%; height:28px; touch-action: none; }
   /* Optional: remove page margins if you prefer borderless printers */
   /* @page { margin: 0; } */
 }
+
+/* Canvas sits over the SVG */
+/* .draw-overlay { position: absolute; inset: 0; pointer-events: none; } */
+
+/* The SVG host wrapper must be relative so children can absolutely position */
+.draw-wrap { position: relative; }
+
+/* Canvas overlay (interactive) */
+.draw-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;   /* allow smooth drawing on touch */
+  z-index: 1;
+}
+
+/* Clickable toolbar above canvas */
+.draw-toolbar {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;          /* above canvas */
+}
+
+@media print {
+  .draw-toolbar { display: none !important; }
+}
+
+/* Emoji picker popover */
+.emoji-popover{
+  position: absolute;
+  z-index: 1000;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:12px;
+  box-shadow:0 12px 28px rgba(0,0,0,.18);
+  padding:10px;
+  display: inline-block;              /* shrink to content */
+  width: auto;                        /* no fixed/min width */
+  max-width: calc(100vw - 24px);      /* keep it on-screen */
+}
+
+/* emoji-mart v5 root element – allow natural width */
+.emoji-popover .em-emoji-picker{
+  width: auto !important;             /* override any default width */
+  max-width: calc(100vw - 44px) !important;
+}
+
+.emoji-row{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  margin-bottom:8px;
+}
+.emoji-grid{
+  display:grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap:6px;
+  max-height: 240px;
+  overflow:auto;
+}
+.emoji-cell{
+  font-size: 20px;
+  line-height: 1;
+  padding: 6px;
+  background: #fff;
+  border:1px solid #e5e7eb;
+  border-radius:8px;
+  cursor:pointer;
+}
+.emoji-cell:hover, .emoji-cell:focus-visible{
+  border-color:#357cf6;
+  outline:none;
+}
+.emoji-groups{
+  margin-top:8px;
+  display:flex;
+  gap:6px;
+  flex-wrap: wrap;
+}
