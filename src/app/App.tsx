@@ -25,59 +25,62 @@ const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
 // put at module scope (top of App.tsx, outside the component)
 let __printing = false;
 
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !("MSStream" in window);
+}
+function isStandalonePWA() {
+  return window.matchMedia?.("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+}
+
+
 function handlePrint(svg: string) {
   if (__printing) return;
   __printing = true;
 
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+  if (isIOS() || isStandalonePWA()) {
+    // iOS / standalone PWA: print the current page with print CSS
+    requestAnimationFrame(() => {
+      window.print();
+      // let afterprint reset the guard if supported
+      const done = () => { __printing = false; window.removeEventListener("afterprint", done); };
+      window.addEventListener("afterprint", done);
+      // fallback reset
+      setTimeout(done, 1500);
+    });
+    return;
+  }
+
+  // Desktop / normal Chrome path: print isolated SVG in a hidden iframe
+  const html = `<!DOCTYPE html><html><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Maze Print</title>
 <style>
-  html, body { margin: 0; padding: 0; background: #fff; }
-  .wrap { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:16px; }
-  svg { width: 95vw; height: auto; max-height: 95vh; }
-  @page { margin: 10mm; }
-  @media print { .wrap { padding: 0; } }
+  html,body{margin:0;padding:0;background:#fff}
+  .wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}
+  svg{width:95vw;height:auto;max-height:95vh}
+  @page{margin:10mm}
+  @media print{.wrap{padding:0}}
 </style>
-</head>
-<body>
-  <div class="wrap">${svg}</div>
-</body>
-</html>`;
+</head><body><div class="wrap">${svg}</div></body></html>`;
 
   const iframe = document.createElement("iframe");
-  iframe.style.position = "fixed";
-  iframe.style.right = "0";
-  iframe.style.bottom = "0";
-  iframe.style.width = "0";
-  iframe.style.height = "0";
-  iframe.style.border = "0";
+  Object.assign(iframe.style, { position:"fixed", right:"0", bottom:"0", width:"0", height:"0", border:"0" });
   iframe.referrerPolicy = "no-referrer";
-
   iframe.onload = () => {
     const iw = iframe.contentWindow;
-    if (!iw) return;
-    const done = () => {
-      try { iframe.remove(); } catch {}
-      __printing = false;
-      iw.removeEventListener?.("afterprint", done as any);
-    };
+    if (!iw) { iframe.remove(); __printing = false; return; }
+    const done = () => { try { iframe.remove(); } catch {} __printing = false; iw.removeEventListener?.("afterprint", done as any); };
     iw.addEventListener?.("afterprint", done as any);
-
     try {
       iw.focus();
-      iw.print();
-    } catch {
-      setTimeout(done, 1500);
-    }
+      iw.requestAnimationFrame?.(() => iw.print());
+      setTimeout(() => iw.print(), 50);
+    } catch { setTimeout(done, 1500); }
   };
-
   (iframe as any).srcdoc = html;
   document.body.appendChild(iframe);
 }
+
 
 
 export default function App() {

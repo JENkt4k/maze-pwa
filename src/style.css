@@ -76,3 +76,31 @@ input[type="range"]{ width:100%; height:28px; touch-action: none; }
   outline-offset: 2px;
 }
 
+/* Print only the maze SVG */
+@media print {
+  /* hide everything by default */
+  body * { visibility: hidden !important; }
+
+  /* show container and its descendants */
+  #print-maze-only,
+  #print-maze-only * { visibility: visible !important; }
+
+  /* ensure it occupies the page */
+  #print-maze-only {
+    position: fixed !important;
+    inset: 0 !important;        /* top/right/bottom/left: 0 */
+    margin: 0 !important;
+    padding: 10mm !important;   /* printable margin */
+    background: #fff !important;
+  }
+
+  /* scale SVG nicely */
+  #print-maze-only svg {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 100% !important;
+  }
+
+  /* Optional: remove page margins if you prefer borderless printers */
+  /* @page { margin: 0; } */
+}
