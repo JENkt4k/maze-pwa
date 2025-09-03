@@ -19,6 +19,9 @@ type Props = {
   isMobile: boolean;
   controlsOpen: boolean;
   onMinimize: () => void;     // << minimize button
+  lockSize: boolean;                 // ← NEW
+  setLockSize: (v:boolean)=>void;    // ← NEW
+  onMaxDifficulty: () => void;       // ← NEW
 };
 
 export default function Sidebar(props: Props){
@@ -48,11 +51,31 @@ export default function Sidebar(props: Props){
         <legend>Size</legend>
         <details>
           <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>Adjust size</summary>
+
           <label>Width: {width}
-            <input type="range" min={7} max={41} step={2} value={width} onChange={e=>setWidth(parseInt(e.target.value))}/>
+            <input
+              type="range" min={7} max={41} step={2}
+              value={width}
+              onChange={e=>props.setWidth(parseInt(e.target.value))}
+            />
           </label>
+
           <label>Height: {height}
-            <input type="range" min={7} max={41} step={2} value={height} onChange={e=>setHeight(parseInt(e.target.value))}/>
+            <input
+              type="range" min={7} max={41} step={2}
+              value={height}
+              onChange={e=>props.setHeight(parseInt(e.target.value))}
+              disabled={props.lockSize}
+            />
+          </label>
+
+          <label className="hstack" style={{ alignItems:"center", gap:8 }}>
+            <input
+              type="checkbox"
+              checked={props.lockSize}
+              onChange={(e)=>props.setLockSize(e.target.checked)}
+            />
+            <span>Lock width & height (square)</span>
           </label>
         </details>
       </fieldset>
@@ -61,6 +84,7 @@ export default function Sidebar(props: Props){
         <legend>Difficulty</legend>
         <details open>
           <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>Adjust difficulty</summary>
+
           <label>Goal bias g: {g.toFixed(2)}
             <input type="range" min={0} max={1} step={0.01} value={g} onChange={e=>setG(parseFloat(e.target.value))}/>
           </label>
@@ -70,8 +94,18 @@ export default function Sidebar(props: Props){
           <label>Turn penalty τ: {tau.toFixed(2)}
             <input type="range" min={0} max={1} step={0.01} value={tau} onChange={e=>setTau(parseFloat(e.target.value))}/>
           </label>
+
+          <div className="hstack" style={{ gap:8, marginTop:8 }}>
+            <button className="btn btn-primary" type="button" onClick={props.onMaxDifficulty}>
+              Max difficulty
+            </button>
+            <span style={{ fontSize:12, color:"#6b7280" }}>
+              (coarse sweep over g/b/τ for current size & seed)
+            </span>
+          </div>
         </details>
       </fieldset>
+
 
       <div className="grid-2">
         <button className="btn" onClick={onNew}>New Maze</button>

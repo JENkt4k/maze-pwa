@@ -9,6 +9,31 @@ import { usePWAInstall } from "./hooks/usePWAInstall";
 import { useResizeObserver } from "./hooks/useResizeObserver";
 import "../style.css";
 
+const SETTINGS_KEY = "maze:settings:v1";
+
+type Settings = {
+  seed: number;
+  width: number;
+  height: number;
+  g: number;
+  b: number;
+  tau: number;
+  controlsOpen: boolean;
+  lockSize: boolean;
+};
+
+function loadSettings(): Partial<Settings> | null {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
+function saveSettings(s: Settings) {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch {}
+}
+
 type SavedMaze = {
   id: string;
   name: string;
@@ -99,12 +124,22 @@ export default function App() {
   const { canInstall, install } = usePWAInstall();
 
   /* Maze params */
-  const [seed, setSeed] = useState(42);
-  const [width, setWidth] = useState(19);
-  const [height, setHeight] = useState(19);
-  const [g, setG] = useState(0.3);
-  const [b, setB] = useState(0.15);
-  const [tau, setTau] = useState(0.4);
+  // const [seed, setSeed] = useState(42);
+  // const [width, setWidth] = useState(19);
+  // const [height, setHeight] = useState(19);
+  // const [g, setG] = useState(0.3);
+  // const [b, setB] = useState(0.15);
+  // const [tau, setTau] = useState(0.4);
+    /* Maze params (with persisted defaults) */
+  const persisted = loadSettings();
+
+  const [seed, setSeed]     = useState(persisted?.seed   ?? 42);
+  const [width, setWidth_]  = useState(persisted?.width  ?? 19);
+  const [height, setHeight_] = useState(persisted?.height ?? 19);
+  const [g, setG]           = useState(persisted?.g      ?? 0.3);
+  const [b, setB]           = useState(persisted?.b      ?? 0.15);
+  const [tau, setTau]       = useState(persisted?.tau    ?? 0.4);
+
 
   /* Saved mazes */
   const [saved, setSaved] = useState<SavedMaze[]>([]);
@@ -139,8 +174,61 @@ export default function App() {
   }, [width, height, seed, g, b, tau, cell]);
 
   /* Controls placement & state */
-  const [isMobile, setIsMobile] = useState(false);
-  const [controlsOpen, setControlsOpen] = useState(true);
+  const [isMobile, setIsMobile]   = useState(false);
+  const [controlsOpen, setControlsOpen] = useState(
+    persisted?.controlsOpen ?? true
+  );
+
+  /* Keep width/height locked together (square) if enabled */
+  const [lockSize, setLockSize] = useState(persisted?.lockSize ?? false);
+
+  const setWidth = (w: number) => {
+    const even = w % 2 === 1 ? w : w + 1;            // keep odd if your maze expects odd
+    setWidth_(even);
+    if (lockSize) setHeight_(even);
+  };
+  const setHeight = (h: number) => {
+    const even = h % 2 === 1 ? h : h + 1;
+    setHeight_(even);
+    if (lockSize) setWidth_(even);
+  };
+
+  useEffect(() => {
+    const s: Settings = {
+      seed, width, height, g, b, tau,
+      controlsOpen,
+      lockSize,
+    };
+    saveSettings(s);
+  }, [seed, width, height, g, b, tau, controlsOpen, lockSize]);
+
+  // Heuristic sweep to maximize stats.D over (g, b, tau) for current size & seed
+  const findMaxDifficulty = () => {
+    // coarse grid keeps it fast in-browser; tweak steps if you want
+    const gVals   = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
+    const bVals   = [0.00, 0.10, 0.20, 0.30, 0.40, 0.50];
+    const tauVals = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
+
+    let best: { g:number;b:number;tau:number; D:number } | null = null;
+
+    for (const gg of gVals) {
+      for (const bb of bVals) {
+        for (const tt of tauVals) {
+          const { stats } = createMaze({ width, height, seed, g: gg, b: bb, tau: tt });
+          const D = Number(stats?.D ?? 0);
+          if (!best || D > best.D) {
+            best = { g: gg, b: bb, tau: tt, D };
+          }
+        }
+      }
+    }
+    if (best) {
+      setG(best.g); setB(best.b); setTau(best.tau);
+      // Optionally bump seed to re-generate with new params:
+      setSeed((s) => s + 1);
+    }
+  };
+
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 840px)");
     const apply = () => { setIsMobile(mq.matches); setControlsOpen(!mq.matches); };
@@ -215,6 +303,9 @@ export default function App() {
         isMobile={isMobile}
         controlsOpen={controlsOpen}
         onMinimize={() => setControlsOpen(false)}   // ← minimize button handler
+        lockSize={lockSize}                         // ← NEW
+        setLockSize={setLockSize}                   // ← NEW
+        onMaxDifficulty={findMaxDifficulty}         // ← NEW
       />
 
       {/* Mobile FABs: show gear when controls are minimized */}
