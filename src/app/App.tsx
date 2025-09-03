@@ -118,6 +118,8 @@ function stepsOverlaySVG(
 ) {
   const { cell, margin, stroke, segMs, w, h } = opts;
   const px = (c: number) => margin + c * cell + cell / 2;
+  const passageWidth = cell/2 - (2 * stroke);
+
 
   // overall SVG box matches the main SVG
   const widthPx  = w * cell + margin * 2;
@@ -134,7 +136,10 @@ function stepsOverlaySVG(
     const x1 = px(s.x), y1 = px(s.y);
     const x2 = px(s.nx), y2 = px(s.ny);
     const delay = (i * segDur) / 1000; // seconds
-    out += `<path d="M ${x1} ${y1} L ${x2} ${y2}" stroke="#3b82f6" stroke-width="${Math.max(2, Math.round(stroke*0.8))}" fill="none" pathLength="1" style="animation-delay:${delay}s"/>`;
+    out += `<path d="M ${x1} ${y1} L ${x2} ${y2}" 
+      stroke="#3b82f6" 
+      stroke-width="${passageWidth}" 
+      fill="none" pathLength="1" style="animation-delay:${delay}s"/>`;
   }
 
   out += `</g></svg>`;
@@ -188,6 +193,11 @@ export default function App() {
   const [animateDFS, setAnimateDFS] = useState(persisted?.animateDFS ?? false);
   const [dfsSegMs, setDfsSegMs]     = useState(persisted?.dfsSegMs ?? 35);
   
+  type Phase = "idle" | "animating" | "linger";
+
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [lingerMs, setLingerMs] = useState(2000); // adjust as you like (or expose in Sidebar)
+
 
   /* Saved mazes */
   const [saved, setSaved] = useState<SavedMaze[]>([]);
@@ -235,12 +245,25 @@ export default function App() {
 
   // drive the animating flag
   useEffect(() => {
-    if (!animateDFS || stepsCount === 0) { setAnimating(false); return; }
-    setAnimating(true);
-    const totalMs = stepsCount * dfsSegMs + 150; // small buffer
-    const t = setTimeout(() => setAnimating(false), totalMs);
-    return () => clearTimeout(t);
-  }, [animateDFS, stepsCount, dfsSegMs]);
+    if (!animateDFS || stepsCount === 0) {
+      setPhase("idle");
+      return;
+    }
+    // Phase 1: animate
+    setPhase("animating");
+
+    const totalMs = stepsCount * dfsSegMs + 150; // draw duration (+ tiny buffer)
+
+    // switch to linger (overlay + SVG)
+    const t1 = setTimeout(() => setPhase("linger"), totalMs + lingerMs);
+
+    // switch to idle (SVG only)
+    const t2 = setTimeout(() => setPhase("idle"), totalMs + 2 * lingerMs);
+
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [animateDFS, stepsCount, dfsSegMs, lingerMs]);
+
+
 
   /* Controls placement & state */
   const [isMobile, setIsMobile]   = useState(false);
@@ -360,15 +383,15 @@ export default function App() {
           {/* Maze and drawing overlay */}
           <div className="draw-wrap">
             <div ref={hostRef} className="maze-host">
-              {/* Maze: hidden while animating */}
+              {/* Base maze SVG: hidden only during 'animating' */}
               <div
                 id="print-maze-only"
-                style={{ opacity: animating ? 0 : 1, transition: "opacity .2s" }}
+                style={{ opacity: phase === "animating" ? 0 : 1, transition: "opacity .2s" }}
                 dangerouslySetInnerHTML={{ __html: svg }}
               />
 
-              {/* Overlay: visible only while animating */}
-              {animating && overlay && (
+              {/* Overlay: visible during 'animating' and 'linger', hidden on 'idle' */}
+              {(phase === "animating" || phase === "linger") && overlay && (
                 <div
                   className="maze-overlay"
                   aria-hidden="true"
@@ -376,10 +399,7 @@ export default function App() {
                 />
               )}
             </div>
-            {/* Drawing layer stays above both */}
-            <DrawingCanvas hostRef={hostRef} />
           </div>
-
           <StatsCard stats={stats}/>
         </section>
       </main>
