@@ -3,7 +3,11 @@
 **Infimaze** is an offline-ready Progressive Web App (PWA) for generating and playing with endless, kid-friendly mazes.  
 Built with **React + Vite + TypeScript**.
 
-![Infimaze screenshot](public/infimaze-screenshot.png)
+![Infimaze screenshot](screenshots/maze.png)
+### Animations
+
+![animation 1](screenshots/animation-1.png)
+![animation 2](screenshots/animation-2.png)
 
 ---
 
