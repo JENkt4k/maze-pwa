@@ -383,14 +383,14 @@ export default function App() {
           {/* Maze and drawing overlay */}
           <div className="draw-wrap">
             <div ref={hostRef} className="maze-host">
-              {/* Base maze SVG: hidden only during 'animating' */}
+              {/* Base maze SVG */}
               <div
                 id="print-maze-only"
                 style={{ opacity: phase === "animating" ? 0 : 1, transition: "opacity .2s" }}
                 dangerouslySetInnerHTML={{ __html: svg }}
               />
 
-              {/* Overlay: visible during 'animating' and 'linger', hidden on 'idle' */}
+              {/* DFS overlay */}
               {(phase === "animating" || phase === "linger") && overlay && (
                 <div
                   className="maze-overlay"
@@ -398,6 +398,9 @@ export default function App() {
                   dangerouslySetInnerHTML={{ __html: overlay }}
                 />
               )}
+
+              {/* ⬇️ Drawing canvas MUST be inside .maze-host */}
+              <DrawingCanvas hostRef={hostRef} />
             </div>
           </div>
           <StatsCard stats={stats}/>
