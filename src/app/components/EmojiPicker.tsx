@@ -15,7 +15,7 @@ const LazyPicker = React.lazy(async () => {
 type Props = {
   onSelect: (emoji: string) => void;
   onClose?: () => void;
-  anchorRef?: React.RefObject<HTMLElement>;
+  anchorRef?: React.RefObject<HTMLElement | null>;
 };
 
 export default function EmojiPicker({ onSelect, onClose, anchorRef }: Props) {

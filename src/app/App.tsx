@@ -22,7 +22,10 @@ type Settings = {
   tau: number;
   controlsOpen: boolean;
   lockSize: boolean;
+  animateDFS: boolean;            // show classic carve animation
+  dfsSegMs: number;               // ms per segment
 };
+
 
 function loadSettings(): Partial<Settings> | null {
   try {
@@ -108,6 +111,34 @@ function handlePrint(svg: string) {
   document.body.appendChild(iframe);
 }
 
+function stepsOverlaySVG(
+  steps: { x:number; y:number; nx:number; ny:number }[],
+  opts: { cell:number; margin:number; stroke:number; segMs:number; w:number; h:number }
+) {
+  const { cell, margin, stroke, segMs, w, h } = opts;
+  const px = (c: number) => margin + c * cell + cell / 2;
+
+  // overall SVG box matches the main SVG
+  const widthPx  = w * cell + margin * 2;
+  const heightPx = h * cell + margin * 2;
+
+  // Each step becomes one short line from (x,y) center to (nx,ny) center.
+  // We give each an animation delay = index * segMs.
+  const segDur = Math.max(10, segMs); // guard
+  let out = `<svg xmlns="http://www.w3.org/2000/svg" class="dfs-anim" width="${widthPx}" height="${heightPx}" viewBox="0 0 ${widthPx} ${heightPx}">`;
+  out += `<g style="--seg-dur:${Math.max(0.03, segDur/1000)}s">`;
+
+  for (let i = 0; i < steps.length; i++) {
+    const s = steps[i];
+    const x1 = px(s.x), y1 = px(s.y);
+    const x2 = px(s.nx), y2 = px(s.ny);
+    const delay = (i * segDur) / 1000; // seconds
+    out += `<path d="M ${x1} ${y1} L ${x2} ${y2}" stroke="#3b82f6" stroke-width="${Math.max(2, Math.round(stroke*0.8))}" fill="none" pathLength="1" style="animation-delay:${delay}s"/>`;
+  }
+
+  out += `</g></svg>`;
+  return out;
+}
 
 
 export default function App() {
@@ -147,6 +178,9 @@ export default function App() {
   const [b, setB]           = useState(persisted?.b      ?? 0.15);
   const [tau, setTau]       = useState(persisted?.tau    ?? 0.4);
 
+  const [animateDFS, setAnimateDFS] = useState(persisted?.animateDFS ?? false);
+  const [dfsSegMs, setDfsSegMs]     = useState(persisted?.dfsSegMs ?? 35);
+  
 
   /* Saved mazes */
   const [saved, setSaved] = useState<SavedMaze[]>([]);
@@ -165,20 +199,47 @@ export default function App() {
   }, [hostRect, width]);
 
   /* Maze render */
-  const { svg, stats, currentParams } = useMemo(() => {
-    const params = { width, height, seed, g, b, tau };
-    const { maze, stats } = createMaze(params);
-    const svg = toSVG(maze, {
-      cell,
-      stroke: Math.max(2, Math.round(cell/8)),
-      margin: Math.round(cell/2),
-      showStartGoal: true,
-      startIcon: startIcon ?? undefined,
-      goalIcon: goalIcon ?? undefined,
-      iconScale: 0.7,
-    });
-    return { svg, stats, currentParams: params };
-  }, [width, height, seed, g, b, tau, cell, startIcon, goalIcon]);
+  const { svg, stats, currentParams, overlay } = useMemo(() => {
+  const params = { width, height, seed, g, b, tau };
+  const { maze, stats, steps } = createMaze(params);
+
+  const stroke = Math.max(2, Math.round(cell/8));
+  const svg = toSVG(maze, {
+    cell, stroke, margin: Math.round(cell/2),
+    showStartGoal: true,
+    startIcon: startIcon ?? undefined,
+    goalIcon: goalIcon ?? undefined,
+    iconScale: 0.7,
+  });
+
+  const overlay = animateDFS
+    ? stepsOverlaySVG(steps, {
+        cell,
+        margin: Math.round(cell/2),
+        stroke,
+        segMs: dfsSegMs,
+        w: width,
+        h: height
+      })
+    : "";
+
+  return { svg, stats, currentParams: params, overlay };
+}, [width, height, seed, g, b, tau, cell, startIcon, goalIcon, animateDFS, dfsSegMs]);
+
+  // const { svg, stats, currentParams } = useMemo(() => {
+  //   const params = { width, height, seed, g, b, tau };
+  //   const { maze, stats } = createMaze(params);
+  //   const svg = toSVG(maze, {
+  //     cell,
+  //     stroke: Math.max(2, Math.round(cell/8)),
+  //     margin: Math.round(cell/2),
+  //     showStartGoal: true,
+  //     startIcon: startIcon ?? undefined,
+  //     goalIcon: goalIcon ?? undefined,
+  //     iconScale: 0.7,
+  //   });
+  //   return { svg, stats, currentParams: params };
+  // }, [width, height, seed, g, b, tau, cell, startIcon, goalIcon]);
 
   /* Controls placement & state */
   const [isMobile, setIsMobile]   = useState(false);
@@ -205,9 +266,11 @@ export default function App() {
       seed, width, height, g, b, tau,
       controlsOpen,
       lockSize,
+      animateDFS,
+      dfsSegMs,
     };
     saveSettings(s);
-  }, [seed, width, height, g, b, tau, controlsOpen, lockSize]);
+  }, [seed, width, height, g, b, tau, controlsOpen, lockSize, animateDFS, dfsSegMs]);
 
   // Heuristic sweep to maximize stats.D over (g, b, tau) for current size & seed
   const findMaxDifficulty = () => {
@@ -300,6 +363,11 @@ export default function App() {
               id="print-maze-only"
               dangerouslySetInnerHTML={{ __html: svg }}
             />
+            {/* Carve-order overlay (not part of print) */}
+            {overlay && (
+              <div aria-hidden="true" style={{ position:"absolute", inset:0, pointerEvents:"none" }}
+                  dangerouslySetInnerHTML={{ __html: overlay }} />
+            )}
             <DrawingCanvas hostRef={svgHostRef} />
           </div>
           <StatsCard stats={stats}/>
@@ -326,6 +394,10 @@ export default function App() {
         goalIcon={goalIcon}
         setStartIcon={setStartIcon}
         setGoalIcon={setGoalIcon}
+        animateDFS={animateDFS}
+        setAnimateDFS={setAnimateDFS}
+        dfsSegMs={dfsSegMs}
+        setDfsSegMs={setDfsSegMs}
       />
 
       {/* Mobile FABs: show gear when controls are minimized */}

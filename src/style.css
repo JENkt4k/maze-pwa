@@ -187,3 +187,16 @@ input[type="range"]{ width:100%; height:28px; touch-action: none; }
   gap:6px;
   flex-wrap: wrap;
 }
+
+/* --- Classic DFS build animation --- */
+@keyframes dfs-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+/* Any path with pathLength="1" will animate its own segment.
+   We stagger each item with inline style: animation-delay: var(--delay) */
+.dfs-anim path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: dfs-draw var(--seg-dur, .05s) linear forwards;
+}
+
+
