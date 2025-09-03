@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useLayoutEffect } from "react";
 
 type Props = { hostRef: React.RefObject<HTMLDivElement | null> };
 type Mode = "draw" | "erase";
+
 
 export default function DrawingCanvas({ hostRef }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -34,6 +35,16 @@ export default function DrawingCanvas({ hostRef }: Props) {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
   }, [size]);
+
+  // In DrawingCanvas.tsx
+  const barRef = useRef<HTMLDivElement|null>(null);
+  useLayoutEffect(() => {
+    const el = hostRef.current?.parentElement; // .draw-wrap
+    const bar = barRef.current;
+    if (!el || !bar) return;
+    const h = Math.ceil(bar.getBoundingClientRect().height) + 12; // +top gap
+    el.style.paddingTop = `${h}px`;
+  }, []);
 
   const getPt = (e: PointerEvent | React.PointerEvent<HTMLCanvasElement>) => {
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -95,7 +106,7 @@ export default function DrawingCanvas({ hostRef }: Props) {
         onPointerCancel={pointerUp}
       />
       {/* Toolbar as a separate absolutely positioned sibling (clickable) */}
-      <div className="draw-toolbar">
+      <div ref={barRef} className="draw-toolbar">
         <button type="button"
           className={`btn btn-sm ${mode === "draw" ? "btn-primary" : ""}`}
           onClick={() => setMode("draw")}
