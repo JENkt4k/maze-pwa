@@ -360,15 +360,15 @@ export default function App() {
           {/* Maze and drawing overlay */}
           <div className="draw-wrap">
             <div ref={hostRef} className="maze-host">
-              {/* Base maze SVG */}
+              {/* Maze: hidden while animating */}
               <div
                 id="print-maze-only"
-                style={{ opacity: animating ? 0 : 1, transition: "opacity .2s" }} // hide while animating
+                style={{ opacity: animating ? 0 : 1, transition: "opacity .2s" }}
                 dangerouslySetInnerHTML={{ __html: svg }}
               />
 
-              {/* Carve-order overlay (on the same host, so it aligns 1:1) */}
-              {overlay && (
+              {/* Overlay: visible only while animating */}
+              {animating && overlay && (
                 <div
                   className="maze-overlay"
                   aria-hidden="true"
