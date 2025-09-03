@@ -199,4 +199,17 @@ input[type="range"]{ width:100%; height:28px; touch-action: none; }
   animation: dfs-draw var(--seg-dur, .05s) linear forwards;
 }
 
+/* host that contains base SVG + overlay */
+.maze-host { position: relative; }
+
+/* overlay div sits exactly over the base SVG box */
+.maze-overlay { position: absolute; inset: 0; pointer-events: none; }
+
+/* ensure EVERY svg inside the host scales identically */
+.maze-host svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
 

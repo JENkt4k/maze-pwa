@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { registerSW } from "virtual:pwa-register";
 import { createMaze, toSVG } from "./maze";
 import PWABanner from "./components/PWABanner";
@@ -116,24 +116,30 @@ function stepsOverlaySVG(
   opts: { cell:number; margin:number; stroke:number; segMs:number; w:number; h:number }
 ) {
   const { cell, margin, stroke, segMs, w, h } = opts;
-  const px = (c: number) => margin + c * cell + cell / 2;
+  const px = (c:number) => margin + c * cell + cell / 2;
 
-  // overall SVG box matches the main SVG
   const widthPx  = w * cell + margin * 2;
   const heightPx = h * cell + margin * 2;
 
-  // Each step becomes one short line from (x,y) center to (nx,ny) center.
-  // We give each an animation delay = index * segMs.
-  const segDur = Math.max(10, segMs); // guard
-  let out = `<svg xmlns="http://www.w3.org/2000/svg" class="dfs-anim" width="${widthPx}" height="${heightPx}" viewBox="0 0 ${widthPx} ${heightPx}">`;
-  out += `<g style="--seg-dur:${Math.max(0.03, segDur/1000)}s">`;
+  let out = `<svg xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 ${widthPx} ${heightPx}"
+                  class="dfs-anim">`;
+  out += `<g style="--seg-dur:${Math.max(0.03, segMs/1000)}s">`;
 
   for (let i = 0; i < steps.length; i++) {
     const s = steps[i];
     const x1 = px(s.x), y1 = px(s.y);
     const x2 = px(s.nx), y2 = px(s.ny);
-    const delay = (i * segDur) / 1000; // seconds
-    out += `<path d="M ${x1} ${y1} L ${x2} ${y2}" stroke="#3b82f6" stroke-width="${Math.max(2, Math.round(stroke*0.8))}" fill="none" pathLength="1" style="animation-delay:${delay}s"/>`;
+    const delay = (i * segMs) / 1000;
+    out += `<path d="M ${x1} ${y1} L ${x2} ${y2}"
+                  stroke="#3b82f6"
+                  stroke-width="${Math.max(2, Math.round(stroke*0.8))}"
+                  fill="none"
+                  vector-effect="non-scaling-stroke"
+                  pathLength="1"
+                  style="stroke-dasharray:1;stroke-dashoffset:1;
+                         animation:dfs-draw var(--seg-dur) linear forwards;
+                         animation-delay:${delay}s" />`;
   }
 
   out += `</g></svg>`;
@@ -141,7 +147,9 @@ function stepsOverlaySVG(
 }
 
 
+
 export default function App() {
+  const hostRef = useRef<HTMLDivElement | null>(null);
   /* PWA */
   const [needRefresh, setNeedRefresh] = useState(false);
   const [offlineReady, setOfflineReady] = useState(false);
@@ -160,6 +168,9 @@ export default function App() {
   const [startIcon, setStartIcon] = useState<string | null>("🚀");
   const [goalIcon, setGoalIcon]   = useState<string | null>("🏁");
 
+  // state
+  const [animating, setAnimating] = useState(false);
+  const stepsCountRef = useRef(0);
 
   /* Maze params */
   // const [seed, setSeed] = useState(42);
@@ -199,47 +210,41 @@ export default function App() {
   }, [hostRect, width]);
 
   /* Maze render */
-  const { svg, stats, currentParams, overlay } = useMemo(() => {
-  const params = { width, height, seed, g, b, tau };
-  const { maze, stats, steps } = createMaze(params);
+  const { svg, stats, currentParams, overlay, stepsCount } = useMemo(() => {
+    const params = { width, height, seed, g, b, tau };
+    const { maze, stats, steps } = createMaze(params);
+    const stroke = Math.max(2, Math.round(cell/8));
 
-  const stroke = Math.max(2, Math.round(cell/8));
-  const svg = toSVG(maze, {
-    cell, stroke, margin: Math.round(cell/2),
-    showStartGoal: true,
-    startIcon: startIcon ?? undefined,
-    goalIcon: goalIcon ?? undefined,
-    iconScale: 0.7,
-  });
+    const base = toSVG(maze, {
+      cell, stroke, margin: Math.round(cell/2),
+      showStartGoal: true,
+      startIcon: startIcon ?? undefined,
+      goalIcon: goalIcon ?? undefined,
+      iconScale: 0.7
+    });
 
-  const overlay = animateDFS
-    ? stepsOverlaySVG(steps, {
-        cell,
-        margin: Math.round(cell/2),
-        stroke,
-        segMs: dfsSegMs,
-        w: width,
-        h: height
-      })
-    : "";
+    const ov = animateDFS
+      ? stepsOverlaySVG(steps, {
+          cell,
+          margin: Math.round(cell/2),
+          stroke,
+          segMs: dfsSegMs,
+          w: width,
+          h: height
+        })
+      : "";
 
-  return { svg, stats, currentParams: params, overlay };
-}, [width, height, seed, g, b, tau, cell, startIcon, goalIcon, animateDFS, dfsSegMs]);
+    return { svg: base, stats, currentParams: params, overlay: ov, stepsCount: steps?.length ?? 0 };
+  }, [width, height, seed, g, b, tau, cell, startIcon, goalIcon, animateDFS, dfsSegMs]);
 
-  // const { svg, stats, currentParams } = useMemo(() => {
-  //   const params = { width, height, seed, g, b, tau };
-  //   const { maze, stats } = createMaze(params);
-  //   const svg = toSVG(maze, {
-  //     cell,
-  //     stroke: Math.max(2, Math.round(cell/8)),
-  //     margin: Math.round(cell/2),
-  //     showStartGoal: true,
-  //     startIcon: startIcon ?? undefined,
-  //     goalIcon: goalIcon ?? undefined,
-  //     iconScale: 0.7,
-  //   });
-  //   return { svg, stats, currentParams: params };
-  // }, [width, height, seed, g, b, tau, cell, startIcon, goalIcon]);
+  // drive the animating flag
+  useEffect(() => {
+    if (!animateDFS || stepsCount === 0) { setAnimating(false); return; }
+    setAnimating(true);
+    const totalMs = stepsCount * dfsSegMs + 150; // small buffer
+    const t = setTimeout(() => setAnimating(false), totalMs);
+    return () => clearTimeout(t);
+  }, [animateDFS, stepsCount, dfsSegMs]);
 
   /* Controls placement & state */
   const [isMobile, setIsMobile]   = useState(false);
@@ -358,18 +363,27 @@ export default function App() {
           /> */}
           {/* Maze and drawing overlay */}
           <div className="draw-wrap">
-            <div
-              ref={svgHostRef as any}
-              id="print-maze-only"
-              dangerouslySetInnerHTML={{ __html: svg }}
-            />
-            {/* Carve-order overlay (not part of print) */}
-            {overlay && (
-              <div aria-hidden="true" style={{ position:"absolute", inset:0, pointerEvents:"none" }}
-                  dangerouslySetInnerHTML={{ __html: overlay }} />
-            )}
-            <DrawingCanvas hostRef={svgHostRef} />
+            <div ref={hostRef} className="maze-host">
+              {/* Base maze SVG */}
+              <div
+                id="print-maze-only"
+                style={{ opacity: animating ? 0 : 1, transition: "opacity .2s" }} // hide while animating
+                dangerouslySetInnerHTML={{ __html: svg }}
+              />
+
+              {/* Carve-order overlay (on the same host, so it aligns 1:1) */}
+              {overlay && (
+                <div
+                  className="maze-overlay"
+                  aria-hidden="true"
+                  dangerouslySetInnerHTML={{ __html: overlay }}
+                />
+              )}
+            </div>
+            {/* Drawing layer stays above both */}
+            <DrawingCanvas hostRef={hostRef} />
           </div>
+
           <StatsCard stats={stats}/>
         </section>
       </main>
