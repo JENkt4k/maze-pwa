@@ -1,4 +1,25 @@
-# 📐 Maze Generation Algorithm
+# 🌀 Infimaze
+
+**Infimaze** is an offline-ready Progressive Web App (PWA) for generating and playing with endless, kid-friendly mazes.  
+Built with **React + Vite + TypeScript**.
+
+![Infimaze screenshot](public/infimaze-screenshot.png)
+
+---
+
+## ✨ Features
+
+- ✅ Random maze generator (adjustable width, height, difficulty)
+- ✅ Offline support (PWA via `vite-plugin-pwa`)
+- ✅ Save / load mazes locally
+- ✅ Print only the maze (no UI clutter)
+- ✅ Mobile-friendly controls with floating action buttons
+- ✅ Start & Goal markers (emoji or image)
+- ✅ Draw/erase path overlay with touch or mouse
+
+---
+
+## 📐 Maze Generation Algorithm
 
 **Infimaze** uses a **graph-based recursive backtracker** algorithm with tunable parameters to control the *character* of the maze.
 
@@ -62,3 +83,13 @@
 - ✅ **Scales** well for kids (small grids, low bias) or adults (big grids, braided).  
 - ✅ **Extensible**: easy to add weights, alternative start/goal positions, or even non-rectangular grids.  
 - ✅ **Teachable**: core algorithm is simple to visualize (stack of visited cells).  
+
+---
+
+## 🚀 Getting Started
+
+### Development
+```bash
+npm install
+npm run dev
+```
