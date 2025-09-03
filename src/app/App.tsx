@@ -125,6 +125,11 @@ export default function App() {
   }, []);
   const { canInstall, install } = usePWAInstall();
 
+  // Start/Goal markers (emoji string OR data URL from image)
+  const [startIcon, setStartIcon] = useState<string | null>("🚀");
+  const [goalIcon, setGoalIcon]   = useState<string | null>("🏁");
+
+
   /* Maze params */
   // const [seed, setSeed] = useState(42);
   // const [width, setWidth] = useState(19);
@@ -168,8 +173,8 @@ export default function App() {
       stroke: Math.max(2, Math.round(cell/8)),
       margin: Math.round(cell/2),
       showStartGoal: true,
-      startIcon: "🚀",
-      goalIcon: "🏁",
+      startIcon: startIcon ?? undefined,
+      goalIcon: goalIcon ?? undefined,
       iconScale: 0.7,
     });
     return { svg, stats, currentParams: params };
@@ -317,6 +322,10 @@ export default function App() {
         lockSize={lockSize}                         // ← NEW
         setLockSize={setLockSize}                   // ← NEW
         onMaxDifficulty={findMaxDifficulty}         // ← NEW
+        startIcon={startIcon}
+        goalIcon={goalIcon}
+        setStartIcon={setStartIcon}
+        setGoalIcon={setGoalIcon}
       />
 
       {/* Mobile FABs: show gear when controls are minimized */}

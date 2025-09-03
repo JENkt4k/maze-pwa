@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useRef, useState } from "react";
+import EmojiPicker from "./EmojiPicker"; 
 
 type SavedMaze = {
   id: string;
@@ -22,6 +23,10 @@ type Props = {
   lockSize: boolean;                 // ← NEW
   setLockSize: (v:boolean)=>void;    // ← NEW
   onMaxDifficulty: () => void;       // ← NEW
+  startIcon: string | null;
+  goalIcon: string | null;
+  setStartIcon: (v: string | null) => void;
+  setGoalIcon: (v: string | null) => void;
 };
 
 export default function Sidebar(props: Props){
@@ -31,10 +36,17 @@ export default function Sidebar(props: Props){
     setWidth, setHeight, setG, setB, setTau,
     onNew, onPrint,
     saveName, setSaveName, saved, selectedId, onSave, onLoad, onDelete,
-    isMobile, controlsOpen, onMinimize
+    isMobile, controlsOpen, onMinimize,
+    startIcon, goalIcon, setStartIcon, setGoalIcon,
   } = props;
 
-  const display = isMobile ? (controlsOpen ? "flex" : "none") : "flex";
+  const [picker, setPicker] = useState<null | "start" | "goal">(null);
+  const startBtnRef = useRef<HTMLButtonElement | null>(null);
+  const goalBtnRef  = useRef<HTMLButtonElement | null>(null);
+
+  const display = props.isMobile ? (props.controlsOpen ? "flex" : "none") : "flex";
+
+  // const display = isMobile ? (controlsOpen ? "flex" : "none") : "flex";
 
   return (
     <aside className="panel controls" style={{ display, flexDirection:"column", gap:16 }}>
@@ -79,6 +91,112 @@ export default function Sidebar(props: Props){
           </label>
         </details>
       </fieldset>
+
+            {/* Markers */}
+      <fieldset>
+        <legend>Markers</legend>
+        <details open>
+          <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>
+            Choose Start & Goal
+          </summary>
+
+          <div style={{ display:"grid", gap:12 }}>
+            <label>
+              Start (emoji or empty):
+              <div className="hstack" style={{ gap:8 }}>
+                <input
+                  type="text"
+                  value={startIcon ?? ""}
+                  onChange={(e) => setStartIcon(e.target.value || null)}
+                  placeholder="🚀"
+                  style={{ width:"6em", textAlign:"center" }}
+                />
+                <button
+                  ref={startBtnRef}
+                  className="btn btn-sm"
+                  type="button"
+                  onClick={() => setPicker(p => p === "start" ? null : "start")}
+                  aria-expanded={picker==="start"}
+                >
+                  Pick emoji
+                </button>
+              </div>
+            </label>
+
+            <label>
+              Goal (emoji or empty):
+              <div className="hstack" style={{ gap:8 }}>
+                <input
+                  type="text"
+                  value={goalIcon ?? ""}
+                  onChange={(e) => setGoalIcon(e.target.value || null)}
+                  placeholder="🏁"
+                  style={{ width:"6em", textAlign:"center" }}
+                />
+                <button
+                  ref={goalBtnRef}
+                  className="btn btn-sm"
+                  type="button"
+                  onClick={() => setPicker(p => p === "goal" ? null : "goal")}
+                  aria-expanded={picker==="goal"}
+                >
+                  Pick emoji
+                </button>
+              </div>
+            </label>
+
+            <label>
+              Or upload custom image (start):
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = () => setStartIcon(reader.result as string); // data URL
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+            </label>
+
+            <label>
+              Or upload custom image (goal):
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = () => setGoalIcon(reader.result as string);
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+            </label>
+          </div>
+        </details>
+
+        {/* Popovers (rendered at end of fieldset so z-index is sane) */}
+        {picker === "start" && (
+          <EmojiPicker
+            onSelect={(e) => setStartIcon(e)}
+            onClose={() => setPicker(null)}
+            anchorRef={startBtnRef}
+          />
+        )}
+        {picker === "goal" && (
+          <EmojiPicker
+            onSelect={(e) => setGoalIcon(e)}
+            onClose={() => setPicker(null)}
+            anchorRef={goalBtnRef}
+          />
+        )}
+      </fieldset>
+
+
 
       <fieldset>
         <legend>Difficulty</legend>
