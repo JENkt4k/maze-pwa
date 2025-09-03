@@ -289,7 +289,7 @@ export default function App() {
             dangerouslySetInnerHTML={{ __html: svg }}
           /> */}
           {/* Maze and drawing overlay */}
-          <div className="draw-wrap" style={{ position: "relative" }}>
+          <div className="draw-wrap">
             <div
               ref={svgHostRef as any}
               id="print-maze-only"

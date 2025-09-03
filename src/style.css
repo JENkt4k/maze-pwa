@@ -105,18 +105,32 @@ input[type="range"]{ width:100%; height:28px; touch-action: none; }
   /* @page { margin: 0; } */
 }
 
+/* Canvas sits over the SVG */
+/* .draw-overlay { position: absolute; inset: 0; pointer-events: none; } */
 
-/* Container around the SVG should be position:relative */
+/* The SVG host wrapper must be relative so children can absolutely position */
 .draw-wrap { position: relative; }
 
-/* Canvas sits over the SVG */
-.draw-overlay { position: absolute; inset: 0; pointer-events: none; }
-.draw-canvas  { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: auto; touch-action: none; }
-
-/* Small toolbar floating on top-left of the maze, not printed */
-.draw-toolbar{
-  position: absolute; left: 8px; top: 8px; display: flex; gap: 6px; z-index: 2;
+/* Canvas overlay (interactive) */
+.draw-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;   /* allow smooth drawing on touch */
+  z-index: 1;
 }
+
+/* Clickable toolbar above canvas */
+.draw-toolbar {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 2;          /* above canvas */
+}
+
 @media print {
-  .draw-toolbar { display: none !important; }   /* don’t print the toolbar */
+  .draw-toolbar { display: none !important; }
 }
