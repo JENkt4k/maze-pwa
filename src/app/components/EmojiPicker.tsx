@@ -1,26 +1,30 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+// src/app/components/EmojiPicker.tsx
+import React, { useEffect, useRef, useState, Suspense } from "react";
+
+// Lazy import to keep initial bundle small
+const LazyPicker = React.lazy(async () => {
+  const [modReact, data] = await Promise.all([
+    import("@emoji-mart/react"),
+    import("@emoji-mart/data"),
+  ]);
+  // Re-export as a default component that already has data bound
+  const Picker = (props: any) => <modReact.default data={data.default} {...props} />;
+  return { default: Picker };
+});
 
 type Props = {
   onSelect: (emoji: string) => void;
   onClose?: () => void;
-  anchorRef?: React.RefObject<HTMLElement | null>;
+  anchorRef?: React.RefObject<HTMLElement>;
 };
-
-const EMOJI_SETS: Record<string, string[]> = {
-  Popular: ["🚀","🏁","⭐","🔥","🎯","💎","🧩","🧭","🗺️","🟢","🔴","🟦","⬜","⬛","🐭","🦊","🐱","🐶","🐸","🐢"],
-  Arrows:  ["⬆️","➡️","⬇️","⬅️","↗️","↘️","↙️","↖️","🔁","🔄","🔃"],
-  Symbols:["⭕","❌","✅","⚠️","⭐","🌟","✨","❇️","💠","🔶","🔷","🔺","🔻"],
-  Flags:   ["🏁","🚩","🎌","🏳️","🏴","🏳️‍🌈"],
-};
-
-const FLAT = Object.values(EMOJI_SETS).flat();
 
 export default function EmojiPicker({ onSelect, onClose, anchorRef }: Props) {
-  const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  // position near anchor (fallback to top-left)
+  // Position near anchor
   useEffect(() => {
+    setMounted(true);
     const root = rootRef.current;
     const anchor = anchorRef?.current;
     if (!root) return;
@@ -36,7 +40,7 @@ export default function EmojiPicker({ onSelect, onClose, anchorRef }: Props) {
     }
   }, [anchorRef]);
 
-  // outside click to close
+  // Close on outside click / ESC
   useEffect(() => {
     function onDoc(e: MouseEvent) {
       if (!rootRef.current) return;
@@ -47,55 +51,22 @@ export default function EmojiPicker({ onSelect, onClose, anchorRef }: Props) {
     }
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onEsc);
-    return () => {
-      document.removeEventListener("mousedown", onDoc);
-      document.removeEventListener("keydown", onEsc);
-    };
+    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onEsc); };
   }, [onClose]);
 
-  const results = useMemo(() => {
-    const q = query.trim();
-    if (!q) return FLAT;
-    // naive filter: if query is emoji or short text, include all (fallback)
-    // You can expand to a real name-index if you wish.
-    return FLAT.filter(e => e.includes(q));
-  }, [query]);
+  if (!mounted) return null;
 
   return (
     <div ref={rootRef} className="emoji-popover" role="dialog" aria-label="Emoji picker">
-      <div className="emoji-row">
-        <input
-          className="input"
-          placeholder="Search emoji…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          autoFocus
+      <Suspense fallback={<div style={{ padding: 12 }}>Loading emojis…</div>}>
+        <LazyPicker
+          onEmojiSelect={(e: any) => { onSelect(e?.native ?? ""); onClose?.(); }}
+          theme="light"
+          dynamicWidth
+          previewPosition="none"
+          skinTonePosition="search"
         />
-        <button className="btn" onClick={onClose} type="button">Close</button>
-      </div>
-
-      <div className="emoji-grid" role="listbox" aria-label="Emoji results">
-        {results.map((e, i) => (
-          <button
-            key={i}
-            type="button"
-            className="emoji-cell"
-            onClick={() => { onSelect(e); onClose?.(); }}
-            aria-label={`Choose ${e}`}
-          >
-            {e}
-          </button>
-        ))}
-      </div>
-
-      {/* Quick groups */}
-      <div className="emoji-groups">
-        {Object.keys(EMOJI_SETS).map((k) => (
-          <button key={k} className="btn btn-sm" type="button" onClick={() => setQuery("")}>
-            {k}
-          </button>
-        ))}
-      </div>
+      </Suspense>
     </div>
   );
 }

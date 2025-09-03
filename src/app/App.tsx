@@ -178,7 +178,7 @@ export default function App() {
       iconScale: 0.7,
     });
     return { svg, stats, currentParams: params };
-  }, [width, height, seed, g, b, tau, cell]);
+  }, [width, height, seed, g, b, tau, cell, startIcon, goalIcon]);
 
   /* Controls placement & state */
   const [isMobile, setIsMobile]   = useState(false);

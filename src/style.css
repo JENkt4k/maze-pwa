@@ -137,15 +137,24 @@ input[type="range"]{ width:100%; height:28px; touch-action: none; }
 
 /* Emoji picker popover */
 .emoji-popover{
-  position:absolute; /* positioned by JS near anchor */
+  position: absolute;
   z-index: 1000;
   background:#fff;
   border:1px solid #e5e7eb;
   border-radius:12px;
   box-shadow:0 12px 28px rgba(0,0,0,.18);
-  width: min(320px, calc(100vw - 24px));
-  padding: 10px;
+  padding:10px;
+  display: inline-block;              /* shrink to content */
+  width: auto;                        /* no fixed/min width */
+  max-width: calc(100vw - 24px);      /* keep it on-screen */
 }
+
+/* emoji-mart v5 root element – allow natural width */
+.emoji-popover .em-emoji-picker{
+  width: auto !important;             /* override any default width */
+  max-width: calc(100vw - 44px) !important;
+}
+
 .emoji-row{
   display:flex;
   gap:8px;
