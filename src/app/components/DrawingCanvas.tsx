@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-type Props = { hostRef: React.RefObject<HTMLDivElement> };
+type Props = { hostRef: React.RefObject<HTMLDivElement |  null> };
 type Mode = "draw" | "erase";
 
 export default function DrawingCanvas({ hostRef }: Props) {
