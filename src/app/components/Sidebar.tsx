@@ -27,6 +27,10 @@ type Props = {
   goalIcon: string | null;
   setStartIcon: (v: string | null) => void;
   setGoalIcon: (v: string | null) => void;
+  animateDFS: boolean;
+  setAnimateDFS: (v:boolean)=>void;
+  dfsSegMs: number;
+  setDfsSegMs: (n:number)=>void;
 };
 
 export default function Sidebar(props: Props){
@@ -38,6 +42,8 @@ export default function Sidebar(props: Props){
     saveName, setSaveName, saved, selectedId, onSave, onLoad, onDelete,
     isMobile, controlsOpen, onMinimize,
     startIcon, goalIcon, setStartIcon, setGoalIcon,
+    animateDFS, setAnimateDFS,
+    dfsSegMs, setDfsSegMs,
   } = props;
 
   const [picker, setPicker] = useState<null | "start" | "goal">(null);
@@ -92,7 +98,7 @@ export default function Sidebar(props: Props){
         </details>
       </fieldset>
 
-            {/* Markers */}
+      {/* Markers */}
       <fieldset>
         <legend>Markers</legend>
         <details open>
@@ -178,6 +184,35 @@ export default function Sidebar(props: Props){
             </label>
           </div>
         </details>
+        
+        <fieldset>
+          <legend>Animation</legend>
+          <details open>
+            <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>
+              Classic DFS build
+            </summary>
+
+            <label className="hstack" style={{ alignItems:"center", gap:8 }}>
+              <input
+                type="checkbox"
+                checked={animateDFS}
+                onChange={(e)=>setAnimateDFS(e.target.checked)}
+              />
+              <span>Animate build (DFS carve order)</span>
+            </label>
+
+            <label>
+              Segment speed: {dfsSegMs} ms / edge
+              <input
+                type="range" min={10} max={150} step={5}
+                value={dfsSegMs}
+                onChange={(e)=>setDfsSegMs(parseInt(e.target.value))}
+                disabled={!animateDFS}
+              />
+            </label>
+          </details>
+        </fieldset>
+
 
         {/* Popovers (rendered at end of fieldset so z-index is sane) */}
         {picker === "start" && (

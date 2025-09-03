@@ -4,6 +4,7 @@
  */
 
 export type Dir = 'N' | 'E' | 'S' | 'W';
+export type CarveStep = { x: number; y: number; nx: number; ny: number }; // cell -> neighbor
 
 export interface MazeParams {
   width: number;      // cells (odd preferred for symmetry)
@@ -59,6 +60,7 @@ function inBounds(w: number, h: number, x: number, y: number): boolean {
 }
 
 export function createMaze(params: MazeParams) {
+  const steps: CarveStep[] = [];
   const w = params.width | 0;
   const h = params.height | 0;
   if (w < 3 || h < 3) throw new Error('Maze must be at least 3x3');
@@ -89,6 +91,7 @@ export function createMaze(params: MazeParams) {
     walls[idx(x, y)] &= ~BIT[d];
     if (inBounds(w, h, nx, ny)) {
       walls[idx(nx, ny)] &= ~BIT[OPP[d]];
+      steps.push({ x, y, nx, ny });
     }
   }
 
@@ -171,7 +174,7 @@ export function createMaze(params: MazeParams) {
   // Stats
   const stats = measureDifficulty(maze);
 
-  return { maze, stats, rngSeed: seed };
+  return { maze, stats, rngSeed: seed, steps };
 }
 
 // --- Difficulty measurement ---
@@ -326,4 +329,34 @@ export function toSVG(m: Maze, opts: SvgOptions): string {
   ${lines.join('\n  ')}
   ${marks.join('\n  ')}
 </svg>`;
+}
+
+function stepsOverlaySVG(
+  steps: CarveStep[],
+  opts: { cell:number; margin:number; stroke:number; segMs:number; w:number; h:number }
+) {
+  const { cell, margin, stroke, segMs, w, h } = opts;
+  const px = (c:number) => margin + c * cell + cell/2;
+
+  const widthPx  = w * cell + margin*2;
+  const heightPx = h * cell + margin*2;
+
+  let out = `<svg xmlns="http://www.w3.org/2000/svg" class="dfs-anim" width="${widthPx}" height="${heightPx}" viewBox="0 0 ${widthPx} ${heightPx}">`;
+  out += `<g style="--seg-dur:${Math.max(0.03, segMs/1000)}s">`;
+
+  for (let i=0; i<steps.length; i++) {
+    const s = steps[i];
+    const x1 = px(s.x), y1 = px(s.y);
+    const x2 = px(s.nx), y2 = px(s.ny);
+    const delay = (i * segMs) / 1000; // sec
+    out += `<path d="M ${x1} ${y1} L ${x2} ${y2}" 
+                  stroke="#3b82f6" stroke-width="${stroke}" fill="none"
+                  pathLength="1"
+                  style="stroke-dasharray:1;stroke-dashoffset:1;
+                         animation:dfs-draw var(--seg-dur) linear forwards;
+                         animation-delay:${delay}s"/>`;
+  }
+
+  out += `</g></svg>`;
+  return out;
 }

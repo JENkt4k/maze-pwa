@@ -187,3 +187,36 @@ input[type="range"]{ width:100%; height:28px; touch-action: none; }
   gap:6px;
   flex-wrap: wrap;
 }
+
+/* --- Classic DFS build animation --- */
+@keyframes dfs-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+/* Any path with pathLength="1" will animate its own segment.
+   We stagger each item with inline style: animation-delay: var(--delay) */
+.dfs-anim path {
+  stroke-dasharray: 1;          /* pathLength normalized to 1 */
+  stroke-dashoffset: 1;
+  animation: dfs-draw var(--dur, 0s) linear forwards;
+}
+
+/* host that contains base SVG + overlay */
+.maze-host { position: relative; }
+
+/* overlay div sits exactly over the base SVG box */
+.maze-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity .4s;
+}
+
+
+/* ensure EVERY svg inside the host scales identically */
+.maze-host svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+
