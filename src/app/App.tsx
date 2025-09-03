@@ -8,6 +8,8 @@ import Fab from "./components/Fab";
 import { usePWAInstall } from "./hooks/usePWAInstall";
 import { useResizeObserver } from "./hooks/useResizeObserver";
 import "../style.css";
+import DrawingCanvas from "./components/DrawingCanvas";
+
 
 const SETTINGS_KEY = "maze:settings:v1";
 
@@ -281,11 +283,20 @@ export default function App() {
 
         {/* Stack: Maze first, Stats below */}
         <section className="stack">
-          <div
+          {/* <div
             ref={svgHostRef as any}
             id="print-maze-only"
             dangerouslySetInnerHTML={{ __html: svg }}
-          />
+          /> */}
+          {/* Maze and drawing overlay */}
+          <div className="draw-wrap" style={{ position: "relative" }}>
+            <div
+              ref={svgHostRef as any}
+              id="print-maze-only"
+              dangerouslySetInnerHTML={{ __html: svg }}
+            />
+            <DrawingCanvas hostRef={svgHostRef} />
+          </div>
           <StatsCard stats={stats}/>
         </section>
       </main>
