@@ -63,14 +63,22 @@ export default function MazeView({
       goalIcon: render.goalIcon ?? undefined,
       iconScale: render.iconScale ?? 0.7,
       dfsSteps: includeDFS ? (steps as CarveStep[]) : undefined,
-      dfsTotalSec: includeDFS ? totalSec : undefined,
+      dfsTotalSec: animation?.enabled ? (steps.length * animation?.segMs) / 1000 : undefined,
       dfsPassageWidth: includeDFS ? passageWidth : undefined,
-      hideWallsDuringAnim: !!animation?.hideWallsDuringAnim && phase === "animating",
+      hideWallsDuringAnim: animation?.hideWallsDuringAnim,
     });
 
     return { svg, stats, stepsCount: steps.length };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params, render, animation?.enabled, animation?.segMs, animation?.hideWallsDuringAnim, phase]);
+  }, [
+    // params, render, animation?.enabled, animation?.segMs, animation?.hideWallsDuringAnim, phase
+    // Dependencies for maze generation
+    params.width, params.height, params.seed, params.g, params.b, params.tau,
+    // Dependencies for SVG rendering
+    render.cell, render.margin, render.stroke, render.startIcon, render.goalIcon, render.iconScale,
+    // Dependencies for animation
+    animation?.enabled, animation?.segMs, animation?.hideWallsDuringAnim
+  ]);
 
 
   const lastSvg = useRef<string>("");
@@ -92,15 +100,45 @@ export default function MazeView({
 
   // Local phase machine
   useEffect(() => {
-    if (!animation?.enabled || memo.stepsCount === 0) { setPhase("idle"); return; }
-    setPhase("animating");
-    const drawMs = memo.stepsCount * (animation?.segMs ?? 35) + 120;
-    const t1 = setTimeout(() => setPhase("linger"), drawMs);
-    const t2 = setTimeout(() => setPhase("idle"),   drawMs + (animation?.lingerMs ?? 2000));
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [animation?.enabled, animation?.segMs, animation?.lingerMs, memo.stepsCount]);
+    const enabled = !!animation?.enabled;
+    const stepsCount = memo.stepsCount;
+    if (!enabled || stepsCount === 0) {
+      if (phase !== "idle") setPhase("idle");
+      return;
+    }
+
+    if (phase !== "animating") setPhase("animating");
+
+  //   if (!animation?.enabled || memo.stepsCount === 0) { setPhase("idle"); return; }
+  //   setPhase("animating");
+  //   const drawMs = memo.stepsCount * (animation?.segMs ?? 35) + 120;
+  //   const t1 = setTimeout(() => setPhase("linger"), drawMs);
+  //   const t2 = setTimeout(() => setPhase("idle"),   drawMs + (animation?.lingerMs ?? 2000));
+  //   return () => { clearTimeout(t1); clearTimeout(t2); };
+  // }, [animation?.enabled, animation?.segMs, animation?.lingerMs, memo.stepsCount]);
+    const segMs = animation?.segMs ?? 35;
+    const lingerMs = animation?.lingerMs ?? 2000;
+    const drawMs = stepsCount * segMs + 120;
+
+    let cancelled = false;
+    const t1 = window.setTimeout(() => {
+      if (!cancelled && phase !== "linger") setPhase("linger");
+    }, drawMs);
+    const t2 = window.setTimeout(() => {
+      if (!cancelled && phase !== "idle") setPhase("idle");
+    }, drawMs + lingerMs);
+
+    return () => { cancelled = true; clearTimeout(t1); clearTimeout(t2); };
+    // deps: everything that should RESTART the animation cycle
+  }, [animation?.enabled, animation?.segMs, animation?.lingerMs, memo.stepsCount]); // <- NO `phase` here
+
+
+  
 
   return (
-    <div ref={hostRef} id="print-maze-only" dangerouslySetInnerHTML={{ __html: memo.svg }} />
+    <div ref={hostRef} className="maze-view">
+      <div dangerouslySetInnerHTML={{ __html: memo.svg }} />
+    </div>
+    // <div ref={hostRef} id="print-maze-only" dangerouslySetInnerHTML={{ __html: memo.svg }} />
   );
 }
