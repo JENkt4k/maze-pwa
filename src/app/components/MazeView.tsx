@@ -1,5 +1,5 @@
 // src/app/components/MazeView.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createMaze, toSVG, type CarveStep } from "../maze";
 
 export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number };
@@ -72,13 +72,22 @@ export default function MazeView({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params, render, animation?.enabled, animation?.segMs, animation?.hideWallsDuringAnim, phase]);
 
-  // 🔑 Notify parent AFTER render computation (no setState during render)
+
+  const lastSvg = useRef<string>("");
   useEffect(() => {
-    onSVGChange?.(memo.svg);
+    if (onSVGChange && memo.svg !== lastSvg.current) {
+      lastSvg.current = memo.svg;
+      onSVGChange(memo.svg);
+    }
   }, [memo.svg, onSVGChange]);
 
+  const lastStats = useRef<any>(null);
   useEffect(() => {
-    onStats?.(memo.stats);
+    if (!onStats) return;
+    const s = memo.stats;
+    const prev = lastStats.current;
+    const same = prev && prev.L===s.L && prev.T===s.T && prev.J===s.J && prev.E===s.E && prev.D===s.D;
+    if (!same) { lastStats.current = s; onStats(s); }
   }, [memo.stats, onStats]);
 
   // Local phase machine
