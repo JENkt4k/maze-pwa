@@ -6,16 +6,15 @@ export type Stats = { L:number; T:number; J:number; E:number; D:number };
 export type MazeResult = {
   // final rendered grid (tree + braids)
   maze: Cell[][];
-  // start/goal for markers
-  start: {x:number;y:number};
-  goal:  {x:number;y:number};
-  stats: Stats;
-
   // DFS spanning-tree carve steps (use for animation + stats)
   treeSteps: CarveStep[];
   // optional: the extra edges knocked out by braiding
   braidEdits: CarveStep[];
   // stats computed **only** from the tree
+  stats: Stats;
+  // start/goal for markers
+  start: {x:number;y:number};
+  goal:  {x:number;y:number};
 };
 
 export function createMaze(params: { width:number;height:number;seed:number;g:number;b:number;tau:number }): MazeResult {
@@ -26,19 +25,15 @@ export function createMaze(params: { width:number;height:number;seed:number;g:nu
   const tree: Cell[][] = Array.from({ length: H }, (_, y) =>
     Array.from({ length: W }, (_, x) => ({ x, y, n:1 as 1|0, s:1 as 1|0, e:1 as 1|0, w:1 as 1|0 }))
   );
+  const start = { x: 0,    y: Math.floor(H/2) };
+  const goal  = { x: W - 1, y: Math.floor(H/2) };
 
-  const inb = (x:number,y:number) => x>=0 && x<W && y>=0 && y<H;
+  const inb = (x:number,y:number)=> x>=0 && x<W && y>=0 && y<H;
   const key = (x:number,y:number)=> `${x},${y}`;
-  //change
   const seen = new Set<string>();
-//change
+
   const stack: {x:number;y:number}[] = [];
   const treeSteps: CarveStep[] = [];
-
-  // DFS with simple goal bias towards bottom-right (g), braid (b), and turn penalty (tau)
-  const start = { x: 0, y: Math.floor(H/2) };
-  const goal  = { x: W-1, y: Math.floor(H/2) };
-
 
   stack.push(start);
   seen.add(key(start.x,start.y));
