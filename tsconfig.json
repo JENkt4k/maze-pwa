@@ -8,8 +8,13 @@
     "jsx": "react-jsx",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "types": ["jest", "node"],
+    "baseUrl": ".",        // optional; only if you need aliases
+    "paths": {             // optional; example alias
+      "@src/*": ["src/*"]
+    }
   },
-  "include": ["src"],
+  "include": ["src", "tests"],
   "references": []
 }

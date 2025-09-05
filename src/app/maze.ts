@@ -119,16 +119,16 @@ export function createMaze(params: { width:number;height:number;seed:number;g:nu
     }
   }
 
-  // stats
-  let L = 0, turns = 0, J = 0, E = 0;
-  for (let y=0;y<H;y++) for(let x=0;x<W;x++){
+  // after DFS (+ braiding) computed
+  let J = 0, E = 0;
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
     const c = grid[y][x];
-    const deg = (c.n?0:1)+(c.s?0:1)+(c.e?0:1)+(c.w?0:1);
-    if (deg===1) E++; else if (deg>=3) J++;
+    const deg = (c.n?0:1) + (c.s?0:1) + (c.e?0:1) + (c.w?0:1);
+    if (deg === 1) E++;
+    else if (deg >= 3) J++;
   }
-  // crude approximations
-  L = steps.length + 1;
-  // estimate turns by vector changes along the DFS path
+  const L = steps.length + 1;
+  let turns = 0;
   for (let i=1;i<steps.length;i++){
     const a = steps[i-1], b2 = steps[i];
     const ax = a.nx - a.x, ay = a.ny - a.y;
@@ -136,10 +136,32 @@ export function createMaze(params: { width:number;height:number;seed:number;g:nu
     if (ax !== bx || ay !== by) turns++;
   }
   const T = L ? turns / L : 0;
-  const D = (L * (1 + T) + J*0.5 + E*0.3) / 20; // normalized-ish
+  const D = Number(((L * (1 + T) + J*0.5 + E*0.3) / 20).toFixed(3));
 
-  const stats: Stats = { L, T, J, E, D };
-  return { maze: grid, stats, steps, start, goal };
+  return { maze:grid, stats:{L, T, J, E, D}, steps, start, goal };
+  // end of code
+
+  // stats
+  // let L = 0, turns = 0, J = 0, E = 0;
+  // for (let y=0;y<H;y++) for(let x=0;x<W;x++){
+  //   const c = grid[y][x];
+  //   const deg = (c.n?0:1)+(c.s?0:1)+(c.e?0:1)+(c.w?0:1);
+  //   if (deg===1) E++; else if (deg>=3) J++;
+  // }
+  // // crude approximations
+  // L = steps.length + 1;
+  // // estimate turns by vector changes along the DFS path
+  // for (let i=1;i<steps.length;i++){
+  //   const a = steps[i-1], b2 = steps[i];
+  //   const ax = a.nx - a.x, ay = a.ny - a.y;
+  //   const bx = b2.nx - b2.x, by = b2.ny - b2.y;
+  //   if (ax !== bx || ay !== by) turns++;
+  // }
+  // const T = L ? turns / L : 0;
+  // const D = (L * (1 + T) + J*0.5 + E*0.3) / 20; // normalized-ish
+
+  // const stats: Stats = { L, T, J, E, D };
+  // return { maze: grid, stats, steps, start, goal };
 }
 
 function isDataURL(s?: string | null) {
