@@ -52,6 +52,7 @@ export default function MazeView({
   const enabled = !!animation?.enabled;
   const segMs = animation?.segMs ?? 35;
   const lingerMs = animation?.lingerMs ?? 2000;
+ 
 
   // Build key so createMaze runs once per “actual change”
   const mazeKey = `${params.width}x${params.height}|${params.seed}|g${params.g}|b${params.b}|t${params.tau}`;
@@ -86,7 +87,10 @@ export default function MazeView({
     if (!enabled || data.treeSteps.length === 0) { setPhase("idle"); return; }
     const myRun = runIdRef.current;
     setPhase("animating");
-    const drawMs = data.treeSteps.length * segMs + 120;
+    // const drawMs = data.treeSteps.length * segMs + 120;
+    const segMsRaw = animation?.segMs ?? 35;
+    const effSegMs = Math.max(10, segMsRaw);       // keep in sync with AnimatedOverlay
+    const drawMs   = data.treeSteps.length * effSegMs + 120;
     const t1 = setTimeout(() => { if (runIdRef.current === myRun) setPhase("linger"); }, drawMs);
     const t2 = setTimeout(() => { if (runIdRef.current === myRun) setPhase("idle");   }, drawMs + lingerMs);
     return () => { clearTimeout(t1); clearTimeout(t2); };
