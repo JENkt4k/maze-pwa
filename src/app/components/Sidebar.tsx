@@ -31,6 +31,11 @@ type Props = {
   setAnimateDFS: (v:boolean)=>void;
   dfsSegMs: number;
   setDfsSegMs: (n:number)=>void;
+  lingerMs: number;
+  setLingerMs: React.Dispatch<React.SetStateAction<number>>;
+  hideWallsDuringAnim: boolean;
+  setHideWallsDuringAnim: React.Dispatch<React.SetStateAction<boolean>>;
+
 };
 
 export default function Sidebar(props: Props){

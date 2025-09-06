@@ -115,7 +115,7 @@ export default function AnimatedOverlay({
               strokeWidth={passageWidth}
               strokeLinecap="round"      // <<— prevents the "blue squares"
               strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
+
               pathLength={1}
               style={{
                 // animate each tiny segment from length 0 → 1
