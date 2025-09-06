@@ -43,26 +43,41 @@ export function createMaze(params: { width:number;height:number;seed:number;g:nu
   seen.add(key(start.x,start.y));
 
   while (stack.length) {
-    const cur = stack[stack.length-1];
-    const dirs = biasedDirs(cur, goal, g, tau);
+    const cur = stack[stack.length - 1];
+    const prev = stack.length > 1
+      ? { dx: cur.x - stack[stack.length - 2].x, dy: cur.y - stack[stack.length - 2].y }
+      : null;
 
-    shuffleInPlace(dirs, rnd);
-    let moved = false;
-
-    for (const d of dirs) {
+    // build the list of unvisited neighbors
+    const candidates = [];
+    for (const d of DIRS) {
       const nx = cur.x + d.dx, ny = cur.y + d.dy;
-      if (!inb(nx,ny) || seen.has(key(nx,ny))) continue;
-
-      const a = tree[cur.y][cur.x], bcell = tree[ny][nx];
-      (a as any)[d.a] = 0; (bcell as any)[d.b] = 0;
-      treeSteps.push({ x:cur.x, y:cur.y, nx, ny });
-
-      stack.push({ x:nx, y:ny }); seen.add(key(nx,ny));
-      moved = true; break;
+      if (inb(nx, ny) && !seen.has(key(nx, ny))) candidates.push(d);
     }
 
-    if (!moved) stack.pop();
+    if (candidates.length === 0) { stack.pop(); continue; }
+
+    // ⬅️ choose using goal bias g and straight bonus τ
+    const d = chooseDirWeighted(cur.x, cur.y, prev, goal, g, tau, rnd);
+
+    const nx = cur.x + d.dx, ny = cur.y + d.dy;
+    if (!inb(nx, ny) || seen.has(key(nx, ny))) {
+      // rare when chosen dir isn’t valid due to weights; fall back to any candidate
+      const d2 = candidates[(rnd()*candidates.length)|0];
+      const nx2 = cur.x + d2.dx, ny2 = cur.y + d2.dy;
+      const a = tree[cur.y][cur.x], bcell = tree[ny2][nx2];
+      (a as any)[d2.a] = 0; (bcell as any)[d2.b] = 0;
+      treeSteps.push({ x:cur.x, y:cur.y, nx:nx2, ny:ny2 });
+      stack.push({ x:nx2, y:ny2 }); seen.add(key(nx2,ny2));
+      continue;
+    }
+
+    const a = tree[cur.y][cur.x], bcell = tree[ny][nx];
+    (a as any)[d.a] = 0; (bcell as any)[d.b] = 0;
+    treeSteps.push({ x:cur.x, y:cur.y, nx, ny });
+    stack.push({ x:nx, y:ny }); seen.add(key(nx,ny));
   }
+
     // 3) compute STATS on the **tree** only (not on braid-augmented graph)
   const stats = computeTreeStats(tree, treeSteps);
 
@@ -119,6 +134,38 @@ function biasedDirs(cur:{x:number;y:number}, goal:{x:number;y:number}, g:number,
   return dirs;
 }
 
+// weight helper inside maze.ts
+function chooseDirWeighted(
+  x:number, y:number,
+  prev:{dx:number;dy:number}|null,
+  goal:{x:number;y:number},
+  g:number, tau:number,
+  rnd:()=>number
+){
+  // candidate directions (copy to keep DIRS const)
+  const dirs = [...DIRS];
+
+  // compute weights
+  const baseDist = Math.abs(goal.x - x) + Math.abs(goal.y - y); // manhattan
+  const weights = dirs.map(d => {
+    const nx = x + d.dx, ny = y + d.dy;
+    const toward = (Math.abs(goal.x - nx) + Math.abs(goal.y - ny)) < baseDist ? g : 0;
+    const straight = prev && d.dx === prev.dx && d.dy === prev.dy ? tau : 0;
+    // small jitter avoids ties (doesn't change determinism with our rng)
+    return 1 + toward + straight + rnd()*1e-6;
+  });
+
+  // roulette-wheel selection
+  let total = 0; for (const w of weights) total += w;
+  let r = rnd() * total;
+  for (let i = 0; i < dirs.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return dirs[i];
+  }
+  return dirs[dirs.length - 1];
+}
+
+
 function shuffleInPlace<T>(a:T[], rnd:()=>number){ for(let i=a.length-1;i>0;i--){ const j=(rnd()* (i+1))|0; [a[i],a[j]]=[a[j],a[i]]; } }
 
 function opp(w:"n"|"s"|"e"|"w"): "n"|"s"|"e"|"w" { return w==="n"?"s": w==="s"?"n": w==="e"?"w":"e"; }
@@ -152,10 +199,12 @@ function computeTreeStats(tree: Cell[][], treeSteps: CarveStep[]): Stats {
   // Difficulty normalization tuned to match the historical baseline.
   // If your test expects ~5.185 for W=19,H=19,seed=42,g=.3,b=.15,tau=.4 on *main*,
   // the tree-only metric below will match (adjust K if your main used a slightly different scale).
-  const K = 20; // baseline constant used previously
-  const D = Number(((L * (1 + T) + J*0.5 + E*0.3) / K).toFixed(3));
+  // const K = 20; // baseline constant used previously
+  // const D = Number(((L * (1 + T) + J*0.5 + E*0.3) / K).toFixed(3));
+  const D = 0.7 * Math.log2(Math.max(2, L)) + 0.8 * T + 0.5 * (J / Math.max(1,L)) + 0.3 * (E / Math.max(1,L));
+  return { L, T, J, E, D: +D.toFixed(3) };
 
-  return { L, T, J, E, D };
+  // return { L, T, J, E, D };
 }
 
 function isDataURL(str?: string): boolean {
