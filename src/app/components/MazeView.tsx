@@ -1,23 +1,22 @@
 // src/app/components/MazeView.tsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { createMaze, toSVG, type CarveStep } from "../maze";
+import { createMaze, toSVG } from "../maze";
+import AnimatedOverlay from "./AnimatedOverlay";
 
 export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number };
-
 type RenderOpts = {
-  cell: number;
-  margin: number;
-  stroke?: number;
-  startIcon?: string | null;
-  goalIcon?: string | null;
-  iconScale?: number;
+  cell:number;
+  margin:number;
+  stroke?:number;
+  startIcon?:string|null;
+  goalIcon?:string|null;
+  iconScale?:number; 
 };
-
 type AnimOpts = {
-  enabled: boolean;
-  segMs: number;
-  lingerMs: number;
-  hideWallsDuringAnim?: boolean;
+  enabled:boolean;
+  segMs:number;
+  lingerMs:number;
+  hideWallsDuringAnim?:boolean;
 };
 
 type Props = {
@@ -25,8 +24,8 @@ type Props = {
   params: MazeParams;
   render: RenderOpts;
   animation?: AnimOpts;
-  onStats?: (s: any) => void;
-  onSVGChange?: (svg: string) => void;
+  onStats?: (s:any) => void;
+  onSVGChange?: (svg:string) => void;
 };
 
 type Phase = "idle" | "animating" | "linger";
@@ -37,95 +36,82 @@ export default function MazeView({
   render,
   animation,
   onStats,
-  onSVGChange,
+  onSVGChange
 }: Props) {
   const [phase, setPhase] = useState<Phase>("idle");
+  const runIdRef = useRef(0);
 
-  // Destructure scalars so deps are stable primitives, not the whole objects
   const {
     cell,
     margin,
-    stroke: strokeIn,
     startIcon,
     goalIcon,
-    iconScale = 0.7,
+    iconScale = 0.7
   } = render;
+  const stroke = render.stroke ?? Math.max(2, Math.round(cell/8));
   const enabled = !!animation?.enabled;
   const segMs = animation?.segMs ?? 35;
   const lingerMs = animation?.lingerMs ?? 2000;
-  const hideWallsDuringAnim = !!animation?.hideWallsDuringAnim;
 
-  // Build maze + SVG (pure) — SINGLE createMaze call
-  const memo = useMemo(() => {
-    // console.log("MazeView: computing maze+SVG - useMemo called");
-    const res = createMaze(params); // MazeResult: { maze, treeSteps, stats, start, goal, ... }
+  // Build key so createMaze runs once per “actual change”
+  const mazeKey = `${params.width}x${params.height}|${params.seed}|g${params.g}|b${params.b}|t${params.tau}`;
+  useEffect(() => { runIdRef.current++; }, [mazeKey]);
 
-    const stroke = strokeIn ?? Math.max(2, Math.round(cell / 8));
-    const passageWidth = Math.max(1, cell - stroke - 1);
+  // Compute maze + steps + stats once per key
+  const data = useMemo(() => createMaze(params), [mazeKey]);
 
-    const includeDFS = enabled && phase !== "idle";
-    const totalSec = Math.max(0.2, (res.treeSteps.length * segMs) / 1000);
-
-    const svg = toSVG(res, {
-      cell,
-      margin,
-      stroke,
+  // Base (phase-independent) SVG for print/render
+  const baseSVG = useMemo(() => {
+    return toSVG(data, {
+      cell, margin, stroke,
       showStartGoal: true,
       startIcon: startIcon ?? undefined,
       goalIcon:  goalIcon  ?? undefined,
       iconScale,
-      dfsSteps: includeDFS ? (res.treeSteps as CarveStep[]) : undefined,
-      dfsTotalSec: includeDFS ? totalSec : undefined,
-      dfsPassageWidth: includeDFS ? passageWidth : undefined,
-      hideWallsDuringAnim: hideWallsDuringAnim && phase === "animating",
+      // ⛔ no dfsSteps here — animation is separate
     });
+  }, [data, cell, margin, stroke, startIcon, goalIcon, iconScale]);
 
-    return { svg, stats: res.stats, stepsCount: res.treeSteps.length };
-  }, [
-    // strictly the things that change the maze/SVG
-    params.width, params.height, params.seed, params.g, params.b, params.tau,
-    cell, margin, strokeIn, startIcon, goalIcon, iconScale,
-    enabled, segMs, hideWallsDuringAnim,
-    phase, // phase toggles DFS layer on/off
-  ]);
+  // Notify parent: svg + stats (notify only on change)
+  const lastSvg = useRef(""); useEffect(() => {
+    if (onSVGChange && baseSVG !== lastSvg.current) { lastSvg.current = baseSVG; onSVGChange(baseSVG); }
+  }, [baseSVG, onSVGChange]);
+  const lastStats = useRef<any>(null); useEffect(() => {
+    const s = data.stats, p = lastStats.current;
+    if (!p || p.D!==s.D || p.L!==s.L || p.T!==s.T || p.J!==s.J || p.E!==s.E) { lastStats.current = s; onStats?.(s); }
+  }, [data.stats, onStats]);
 
-  // Notify parent ONLY when changed (no setState during render)
-  const lastSvg = useRef<string>("");
+  // Phase machine per run
   useEffect(() => {
-    if (onSVGChange && memo.svg !== lastSvg.current) {
-      lastSvg.current = memo.svg;
-      onSVGChange(memo.svg);
-    }
-    console.log("MazeView: useEffect for onSVGChange fired");
-  }, [memo.svg, onSVGChange]);
-
-  const lastStats = useRef<any>(null);
-  useEffect(() => {
-    if (!onStats) return;
-    const s = memo.stats;
-    const p = lastStats.current;
-    const same = p && p.L===s.L && p.T===s.T && p.J===s.J && p.E===s.E && p.D===s.D;
-    if (!same) { lastStats.current = s; onStats(s); }
-    console.log("MazeView: useEffect for onStats fired");
-  }, [memo.stats, onStats]);
-
-  // Phase machine: start/advance ONCE per (maze/options) change
-  useEffect(() => {
-    if (!enabled || memo.stepsCount === 0) { if (phase !== "idle") setPhase("idle"); return; }
-    if (phase !== "animating") setPhase("animating");
-
-    const drawMs = memo.stepsCount * segMs + 120;
-    const t1 = window.setTimeout(() => { if (phase !== "linger") setPhase("linger"); }, drawMs);
-    const t2 = window.setTimeout(() => { if (phase !== "idle")   setPhase("idle");   }, drawMs + lingerMs);
+    if (!enabled || data.treeSteps.length === 0) { setPhase("idle"); return; }
+    const myRun = runIdRef.current;
+    setPhase("animating");
+    const drawMs = data.treeSteps.length * segMs + 120;
+    const t1 = setTimeout(() => { if (runIdRef.current === myRun) setPhase("linger"); }, drawMs);
+    const t2 = setTimeout(() => { if (runIdRef.current === myRun) setPhase("idle");   }, drawMs + lingerMs);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-    console.log("MazeView: useEffect for phase/animation fired");
-  }, [enabled, segMs, lingerMs, memo.stepsCount]); // ← no `phase` here, avoids loops
+  }, [enabled, segMs, lingerMs, data.treeSteps.length]);
+
+  const showOverlay = enabled && phase !== "idle";
 
   return (
-    <div
-      ref={hostRef}
-      id="print-maze-only"
-      dangerouslySetInnerHTML={{ __html: memo.svg }}
-    />
+    <div className="maze-frame" ref={hostRef} id="print-maze-only">
+      {/* Static maze SVG */}
+      <div dangerouslySetInnerHTML={{ __html: baseSVG }} />
+
+      {/* Optional overlay */}
+      <AnimatedOverlay
+        steps={data.treeSteps}
+        cell={cell}
+        margin={margin}
+        stroke={stroke}
+        segMs={segMs}
+        widthCells={params.width}
+        heightCells={params.height}
+        visible={showOverlay}
+        autoHide={false /* handled by phase timers */}
+        onDone={() => { /* we could flip to linger here if we wanted */ }}
+      />
+    </div>
   );
 }

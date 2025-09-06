@@ -100,7 +100,7 @@ export default function Sidebar(props: Props){
         </details>
       </fieldset>
 
-            {/* Markers */}
+      {/* Markers */}
       <fieldset>
         <legend>Markers</legend>
         <details open>
