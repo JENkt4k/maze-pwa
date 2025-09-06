@@ -193,12 +193,12 @@ input[type="range"]{ width:100%; height:28px; touch-action: none; }
 .maze-frame svg, #print-maze-only svg { display:block; width:100%; height:auto; }
 
 /* DFS animation (embedded path) */
-@keyframes dfs-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+/* @keyframes dfs-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 .dfs-anim path {
   stroke-dasharray: 1;
   stroke-dashoffset: 0;
   animation: dfs-draw var(--dur, 0s) linear forwards;
-}
+} */
 
 /* Optional: hide walls during animation, then pop in at the end */
 .walls { opacity: 1; }
@@ -210,3 +210,10 @@ input[type="range"]{ width:100%; height:28px; touch-action: none; }
 .maze-frame svg { display:block; width:100%; height:auto; }
 .dfs-overlay-svg { position:absolute; inset:0; z-index:2; pointer-events:none; }
 @media print { .dfs-overlay-svg { display:none !important; } }
+
+@keyframes dfs-draw { to { stroke-dashoffset: 0; } }
+.dfs-anim path {
+  stroke-dasharray: 0;
+  stroke-dashoffset: 0;
+  animation: dfs-draw var(--dur, 0.05s) linear forwards;
+}

@@ -79,32 +79,50 @@ export default function AnimatedOverlay({
   }
 
   // === classic "one tiny path per segment" with staggered delay ===
-  const segDurSec = Math.max(0.03, Math.max(10, segMs) / 1000);
+const segDurSec = Math.max(0.03, Math.max(10, segMs) / 1000);
 
-  return (
-    <svg className="dfs-overlay-svg dfs-anim" viewBox={`0 0 ${viewW} ${viewH}`} aria-hidden="true">
-      <g style={{ ["--dur" as any]: `${segDurSec}s` }}>
-        {steps.map((s, i) => {
-          const d = `M ${cx(s.x)} ${cy(s.y)} L ${cx(s.nx)} ${cy(s.ny)}`;
-          const delay = i * segDurSec;
-          return (
-            <path
-              key={i}
-              d={d}
-              fill="none"
-              stroke="#3b82f6"
-              strokeWidth={passageWidth}
-              vectorEffect="non-scaling-stroke"
-              pathLength={1}
-              style={{
-                // `style.css` already supplies: animation: dfs-draw var(--dur) linear forwards;
-                // we only set the per-path delay:
-                animationDelay: `${delay}s`,
-              }}
-            />
-          );
-        })}
-      </g>
-    </svg>
-  );
+return (
+  <svg
+    className="dfs-overlay-svg"
+    viewBox={`0 0 ${viewW} ${viewH}`}
+    aria-hidden="true"
+  >
+    {/* Keep the keyframes local so we don't rely on global CSS */}
+    <defs>
+      <style>{`
+        @keyframes dfs-draw { to { stroke-dashoffset: 0; } }
+      `}</style>
+    </defs>
+
+    <g>
+      {steps.map((s, i) => {
+        const d = `M ${cx(s.x)} ${cy(s.y)} L ${cx(s.nx)} ${cy(s.ny)}`;
+        const delay = i * segDurSec;
+        return (
+          <path
+            key={i}
+            d={d}
+            fill="none"
+            stroke="#3b82f6"
+            strokeWidth={passageWidth}
+            strokeLinecap="round"      // <<— prevents the "blue squares"
+            strokeLinejoin="round"
+            vectorEffect="non-scaling-stroke"
+            pathLength={1}
+            style={{
+              // animate each tiny segment from length 0 → 1
+              strokeDasharray: 1,
+              strokeDashoffset: 1,
+              animation: `dfs-draw ${segDurSec}s linear forwards`,
+              animationDelay: `${delay}s`,
+              willChange: "stroke-dashoffset",
+            }}
+          />
+        );
+      })}
+    </g>
+  </svg>
+);
+
+
 }
