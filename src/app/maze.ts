@@ -17,6 +17,10 @@ export type MazeResult = {
   goal:  {x:number;y:number};
 };
 
+function isMazeResult(x: any): x is MazeResult {
+  return x && x.maze && Array.isArray(x.maze);
+}
+
 export function createMaze(params: { width:number;height:number;seed:number;g:number;b:number;tau:number }): MazeResult {
   const { width: W, height: H, seed, g, b, tau } = params;
   const rnd = mulberry32(seed);
@@ -151,4 +155,91 @@ function computeTreeStats(tree: Cell[][], treeSteps: CarveStep[]): Stats {
   const D = Number(((L * (1 + T) + J*0.5 + E*0.3) / K).toFixed(3));
 
   return { L, T, J, E, D };
+}
+
+function isDataURL(str?: string): boolean {
+  if (!str) return false;
+  // quick check: starts with "data:" and has a comma separating metadata and payload
+  return /^data:([a-z]+\/[a-z0-9\-\+\.]+)?(;[a-z\-]+\=[a-z0-9\-\.]+)*(;base64)?,/i.test(str);
+}
+
+export function toSVG(
+  input: Cell[][] | MazeResult,
+  opts: {
+    cell:number; margin:number; stroke?:number;
+    showStartGoal?:boolean; startIcon?:string; goalIcon?:string; iconScale?:number;
+    // DFS animation (optional)
+    dfsSteps?: CarveStep[]; dfsTotalSec?: number; dfsPassageWidth?: number;
+    hideWallsDuringAnim?: boolean;
+  }
+): string {
+  const m  = isMazeResult(input) ? input.maze : input;
+  const SG = isMazeResult(input) ? {start: input.start, goal: input.goal} : null;
+
+  const { cell, margin, stroke = 2 } = opts;
+  const H = m.length, W = m[0]?.length ?? 0;
+  const widthPx  = W * cell + margin * 2;
+  const heightPx = H * cell + margin * 2;
+
+  const cx  = (x:number)=> margin + x*cell + cell/2;
+  const cy  = (y:number)=> margin + y*cell + cell/2;
+
+  // (Tip: drop width/height attrs for responsive scaling; keep if you prefer)
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${widthPx} ${heightPx}">`;
+
+  // Walls
+  let walls = "";
+  for (let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const c = m[y][x];
+    if (c.n) walls += `<line x1="${margin+x*cell}" y1="${margin+y*cell}" x2="${margin+(x+1)*cell}" y2="${margin+y*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
+    if (c.w) walls += `<line x1="${margin+x*cell}" y1="${margin+y*cell}" x2="${margin+x*cell}" y2="${margin+(y+1)*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
+    if (y===H-1 && c.s) walls += `<line x1="${margin+x*cell}" y1="${margin+(y+1)*cell}" x2="${margin+(x+1)*cell}" y2="${margin+(y+1)*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
+    if (x===W-1 && c.e) walls += `<line x1="${margin+(x+1)*cell}" y1="${margin+y*cell}" x2="${margin+(x+1)*cell}" y2="${margin+(y+1)*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
+  }
+  const wallsClass = opts.hideWallsDuringAnim ? `class="walls hide"` : `class="walls"`;
+  svg += `<g ${wallsClass}>${walls}</g>`;
+
+  // Start/Goal (prefer MazeResult’s start/goal if available; fallback to mid-row ends)
+  if (opts.showStartGoal !== false) {
+    const s = SG?.start ?? { x: 0,     y: Math.floor(H/2) };
+    const g = SG?.goal  ?? { x: W - 1, y: Math.floor(H/2) };
+    const sX = cx(s.x), sY = cy(s.y);
+    const gX = cx(g.x), gY = cy(g.y);
+    const r = Math.max(3, Math.round(cell*0.25));
+    const fs = cell * (opts.iconScale ?? 0.8);
+
+    if (isDataURL(opts.startIcon)) {
+      svg += `<image href="${opts.startIcon}" x="${sX - fs/2}" y="${sY - fs/2}" width="${fs}" height="${fs}" />`;
+    } else if (opts.startIcon) {
+      svg += `<text x="${sX}" y="${sY}" font-size="${fs}" text-anchor="middle" dominant-baseline="central">${opts.startIcon}</text>`;
+    } else {
+      svg += `<circle cx="${sX}" cy="${sY}" r="${r}" fill="limegreen"/>`;
+    }
+
+    if (isDataURL(opts.goalIcon)) {
+      svg += `<image href="${opts.goalIcon}" x="${gX - fs/2}" y="${gY - fs/2}" width="${fs}" height="${fs}" />`;
+    } else if (opts.goalIcon) {
+      svg += `<text x="${gX}" y="${gY}" font-size="${fs}" text-anchor="middle" dominant-baseline="central">${opts.goalIcon}</text>`;
+    } else {
+      svg += `<circle cx="${gX}" cy="${gY}" r="${r}" fill="crimson"/>`;
+    }
+  }
+
+  // Optional embedded DFS path (still allowed)
+  if (opts.dfsSteps && opts.dfsSteps.length) {
+    const d = `M ${cx(opts.dfsSteps[0].x)} ${cy(opts.dfsSteps[0].y)}`
+      + opts.dfsSteps.map(s => ` L ${cx(s.nx)} ${cy(s.ny)}`).join("");
+    const dur  = Math.max(0.2, opts.dfsTotalSec ?? 4);
+    const pass = Math.max(1, opts.dfsPassageWidth ?? (cell - stroke - 1));
+    svg += `
+<g class="dfs-anim" style="--dur:${dur}s">
+  <path d="${d}" fill="none" stroke="#3b82f6" stroke-width="${pass}"
+        stroke-linecap="round" stroke-linejoin="round"
+        vector-effect="non-scaling-stroke" pathLength="1"
+        style="stroke-dasharray:1;stroke-dashoffset:1" />
+</g>`;
+  }
+
+  svg += `</svg>`;
+  return svg;
 }
