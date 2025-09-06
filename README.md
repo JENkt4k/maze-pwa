@@ -97,3 +97,23 @@ Built with **React + Vite + TypeScript**.
 npm install
 npm run dev
 ```
+
+# Regressions a corections
+- Fixed: New maze button was not working (App.tsx)
+- Added: Basic test for maze stats (stats.spec.ts)
+- Added: TypeScript types for better type safety (App.tsx)
+- Added: .gitignore entries for common unwanted files (e.g., .env, .vscode) (.gitignore)
+- Added: TypeScript configuration improvements (tsconfig.json)
+- Added: Debugging console logs in MazeView component (MazeView.tsx)
+- Added: Jest and Node types to tsconfig for testing support (tsconfig.json)
+- Added: Path aliasing in tsconfig for cleaner imports (tsconfig.json)
+- Added: Included tests directory in tsconfig for type checking (tsconfig.json)
+- Fixed: Ensured consistent casing in file names (tsconfig.json)
+- Fixed: Ensured maze stats test checks for expected structure and values (stats.spec.ts)
+- Fixed: Ensured maze generation stats test uses correct expected value (stats.spec.ts)
+- Working image imports for start/goal markers (App.tsx)
+- Fixed: stats calculation error in maze generation (maze.ts)
+- Fixed: useEffect dependencies to avoid unnecessary re-renders (MazeView.tsx)
+- working save/load maze state (App.tsx) 
+- working difificulty settings (App.tsx)
+- working animations control (App.tsx, MazeView.tsx)
