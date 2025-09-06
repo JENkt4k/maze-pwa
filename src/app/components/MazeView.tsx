@@ -43,6 +43,7 @@ export default function MazeView({
 
   // Build maze + SVG (pure)
   const memo = useMemo(() => {
+    console.log("MazeView: computing maze+SVG - useMemo called");
     // 🔁 NEW: createMaze now returns { maze, stats, treeSteps, ... }
     const { maze, stats, treeSteps } = createMaze(params);
 
@@ -90,6 +91,7 @@ export default function MazeView({
       lastSvg.current = memo.svg;
       onSVGChange(memo.svg);
     }
+    console.log("MazeView: useEffect for onSVGChange fired");
   }, [memo.svg, onSVGChange]);
 
   const lastStats = useRef<any>(null);
@@ -108,6 +110,7 @@ export default function MazeView({
       lastStats.current = s;
       onStats(s);
     }
+    console.log("MazeView: useEffect for onStats fired");
   }, [memo.stats, onStats]);
 
   // Phase machine: start/advance once per (maze/options) change
@@ -136,6 +139,7 @@ export default function MazeView({
       clearTimeout(t1);
       clearTimeout(t2);
     };
+    console.log("MazeView: useEffect for phase/animation fired");
   }, [animation?.enabled, animation?.segMs, animation?.lingerMs, memo.stepsCount]);
 
   return (

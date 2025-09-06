@@ -63,6 +63,8 @@ export function createMaze(params: { width:number;height:number;seed:number;g:nu
 
     if (!moved) stack.pop();
   }
+    // 3) compute STATS on the **tree** only (not on braid-augmented graph)
+  const stats = computeTreeStats(tree, treeSteps);
 
   // 2) clone tree into final grid and apply braids (recorded separately)
   const maze: Cell[][] = tree.map(row => row.map(c => ({...c})));
@@ -88,8 +90,7 @@ export function createMaze(params: { width:number;height:number;seed:number;g:nu
     }
   }
 
-  // 3) compute STATS on the **tree** only (not on braid-augmented graph)
-  const stats = computeTreeStats(tree, treeSteps);
+
 
   return { maze, treeSteps, braidEdits, stats, start, goal };
 }
