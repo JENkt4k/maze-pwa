@@ -109,6 +109,7 @@ export default function MazeView({
         widthCells={params.width}
         heightCells={params.height}
         visible={showOverlay}
+        mode="segments" //"polyline" //"segments"          // ← old behavior
         autoHide={false /* handled by phase timers */}
         onDone={() => { /* we could flip to linger here if we wanted */ }}
       />
