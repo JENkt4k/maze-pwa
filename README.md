@@ -98,7 +98,7 @@ npm install
 npm run dev
 ```
 
-# Regressions a corections
+# Regressions a corrections
 - Fixed: New maze button was not working (App.tsx)
 - Added: Basic test for maze stats (stats.spec.ts)
 - Added: TypeScript types for better type safety (App.tsx)
