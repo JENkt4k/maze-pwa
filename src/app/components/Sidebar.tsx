@@ -31,6 +31,11 @@ type Props = {
   setAnimateDFS: (v:boolean)=>void;
   dfsSegMs: number;
   setDfsSegMs: (n:number)=>void;
+  lingerMs: number;
+  setLingerMs: React.Dispatch<React.SetStateAction<number>>;
+  hideWallsDuringAnim: boolean;
+  setHideWallsDuringAnim: React.Dispatch<React.SetStateAction<boolean>>;
+
 };
 
 export default function Sidebar(props: Props){
@@ -39,7 +44,7 @@ export default function Sidebar(props: Props){
     width, height, g, b, tau,
     setWidth, setHeight, setG, setB, setTau,
     onNew, onPrint,
-    saveName, setSaveName, saved, selectedId, onSave, onLoad, onDelete,
+    saveName, setSaveName, saved = [], selectedId, onSave, onLoad, onDelete,
     isMobile, controlsOpen, onMinimize,
     startIcon, goalIcon, setStartIcon, setGoalIcon,
     animateDFS, setAnimateDFS,
@@ -51,6 +56,8 @@ export default function Sidebar(props: Props){
   const goalBtnRef  = useRef<HTMLButtonElement | null>(null);
 
   const display = props.isMobile ? (props.controlsOpen ? "flex" : "none") : "flex";
+
+  const hasSaved = saved.length > 0;
 
   // const display = isMobile ? (controlsOpen ? "flex" : "none") : "flex";
 
@@ -272,9 +279,9 @@ export default function Sidebar(props: Props){
           <button className="btn btn-primary" onClick={onSave}>Save current</button>
         </div>
 
-        {saved.length ? (
+        {hasSaved ? (
           <div style={{ marginTop:12, display:"grid", gap:6, maxHeight:220, overflow:"auto" }}>
-            {saved.map(sv => (
+            { saved.map(sv => (
               <div key={sv.id} className="hstack" style={{ border:"1px solid #e6e9ef", borderRadius:10, padding:8, justifyContent:"space-between", background: sv.id===selectedId ? "#f0f6ff" : "#fafbff" }}>
                 <div>
                   <div style={{ fontWeight:600, fontSize:14 }}>{sv.name}</div>

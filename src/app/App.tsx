@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+// src/app/App.tsx
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { registerSW } from "virtual:pwa-register";
-import { createMaze, toSVG } from "./maze";
 import PWABanner from "./components/PWABanner";
 import StatsCard from "./components/StatsCard";
 import Sidebar from "./components/Sidebar";
@@ -9,7 +9,8 @@ import { usePWAInstall } from "./hooks/usePWAInstall";
 import { useResizeObserver } from "./hooks/useResizeObserver";
 import "../style.css";
 import DrawingCanvas from "./components/DrawingCanvas";
-
+import MazeView from "./components/MazeView";
+import { createMaze } from "./maze"; // still used by max-difficulty sweep
 
 const SETTINGS_KEY = "maze:settings:v1";
 
@@ -64,90 +65,30 @@ function isStandalonePWA() {
 
 
 function handlePrint(svg: string) {
-  if (__printing) return;
-  __printing = true;
-
+  if (__printing) return; __printing = true;
   if (isIOS() || isStandalonePWA()) {
-    // iOS / standalone PWA: print the current page with print CSS
     requestAnimationFrame(() => {
       window.print();
-      // let afterprint reset the guard if supported
       const done = () => { __printing = false; window.removeEventListener("afterprint", done); };
-      window.addEventListener("afterprint", done);
-      // fallback reset
-      setTimeout(done, 1500);
-    });
-    return;
+      window.addEventListener("afterprint", done); setTimeout(done, 1500);
+    }); return;
   }
-
-  // Desktop / normal Chrome path: print isolated SVG in a hidden iframe
-  const html = `<!DOCTYPE html><html><head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Maze Print</title>
-<style>
-  html,body{margin:0;padding:0;background:#fff}
-  .wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}
-  svg{width:95vw;height:auto;max-height:95vh}
-  @page{margin:10mm}
-  @media print{.wrap{padding:0}}
-</style>
-</head><body><div class="wrap">${svg}</div></body></html>`;
-
+<style>html,body{margin:0} .wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}
+svg{width:95vw;height:auto;max-height:95vh} @page{margin:10mm} @media print{.wrap{padding:0}}</style></head>
+<body><div class="wrap">${svg}</div></body></html>`;
   const iframe = document.createElement("iframe");
   Object.assign(iframe.style, { position:"fixed", right:"0", bottom:"0", width:"0", height:"0", border:"0" });
   iframe.referrerPolicy = "no-referrer";
   iframe.onload = () => {
-    const iw = iframe.contentWindow;
-    if (!iw) { iframe.remove(); __printing = false; return; }
-    const done = () => { try { iframe.remove(); } catch {} __printing = false; iw.removeEventListener?.("afterprint", done as any); };
+    const iw = iframe.contentWindow; if (!iw) { iframe.remove(); __printing=false; return; }
+    const done = () => { try{iframe.remove();}catch{} __printing=false; iw.removeEventListener?.("afterprint", done as any); };
     iw.addEventListener?.("afterprint", done as any);
-    try {
-      iw.focus();
-      iw.requestAnimationFrame?.(() => iw.print());
-      setTimeout(() => iw.print(), 50);
-    } catch { setTimeout(done, 1500); }
+    try { iw.focus(); iw.requestAnimationFrame?.(()=> iw.print()); setTimeout(()=> iw.print(), 50); } catch { setTimeout(done,1500); }
   };
-  (iframe as any).srcdoc = html;
-  document.body.appendChild(iframe);
+  (iframe as any).srcdoc = html; document.body.appendChild(iframe);
 }
-
-// Replace your stepsOverlaySVG with this one-path version.
-function stepsOverlaySVG(
-  steps: { x:number; y:number; nx:number; ny:number }[],
-  opts: { cell:number; margin:number; stroke:number; segMs:number; w:number; h:number }
-) {
-  const { cell, margin, stroke, segMs, w, h } = opts;
-  const px = (c: number) => margin + c * cell + cell / 2;
-  const passageWidth = cell/2 - (2 * stroke);
-
-
-  // overall SVG box matches the main SVG
-  const widthPx  = w * cell + margin * 2;
-  const heightPx = h * cell + margin * 2;
-
-  // Each step becomes one short line from (x,y) center to (nx,ny) center.
-  // We give each an animation delay = index * segMs.
-  const segDur = Math.max(10, segMs); // guard
-  let out = `<svg xmlns="http://www.w3.org/2000/svg" class="dfs-anim" width="${widthPx}" height="${heightPx}" viewBox="0 0 ${widthPx} ${heightPx}">`;
-  out += `<g style="--seg-dur:${Math.max(0.03, segDur/1000)}s">`;
-
-  for (let i = 0; i < steps.length; i++) {
-    const s = steps[i];
-    const x1 = px(s.x), y1 = px(s.y);
-    const x2 = px(s.nx), y2 = px(s.ny);
-    const delay = (i * segDur) / 1000; // seconds
-    out += `<path d="M ${x1} ${y1} L ${x2} ${y2}" 
-      stroke="#3b82f6" 
-      stroke-width="${passageWidth}" 
-      fill="none" pathLength="1" style="animation-delay:${delay}s"/>`;
-  }
-
-  out += `</g></svg>`;
-  return out;
-}
-
-
-
 
 export default function App() {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -156,54 +97,61 @@ export default function App() {
   const [offlineReady, setOfflineReady] = useState(false);
   const updateSWRef = useRef<((reloadPage?: boolean) => void) | null>(null);
   useEffect(() => {
-    const updateSW = registerSW({
-      immediate: true,
-      onNeedRefresh: () => setNeedRefresh(true),
-      onOfflineReady: () => setOfflineReady(true),
-    });
+    const updateSW = registerSW({ immediate: true, onNeedRefresh: () => setNeedRefresh(true), onOfflineReady: () => setOfflineReady(true) });
     updateSWRef.current = updateSW;
   }, []);
   const { canInstall, install } = usePWAInstall();
 
-  // Start/Goal markers (emoji string OR data URL from image)
+  /* Persisted params */
+  const persisted = (() => { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null"); } catch { return null; } })();
+
+  const [seed, setSeed]       = useState(persisted?.seed   ?? 42);
+  const [width, setWidthRaw]  = useState(persisted?.width  ?? 19);
+  const [height, setHeightRaw]= useState(persisted?.height ?? 19);
+  const [g, setG]             = useState(persisted?.g      ?? 0.3);
+  const [b, setB]             = useState(persisted?.b      ?? 0.15);
+  const [tau, setTau]         = useState(persisted?.tau    ?? 0.4);
+  const [controlsOpen, setControlsOpen] = useState(persisted?.controlsOpen ?? true);
+  const [lockSize, setLockSize] = useState(persisted?.lockSize ?? false);
+
+  // markers
   const [startIcon, setStartIcon] = useState<string | null>("🚀");
-  const [goalIcon, setGoalIcon]   = useState<string | null>("🏁");
+  const [goalIcon,  setGoalIcon]  = useState<string | null>("🏁");
 
-  // state
-  const [animating, setAnimating] = useState(false);
-  const stepsCountRef = useRef(0);
+  // saved mazes UI state and handlers
+  const [saveName, setSaveName] = useState<string>("");
+  const [saved, setSaved] = useState<SavedMaze[]>(() => loadSaved());
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  /* Maze params */
-  // const [seed, setSeed] = useState(42);
-  // const [width, setWidth] = useState(19);
-  // const [height, setHeight] = useState(19);
-  // const [g, setG] = useState(0.3);
-  // const [b, setB] = useState(0.15);
-  // const [tau, setTau] = useState(0.4);
-    /* Maze params (with persisted defaults) */
-  const persisted = loadSettings();
+  const handleSave = () => {
+    const name = saveName.trim() || `Maze ${saved.length + 1}`;
+    const params = { width, height, seed, g, b, tau };
+    const id = uid();
+    const newMaze: SavedMaze = { id, name, params, createdAt: Date.now() };
+    const updated = [...saved, newMaze];
+    setSaved(updated);
+    saveAll(updated);
+    setSelectedId(id);
+  };
 
-  const [seed, setSeed]     = useState(persisted?.seed   ?? 42);
-  const [width, setWidth_]  = useState(persisted?.width  ?? 19);
-  const [height, setHeight_] = useState(persisted?.height ?? 19);
-  const [g, setG]           = useState(persisted?.g      ?? 0.3);
-  const [b, setB]           = useState(persisted?.b      ?? 0.15);
-  const [tau, setTau]       = useState(persisted?.tau    ?? 0.4);
+  const handleLoad = (id: string) => {
+    const maze = saved.find(m => m.id === id);
+    if (!maze) return;
+    setWidth(maze.params.width);
+    setHeight(maze.params.height);
+    setSeed(maze.params.seed);
+    setG(maze.params.g);
+    setB(maze.params.b);
+    setTau(maze.params.tau);
+    setSelectedId(id);
+  };
 
-  const [animateDFS, setAnimateDFS] = useState(persisted?.animateDFS ?? false);
-  const [dfsSegMs, setDfsSegMs]     = useState(persisted?.dfsSegMs ?? 35);
-  
-  type Phase = "idle" | "animating" | "linger";
-
-  const [phase, setPhase] = useState<Phase>("idle");
-  const [lingerMs, setLingerMs] = useState(2000); // adjust as you like (or expose in Sidebar)
-
-
-  /* Saved mazes */
-  const [saved, setSaved] = useState<SavedMaze[]>([]);
-  const [selectedId, setSelectedId] = useState<string|null>(null);
-  const [saveName, setSaveName] = useState("");
-  useEffect(() => setSaved(loadSaved()), []);
+  const handleDelete = (id: string) => {
+    const updated = saved.filter(m => m.id !== id);
+    setSaved(updated);
+    saveAll(updated);
+    if (selectedId === id) setSelectedId(null);
+  };
 
   /* Responsive cell */
   const { ref: svgHostRef, rect: hostRect } = useResizeObserver<HTMLDivElement>();
@@ -212,117 +160,39 @@ export default function App() {
     const hostW = hostRect?.width ?? 0;
     const basis = hostW > 0 ? hostW : Math.min(window.innerWidth || 360, 480);
     const px = Math.floor((basis - 32) / width);
+    const clamp = (n:number, lo:number, hi:number) => Math.max(lo, Math.min(hi, n));
     setCell(clamp(px, 18, 36));
   }, [hostRect, width]);
 
-  /* Maze render */
-  const { svg, stats, currentParams, overlay, stepsCount } = useMemo(() => {
-    const params = { width, height, seed, g, b, tau };
-    const { maze, stats, steps } = createMaze(params);
-    const stroke = Math.max(2, Math.round(cell/8));
+  // keep odd dims if needed and lock together
+  const setWidth  = (w:number) => { const odd = w%2? w : w+1; setWidthRaw(odd); if (lockSize) setHeightRaw(odd); };
+  const setHeight = (h:number) => { const odd = h%2? h : h+1; setHeightRaw(odd); if (lockSize) setWidthRaw(odd); };
 
-    const base = toSVG(maze, {
-      cell, stroke, margin: Math.round(cell/2),
-      showStartGoal: true,
-      startIcon: startIcon ?? undefined,
-      goalIcon: goalIcon ?? undefined,
-      iconScale: 0.7
-    });
-
-    const ov = animateDFS
-      ? stepsOverlaySVG(steps, {
-          cell,
-          margin: Math.round(cell/2),
-          stroke,
-          segMs: dfsSegMs,
-          w: width,
-          h: height
-        })
-      : "";
-
-    return { svg: base, stats, currentParams: params, overlay: ov, stepsCount: steps?.length ?? 0 };
-  }, [width, height, seed, g, b, tau, cell, startIcon, goalIcon, animateDFS, dfsSegMs]);
-
-  // drive the animating flag
+  // persist settings
   useEffect(() => {
-    if (!animateDFS || stepsCount === 0) {
-      setPhase("idle");
-      return;
-    }
-    // Phase 1: animate
-    setPhase("animating");
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ seed,width,height,g,b,tau,controlsOpen,lockSize }));
+    } catch {}
+  }, [seed,width,height,g,b,tau,controlsOpen,lockSize]);
 
-    const totalMs = stepsCount * dfsSegMs + 150; // draw duration (+ tiny buffer)
+  // compute margin/stroke once from cell
+  const margin = Math.round(cell/2);
+  const stroke = Math.max(2, Math.round(cell/8));
 
-    // switch to linger (overlay + SVG)
-    const t1 = setTimeout(() => setPhase("linger"), totalMs + lingerMs);
+  // animation prefs
+  const [animateDFS, setAnimateDFS] = useState(true);
+  const [dfsSegMs, setDfsSegMs]     = useState(35);
+  const [lingerMs, setLingerMs]     = useState(2000);
+  const [hideWallsDuringAnim, setHideWallsDuringAnim] = useState(true);
 
-    // switch to idle (SVG only)
-    const t2 = setTimeout(() => setPhase("idle"), totalMs + 2 * lingerMs);
+  // print: keep the latest svg string from MazeView
+  const [currentSVG, setCurrentSVG] = useState<string>("");
 
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [animateDFS, stepsCount, dfsSegMs, lingerMs]);
+  // stats from MazeView
+  const [stats, setStats] = useState<any>({ L:0,T:0,J:0,E:0,D:0 });
 
-
-
-  /* Controls placement & state */
-  const [isMobile, setIsMobile]   = useState(false);
-  const [controlsOpen, setControlsOpen] = useState(
-    persisted?.controlsOpen ?? true
-  );
-
-  /* Keep width/height locked together (square) if enabled */
-  const [lockSize, setLockSize] = useState(persisted?.lockSize ?? false);
-
-  const setWidth = (w: number) => {
-    const even = w % 2 === 1 ? w : w + 1;            // keep odd if your maze expects odd
-    setWidth_(even);
-    if (lockSize) setHeight_(even);
-  };
-  const setHeight = (h: number) => {
-    const even = h % 2 === 1 ? h : h + 1;
-    setHeight_(even);
-    if (lockSize) setWidth_(even);
-  };
-
-  useEffect(() => {
-    const s: Settings = {
-      seed, width, height, g, b, tau,
-      controlsOpen,
-      lockSize,
-      animateDFS,
-      dfsSegMs,
-    };
-    saveSettings(s);
-  }, [seed, width, height, g, b, tau, controlsOpen, lockSize, animateDFS, dfsSegMs]);
-
-  // Heuristic sweep to maximize stats.D over (g, b, tau) for current size & seed
-  const findMaxDifficulty = () => {
-    // coarse grid keeps it fast in-browser; tweak steps if you want
-    const gVals   = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
-    const bVals   = [0.00, 0.10, 0.20, 0.30, 0.40, 0.50];
-    const tauVals = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
-
-    let best: { g:number;b:number;tau:number; D:number } | null = null;
-
-    for (const gg of gVals) {
-      for (const bb of bVals) {
-        for (const tt of tauVals) {
-          const { stats } = createMaze({ width, height, seed, g: gg, b: bb, tau: tt });
-          const D = Number(stats?.D ?? 0);
-          if (!best || D > best.D) {
-            best = { g: gg, b: bb, tau: tt, D };
-          }
-        }
-      }
-    }
-    if (best) {
-      setG(best.g); setB(best.b); setTau(best.tau);
-      // Optionally bump seed to re-generate with new params:
-      setSeed((s) => s + 1);
-    }
-  };
-
+  // mobile / controls open behavior (same as your baseline)
+  const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 840px)");
     const apply = () => { setIsMobile(mq.matches); setControlsOpen(!mq.matches); };
@@ -330,124 +200,123 @@ export default function App() {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  /* Actions */
-  const newMaze = () => setSeed(s => s+1);
-  const handleSave = () => {
-    const name = saveName.trim() || `Maze ${saved.length + 1}`;
-    const entry: SavedMaze = { id: uid(), name, params: { ...currentParams }, createdAt: Date.now() };
-    const next = [entry, ...saved];
-    setSaved(next); saveAll(next);
-    setSaveName(""); setSelectedId(entry.id);
+  // actions (new maze, save/load, delete) — same as your baseline
+  // … keep your existing handlers here (omitted for brevity) …
+
+  // quick max-difficulty sweep (uses createMaze; unchanged from your baseline)
+  const findMaxDifficulty = () => {
+    const gVals = [0.0,0.2,0.4,0.6,0.8,1.0];
+    const bVals = [0.00,0.10,0.20,0.30,0.40,0.50];
+    const tVals = [0.0,0.2,0.4,0.6,0.8,1.0];
+    let best: { g:number;b:number;tau:number; D:number } | null = null;
+    for (const gg of gVals) for (const bb of bVals) for (const tt of tVals) {
+      const { stats } = createMaze({ width, height, seed, g:gg, b:bb, tau:tt });
+      const D = Number(stats?.D ?? 0);
+      if (!best || D > best.D) best = { g:gg, b:bb, tau:tt, D };
+    }
+    if (best) {
+      setG(best.g); setB(best.b); setTau(best.tau); setSeed((s: number) => s + 1);
+    }
   };
-  const handleLoad = (id:string) => {
-    const item = saved.find(s => s.id === id); if (!item) return;
-    const p = item.params;
-    setWidth(p.width); setHeight(p.height); setSeed(p.seed); setG(p.g); setB(p.b); setTau(p.tau);
-    setSelectedId(id);
-  };
-  const handleDelete = (id:string) => {
-    const next = saved.filter(s => s.id !== id);
-    setSaved(next); saveAll(next);
-    if (selectedId === id) setSelectedId(null);
-  };
+
+  interface NewMazeFn {
+    (): void;
+  }
+  const newMaze: NewMazeFn = () => setSeed((s: number) => s + 1);
 
   return (
     <div className="shell">
-      {/* MAIN */}
       <main className="panel main">
         <header className="sticky-top hstack" style={{ justifyContent:"space-between" }}>
           <div className="hstack" style={{ alignItems:"baseline", gap:12 }}>
             <h1 style={{ margin:0, fontSize:22 }}>Kid-Friendly Maze</h1>
             <div style={{ color:"#6b7280", fontSize:12 }}>seed {seed}</div>
           </div>
-
-          <button
-            className="btn"
-            style={{ padding:"8px 12px" }}
-            aria-expanded={controlsOpen}
-            aria-controls="controls-panel"
-            onClick={() => setControlsOpen(v => !v)}
-            title="Show/Hide Controls"
-          >
+          <button className="btn" style={{ padding:"8px 12px" }}
+            aria-expanded={controlsOpen} aria-controls="controls-panel"
+            onClick={() => setControlsOpen(v=>!v)} title="Show/Hide Controls">
             {controlsOpen ? "Hide Controls" : "Show Controls"}
           </button>
         </header>
 
-        {/* Stack: Maze first, Stats below */}
         <section className="stack">
-          {/* <div
-            ref={svgHostRef as any}
-            id="print-maze-only"
-            dangerouslySetInnerHTML={{ __html: svg }}
-          /> */}
-          {/* Maze and drawing overlay */}
+          {/* Maze + drawing; MazeView owns animation & emits svg/stats */}
           <div className="draw-wrap">
-            <div ref={hostRef} className="maze-host">
-              {/* Base maze SVG */}
-              <div
-                id="print-maze-only"
-                style={{ opacity: phase === "animating" ? 0 : 1, transition: "opacity .2s" }}
-                dangerouslySetInnerHTML={{ __html: svg }}
-              />
-
-              {/* DFS overlay */}
-              {(phase === "animating" || phase === "linger") && overlay && (
-                <div
-                  className="maze-overlay"
-                  aria-hidden="true"
-                  dangerouslySetInnerHTML={{ __html: overlay }}
-                />
-              )}
-
-              {/* ⬇️ Drawing canvas MUST be inside .maze-host */}
-              <DrawingCanvas hostRef={hostRef} />
-            </div>
+            <MazeView
+              hostRef={svgHostRef}
+              params={{ width, height, seed, g, b, tau }}
+              render={{ cell, margin, stroke, startIcon, goalIcon, iconScale: 0.7 }}
+              animation={{ enabled: animateDFS, segMs: dfsSegMs, lingerMs, hideWallsDuringAnim }}
+              onStats={setStats}
+              onSVGChange={setCurrentSVG}
+            />
+            <DrawingCanvas hostRef={svgHostRef} />
           </div>
-          <StatsCard stats={stats}/>
+
+          <StatsCard stats={stats} />
         </section>
       </main>
 
-
-      {/* CONTROLS */}
       <Sidebar
-        canInstall={canInstall} onInstall={install}
+        /* Install */
+        canInstall={canInstall}
+        onInstall={install}
+
+        /* Size & difficulty */
         width={width} height={height} g={g} b={b} tau={tau}
         setWidth={setWidth} setHeight={setHeight} setG={setG} setB={setB} setTau={setTau}
-        onNew={newMaze} onPrint={() => handlePrint(svg)}
-        saveName={saveName} setSaveName={setSaveName}
-        saved={saved} selectedId={selectedId}
-        onSave={handleSave} onLoad={handleLoad} onDelete={handleDelete}
+
+        /* Actions */
+        onNew={newMaze}
+        onPrint={() => handlePrint(currentSVG)}
+        onMaxDifficulty={findMaxDifficulty}
+
+        /* Save/Load */
+        saveName={saveName}
+        setSaveName={setSaveName}
+        saved={saved}
+        selectedId={selectedId}
+        onSave={handleSave}
+        onLoad={handleLoad}
+        onDelete={handleDelete}
+
+        /* UI state */
         isMobile={isMobile}
         controlsOpen={controlsOpen}
-        onMinimize={() => setControlsOpen(false)}   // ← minimize button handler
-        lockSize={lockSize}                         // ← NEW
-        setLockSize={setLockSize}                   // ← NEW
-        onMaxDifficulty={findMaxDifficulty}         // ← NEW
+        onMinimize={() => setControlsOpen(false)}
+        lockSize={lockSize}
+        setLockSize={setLockSize}
+
+        /* Markers */
         startIcon={startIcon}
         goalIcon={goalIcon}
         setStartIcon={setStartIcon}
         setGoalIcon={setGoalIcon}
+
+        /* Animation (if Sidebar shows these controls) */
         animateDFS={animateDFS}
         setAnimateDFS={setAnimateDFS}
         dfsSegMs={dfsSegMs}
         setDfsSegMs={setDfsSegMs}
+        lingerMs={lingerMs}
+        setLingerMs={setLingerMs}
+        hideWallsDuringAnim={hideWallsDuringAnim}
+        setHideWallsDuringAnim={setHideWallsDuringAnim}
       />
 
-      {/* Mobile FABs: show gear when controls are minimized */}
+
       <Fab
-        visible={true}                                 // ← always render when you intend to show
+        visible={true}
         showInstall={canInstall}
         onNew={newMaze}
-        onPrint={() => handlePrint(svg)}
+        onPrint={() => handlePrint(currentSVG)}
         onInstall={install}
         showGear={isMobile && !controlsOpen}
         onGear={() => setControlsOpen(true)}
       />
 
-
       <PWABanner
-        offlineReady={offlineReady}
-        needRefresh={needRefresh}
+        offlineReady={offlineReady} needRefresh={needRefresh}
         onUpdate={() => updateSWRef.current?.(true)}
         onClose={() => { setNeedRefresh(false); setOfflineReady(false); }}
       />
