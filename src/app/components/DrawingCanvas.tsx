@@ -1,38 +1,18 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useLayoutEffect } from "react";
 
-type Props = { hostRef: React.RefObject<HTMLDivElement |  null> };
+type Props = { hostRef: React.RefObject<HTMLDivElement | null> };
 type Mode = "draw" | "erase";
+
 
 export default function DrawingCanvas({ hostRef }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const toolbarRef = useRef<HTMLDivElement | null>(null);   // ← NEW
   const [mode, setMode] = useState<Mode>("draw");
   const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const [pen, setPen] = useState<number>(5);
   const drawing = useRef(false);
   const last = useRef<{ x: number; y: number } | null>(null);
 
-  // ⬇️ Reserve vertical space on the host for the toolbar
-  useLayoutEffect(() => {
-    const host = hostRef.current;
-    const bar = toolbarRef.current;
-    if (!host || !bar) return;
-
-    const update = () => {
-      const h = Math.ceil(bar.getBoundingClientRect().height) + 8; // + some gap
-      host.style.paddingTop = `${h}px`;
-    };
-
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(bar);
-    return () => {
-      ro.disconnect();
-      if (host) host.style.paddingTop = ""; // cleanup on unmount
-    };
-  }, [hostRef]);
-
-  // Size canvas to host
+  // Size canvas to host (and DPR)
   useEffect(() => {
     if (!hostRef.current) return;
     const ro = new ResizeObserver(() => {
@@ -54,7 +34,17 @@ export default function DrawingCanvas({ hostRef }: Props) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-  }, [size.w, size.h]);
+  }, [size]);
+
+  // In DrawingCanvas.tsx
+  const barRef = useRef<HTMLDivElement|null>(null);
+  useLayoutEffect(() => {
+    const el = hostRef.current?.parentElement; // .draw-wrap
+    const bar = barRef.current;
+    if (!el || !bar) return;
+    const h = Math.ceil(bar.getBoundingClientRect().height) + 12; // +top gap
+    el.style.paddingTop = `${h}px`;
+  }, []);
 
   const getPt = (e: PointerEvent | React.PointerEvent<HTMLCanvasElement>) => {
     const rect = canvasRef.current!.getBoundingClientRect();
@@ -62,7 +52,6 @@ export default function DrawingCanvas({ hostRef }: Props) {
   };
 
   function pointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
-    e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
     drawing.current = true;
     last.current = getPt(e);
@@ -107,6 +96,7 @@ export default function DrawingCanvas({ hostRef }: Props) {
 
   return (
     <>
+      {/* Absolute canvas overlay (interactive) */}
       <canvas
         ref={canvasRef}
         className="draw-canvas"
@@ -115,22 +105,32 @@ export default function DrawingCanvas({ hostRef }: Props) {
         onPointerUp={pointerUp}
         onPointerCancel={pointerUp}
       />
-      {/* Toolbar stays inside the same host; height is measured to reserve space */}
-      <div ref={toolbarRef} className="draw-toolbar">
+      {/* Toolbar as a separate absolutely positioned sibling (clickable) */}
+      <div ref={barRef} className="draw-toolbar">
         <button type="button"
           className={`btn btn-sm ${mode === "draw" ? "btn-primary" : ""}`}
           onClick={() => setMode("draw")}
-          aria-pressed={mode === "draw"} title="Draw">✍️</button>
+          aria-pressed={mode === "draw"}
+          aria-label="Draw mode"
+          title="Draw"
+        >
+          ✍️
+        </button>
         <button type="button"
           className={`btn btn-sm ${mode === "erase" ? "btn-primary" : ""}`}
           onClick={() => setMode("erase")}
-          aria-pressed={mode === "erase"} title="Erase">🧽</button>
+          aria-pressed={mode === "erase"}
+          aria-label="Erase mode"
+          title="Erase"
+        >
+          🧽
+        </button>
         <label className="hstack" style={{ gap: 6, alignItems: "center" }}>
           <span style={{ fontSize: 12, color: "#6b7280" }}>Pen</span>
-          <input type="range" min={2} max={24} step={1}
-                 value={pen} onChange={(e) => setPen(parseInt(e.target.value))}/>
+          <input type="range" min={2} max={24} step={1} value={pen}
+                 onChange={(e) => setPen(parseInt(e.target.value))} />
         </label>
-        <button type="button" className="btn btn-sm" onClick={clearAll} title="Clear">Clear</button>
+        <button type="button" className="btn btn-sm" onClick={clearAll} aria-label="Clear path">Clear</button>
       </div>
     </>
   );

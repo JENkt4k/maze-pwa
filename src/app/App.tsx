@@ -92,7 +92,6 @@ svg{width:95vw;height:auto;max-height:95vh} @page{margin:10mm} @media print{.wra
 
 export default function App() {
   const hostRef = useRef<HTMLDivElement | null>(null);
-  const frameRef = useRef<HTMLDivElement | null>(null); 
   /* PWA */
   const [needRefresh, setNeedRefresh] = useState(false);
   const [offlineReady, setOfflineReady] = useState(false);
