@@ -11,13 +11,15 @@ export default function DrawingCanvas({ hostRef }: Props) {
   const [pen, setPen] = useState<number>(5);
   const drawing = useRef(false);
   const last = useRef<{ x: number; y: number } | null>(null);
+  const extraBottomPx = 48; // this is needed at construction, but updated in useLayoutEffect below
+                            // bar.getBoundingClientRect().height) + 12; // +top gap
 
   // Size canvas to host (and DPR)
   useEffect(() => {
     if (!hostRef.current) return;
     const ro = new ResizeObserver(() => {
       const rect = hostRef.current!.getBoundingClientRect();
-      setSize({ w: Math.max(1, rect.width | 0), h: Math.max(1, rect.height | 0) });
+      setSize({ w: Math.max(1, rect.width | 0), h: Math.max(1, rect.height + extraBottomPx | 0) });
     });
     ro.observe(hostRef.current);
     return () => ro.disconnect();
