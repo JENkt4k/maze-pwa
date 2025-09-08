@@ -94,29 +94,52 @@ const toOdd = (n:number) => (n % 2 ? n : n + 1);
 const clamp01 = (x:number) => Math.max(0, Math.min(1, x));
 const clampB  = (x:number) => Math.max(0, Math.min(0.5, x));
 
+
 function parseFromURL() {
   const q = new URLSearchParams(window.location.search);
-  const parseI = (k:string, d:number, lo:number, hi:number, makeOdd=false) => {
-    const v = Number(q.get(k)); if (!Number.isFinite(v)) return d;
+
+  const getNum = (k: string): number | undefined => {
+    if (!q.has(k)) return undefined;                  // key not present
+    const raw = q.get(k);
+    if (raw == null) return undefined;
+    if (raw.trim() === "") return undefined;          // present but empty (?k=)
+    const v = Number(raw);
+    return Number.isFinite(v) ? v : undefined;        // ignore NaN / Infinity
+  };
+
+  const parseI = (
+    k: string, lo: number, hi: number, makeOdd = false
+  ): number | undefined => {
+    const v = getNum(k);
+    if (v === undefined) return undefined;
     const vv = Math.max(lo, Math.min(hi, Math.trunc(v)));
     return makeOdd ? toOdd(vv) : vv;
   };
-  const parseF = (k:string, d:number, clampFn:(x:number)=>number) => {
-    const v = Number(q.get(k)); if (!Number.isFinite(v)) return d;
+
+  const parseF = (
+    k: string, clampFn: (x:number)=>number
+  ): number | undefined => {
+    const v = getNum(k);
+    if (v === undefined) return undefined;
     return clampFn(v);
   };
-  const start = q.get("start");
-  const goal  = q.get("goal");
+
+  const getEmoji = (k: string): string | null | undefined => {
+    if (!q.has(k)) return undefined;                  // don’t override if absent
+    const raw = q.get(k) ?? "";
+    const s = raw.trim();
+    return s === "" ? null : decodeURIComponent(s);   // explicit empty clears
+  };
 
   return {
-    width:  parseI("w", 19, 7, 41, true),
-    height: parseI("h", 19, 7, 41, true),
-    seed:   parseI("seed", 42, -2147483648, 2147483647, false),
-    g:      parseF("g", 0.3, clamp01),
-    b:      parseF("b", 0.15, clampB),
-    tau:    parseF("tau", 0.4, clamp01),
-    startIcon: start ? decodeURIComponent(start) : null,
-    goalIcon:  goal  ? decodeURIComponent(goal)  : null,
+    width:     parseI("w",   7, 41, true),
+    height:    parseI("h",   7, 41, true),
+    seed:      parseI("seed",-2147483648, 2147483647, false),
+    g:         parseF("g",   clamp01),
+    b:         parseF("b",   clampB),
+    tau:       parseF("tau", clamp01),
+    startIcon: getEmoji("start"),
+    goalIcon:  getEmoji("goal"),
   };
 }
 
