@@ -49,6 +49,9 @@ export default function Sidebar(props: Props){
     startIcon, goalIcon, setStartIcon, setGoalIcon,
     animateDFS, setAnimateDFS,
     dfsSegMs, setDfsSegMs,
+    lingerMs, setLingerMs,
+    hideWallsDuringAnim,
+    setHideWallsDuringAnim,
     onShare,
   } = props;
 
@@ -218,6 +221,28 @@ export default function Sidebar(props: Props){
                 disabled={!animateDFS}
               />
             </label>
+
+            <label>
+              Linger after draw: {lingerMs} ms
+              <input
+                type="range" min={0} max={5000} step={100}
+                value={lingerMs}
+                onChange={(e)=>setLingerMs(parseInt(e.target.value))}
+                disabled={!animateDFS}
+              />
+            </label>
+
+            {/* No effect - hiding control for now */}
+            {/* <label className="hstack" style={{ alignItems:"center", gap:8 }}>
+              <input
+                type="checkbox"
+                checked={hideWallsDuringAnim}
+                onChange={(e)=>setHideWallsDuringAnim(e.target.checked)}
+                disabled={!animateDFS}
+              />
+              <span>Hide walls during animation</span>
+            </label> */}
+                
           </details>
         </fieldset>
 

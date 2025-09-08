@@ -23,8 +23,10 @@ type Settings = {
   tau: number;
   controlsOpen: boolean;
   lockSize: boolean;
-  animateDFS: boolean;            // show classic carve animation
-  dfsSegMs: number;               // ms per segment
+  animateDFS: boolean;
+  dfsSegMs: number;
+  lingerMs: number;
+  hideWallsDuringAnim: boolean;
 };
 
 
@@ -261,22 +263,37 @@ export default function App() {
   const setWidth  = (w:number) => { const odd = w%2? w : w+1; setWidthRaw(odd); if (lockSize) setHeightRaw(odd); };
   const setHeight = (h:number) => { const odd = h%2? h : h+1; setHeightRaw(odd); if (lockSize) setWidthRaw(odd); };
 
+  // animation prefs
+  const [animateDFS, setAnimateDFS] = useState(persisted?.animateDFS ?? true);
+  const [dfsSegMs, setDfsSegMs]     = useState(persisted?.dfsSegMs ?? 35);
+  const [lingerMs, setLingerMs]     = useState(persisted?.lingerMs ?? 2000);
+  const [hideWallsDuringAnim, setHideWallsDuringAnim] = useState(persisted?.hideWallsDuringAnim ?? true);
+
+
   // persist settings
   useEffect(() => {
     try {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ seed,width,height,g,b,tau,controlsOpen,lockSize }));
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(
+        { 
+          seed,
+          width,
+          height,
+          g,
+          b,
+          tau,
+          controlsOpen,
+          lockSize,
+          animateDFS,
+          dfsSegMs,
+          lingerMs,
+          hideWallsDuringAnim,
+        }));
     } catch {}
-  }, [seed,width,height,g,b,tau,controlsOpen,lockSize]);
+  }, [seed,width,height,g,b,tau,controlsOpen,lockSize, animateDFS, dfsSegMs, lingerMs, hideWallsDuringAnim]);
 
   // compute margin/stroke once from cell
   const margin = Math.round(cell/2);
   const stroke = Math.max(2, Math.round(cell/8));
-
-  // animation prefs
-  const [animateDFS, setAnimateDFS] = useState(true);
-  const [dfsSegMs, setDfsSegMs]     = useState(35);
-  const [lingerMs, setLingerMs]     = useState(2000);
-  const [hideWallsDuringAnim, setHideWallsDuringAnim] = useState(true);
 
   // print: keep the latest svg string from MazeView
   const [currentSVG, setCurrentSVG] = useState<string>("");
