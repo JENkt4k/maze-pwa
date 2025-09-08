@@ -90,6 +90,56 @@ svg{width:95vw;height:auto;max-height:95vh} @page{margin:10mm} @media print{.wra
   (iframe as any).srcdoc = html; document.body.appendChild(iframe);
 }
 
+const toOdd = (n:number) => (n % 2 ? n : n + 1);
+const clamp01 = (x:number) => Math.max(0, Math.min(1, x));
+const clampB  = (x:number) => Math.max(0, Math.min(0.5, x));
+
+function parseFromURL() {
+  const q = new URLSearchParams(window.location.search);
+  const parseI = (k:string, d:number, lo:number, hi:number, makeOdd=false) => {
+    const v = Number(q.get(k)); if (!Number.isFinite(v)) return d;
+    const vv = Math.max(lo, Math.min(hi, Math.trunc(v)));
+    return makeOdd ? toOdd(vv) : vv;
+  };
+  const parseF = (k:string, d:number, clampFn:(x:number)=>number) => {
+    const v = Number(q.get(k)); if (!Number.isFinite(v)) return d;
+    return clampFn(v);
+  };
+  const start = q.get("start");
+  const goal  = q.get("goal");
+
+  return {
+    width:  parseI("w", 19, 7, 41, true),
+    height: parseI("h", 19, 7, 41, true),
+    seed:   parseI("seed", 42, -2147483648, 2147483647, false),
+    g:      parseF("g", 0.3, clamp01),
+    b:      parseF("b", 0.15, clampB),
+    tau:    parseF("tau", 0.4, clamp01),
+    startIcon: start ? decodeURIComponent(start) : null,
+    goalIcon:  goal  ? decodeURIComponent(goal)  : null,
+  };
+}
+
+function buildShareURL(p:{
+  width:number;height:number;seed:number;g:number;b:number;tau:number;
+  startIcon:string|null; goalIcon:string|null;
+}) {
+  const u = new URL(window.location.href);
+  const q = u.searchParams;
+  q.set("w", String(p.width));
+  q.set("h", String(p.height));
+  q.set("seed", String(p.seed));
+  q.set("g", p.g.toFixed(2));
+  q.set("b", p.b.toFixed(2));
+  q.set("tau", p.tau.toFixed(2));
+  // only include emoji markers (skip large data URLs)
+  if (p.startIcon && p.startIcon.length <= 4) q.set("start", encodeURIComponent(p.startIcon)); else q.delete("start");
+  if (p.goalIcon  && p.goalIcon.length  <= 4) q.set("goal",  encodeURIComponent(p.goalIcon));  else q.delete("goal");
+  u.search = q.toString();
+  return u.toString();
+}
+
+
 export default function App() {
   const hostRef = useRef<HTMLDivElement | null>(null);
   /* PWA */
@@ -102,21 +152,25 @@ export default function App() {
   }, []);
   const { canInstall, install } = usePWAInstall();
 
+  /* Load from URL if present (overrides some settings) */
+  const fromURL = parseFromURL();
+
+
   /* Persisted params */
   const persisted = (() => { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null"); } catch { return null; } })();
 
-  const [seed, setSeed]       = useState(persisted?.seed   ?? 42);
-  const [width, setWidthRaw]  = useState(persisted?.width  ?? 19);
-  const [height, setHeightRaw]= useState(persisted?.height ?? 19);
-  const [g, setG]             = useState(persisted?.g      ?? 0.3);
-  const [b, setB]             = useState(persisted?.b      ?? 0.15);
-  const [tau, setTau]         = useState(persisted?.tau    ?? 0.4);
+  const [seed, setSeed]        = useState(fromURL.seed   ?? persisted?.seed   ?? 42);
+  const [width, setWidthRaw]   = useState(fromURL.width  ?? persisted?.width  ?? 19);
+  const [height, setHeightRaw] = useState(fromURL.height ?? persisted?.height ?? 19);
+  const [g, setG]              = useState(fromURL.g      ?? persisted?.g      ?? 0.3);
+  const [b, setB]              = useState(fromURL.b      ?? persisted?.b      ?? 0.15);
+  const [tau, setTau]          = useState(fromURL.tau    ?? persisted?.tau    ?? 0.4);
   const [controlsOpen, setControlsOpen] = useState(persisted?.controlsOpen ?? true);
-  const [lockSize, setLockSize] = useState(persisted?.lockSize ?? false);
+  const [lockSize, setLockSize]         = useState(persisted?.lockSize ?? false);
 
-  // markers
-  const [startIcon, setStartIcon] = useState<string | null>("🚀");
-  const [goalIcon,  setGoalIcon]  = useState<string | null>("🏁");
+  // Markers/emoji:
+  const [startIcon, setStartIcon] = useState<string | null>(fromURL.startIcon ?? persisted?.startIcon ?? "🚀");
+  const [goalIcon,  setGoalIcon]  = useState<string | null>(fromURL.goalIcon  ?? persisted?.goalIcon  ?? "🏁");
 
   // saved mazes UI state and handlers
   const [saveName, setSaveName] = useState<string>("");
@@ -151,6 +205,22 @@ export default function App() {
     setSaved(updated);
     saveAll(updated);
     if (selectedId === id) setSelectedId(null);
+  };
+
+  const handleShare = async () => {
+    const url = buildShareURL({ width, height, seed, g, b, tau, startIcon, goalIcon });
+    try {
+      // Native share on mobile; clipboard elsewhere
+      if (navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
+        await navigator.share({ title: "Maze", text: "Check out this maze!", url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        alert("Share link copied to clipboard!");
+      }
+    } catch {
+      // rock-bottom fallback
+      prompt("Copy this link:", url);
+    }
   };
 
   /* Responsive cell */
@@ -302,6 +372,9 @@ export default function App() {
         setLingerMs={setLingerMs}
         hideWallsDuringAnim={hideWallsDuringAnim}
         setHideWallsDuringAnim={setHideWallsDuringAnim}
+
+        /* Share */
+        onShare={handleShare}
       />
 
 

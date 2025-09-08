@@ -19,10 +19,10 @@ type Props = {
   onSave: () => void; onLoad: (id:string)=>void; onDelete: (id:string)=>void;
   isMobile: boolean;
   controlsOpen: boolean;
-  onMinimize: () => void;     // << minimize button
-  lockSize: boolean;                 // ← NEW
-  setLockSize: (v:boolean)=>void;    // ← NEW
-  onMaxDifficulty: () => void;       // ← NEW
+  onMinimize: () => void;
+  lockSize: boolean;
+  setLockSize: (v:boolean)=>void;
+  onMaxDifficulty: () => void;
   startIcon: string | null;
   goalIcon: string | null;
   setStartIcon: (v: string | null) => void;
@@ -35,7 +35,7 @@ type Props = {
   setLingerMs: React.Dispatch<React.SetStateAction<number>>;
   hideWallsDuringAnim: boolean;
   setHideWallsDuringAnim: React.Dispatch<React.SetStateAction<boolean>>;
-
+  onShare: () => void;
 };
 
 export default function Sidebar(props: Props){
@@ -49,6 +49,7 @@ export default function Sidebar(props: Props){
     startIcon, goalIcon, setStartIcon, setGoalIcon,
     animateDFS, setAnimateDFS,
     dfsSegMs, setDfsSegMs,
+    onShare,
   } = props;
 
   const [picker, setPicker] = useState<null | "start" | "goal">(null);
@@ -270,6 +271,11 @@ export default function Sidebar(props: Props){
       <div className="grid-2">
         <button className="btn" onClick={onNew}>New Maze</button>
         <button className="btn" onClick={onPrint}>Print</button>
+        <div className="grid-3">
+          <button className="btn" onClick={onNew}>New Maze</button>
+          <button className="btn" onClick={onPrint}>Print</button>
+          <button className="btn btn-primary" onClick={onShare}>Share</button>
+        </div>
       </div>
 
       <fieldset>
