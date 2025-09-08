@@ -2,4 +2,6 @@
 /dist
 /.env
 /coverage
+/.vscode
+/.idea
 .DS_Store
