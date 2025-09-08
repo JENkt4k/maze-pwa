@@ -196,55 +196,6 @@ export default function Sidebar(props: Props){
           </div>
         </details>
         
-        <fieldset>
-          <legend>Animation</legend>
-          <details open>
-            <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>
-              Classic DFS build
-            </summary>
-
-            <label className="hstack" style={{ alignItems:"center", gap:8 }}>
-              <input
-                type="checkbox"
-                checked={animateDFS}
-                onChange={(e)=>setAnimateDFS(e.target.checked)}
-              />
-              <span>Animate build (DFS carve order)</span>
-            </label>
-
-            <label>
-              Segment speed: {dfsSegMs} ms / edge
-              <input
-                type="range" min={10} max={150} step={5}
-                value={dfsSegMs}
-                onChange={(e)=>setDfsSegMs(parseInt(e.target.value))}
-                disabled={!animateDFS}
-              />
-            </label>
-
-            <label>
-              Linger after draw: {lingerMs} ms
-              <input
-                type="range" min={0} max={5000} step={100}
-                value={lingerMs}
-                onChange={(e)=>setLingerMs(parseInt(e.target.value))}
-                disabled={!animateDFS}
-              />
-            </label>
-
-            {/* No effect - hiding control for now */}
-            {/* <label className="hstack" style={{ alignItems:"center", gap:8 }}>
-              <input
-                type="checkbox"
-                checked={hideWallsDuringAnim}
-                onChange={(e)=>setHideWallsDuringAnim(e.target.checked)}
-                disabled={!animateDFS}
-              />
-              <span>Hide walls during animation</span>
-            </label> */}
-                
-          </details>
-        </fieldset>
 
 
         {/* Popovers (rendered at end of fieldset so z-index is sane) */}
@@ -264,11 +215,59 @@ export default function Sidebar(props: Props){
         )}
       </fieldset>
 
+      <fieldset>
+        <legend>Animation</legend>
+        <details >
+          <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>
+            Classic DFS build animation
+          </summary>
 
+          <label className="hstack" style={{ alignItems:"center", gap:8 }}>
+            <input
+              type="checkbox"
+              checked={animateDFS}
+              onChange={(e)=>setAnimateDFS(e.target.checked)}
+            />
+            <span>Animate build (DFS carve order)</span>
+          </label>
+
+          <label>
+            Segment speed: {dfsSegMs} ms / edge
+            <input
+              type="range" min={10} max={150} step={5}
+              value={dfsSegMs}
+              onChange={(e)=>setDfsSegMs(parseInt(e.target.value))}
+              disabled={!animateDFS}
+            />
+          </label>
+
+          <label>
+            Linger after draw: {lingerMs} ms
+            <input
+              type="range" min={0} max={5000} step={100}
+              value={lingerMs}
+              onChange={(e)=>setLingerMs(parseInt(e.target.value))}
+              disabled={!animateDFS}
+            />
+          </label>
+
+          {/* No effect - hiding control for now */}
+          {/* <label className="hstack" style={{ alignItems:"center", gap:8 }}>
+            <input
+              type="checkbox"
+              checked={hideWallsDuringAnim}
+              onChange={(e)=>setHideWallsDuringAnim(e.target.checked)}
+              disabled={!animateDFS}
+            />
+            <span>Hide walls during animation</span>
+          </label> */}
+              
+        </details>
+      </fieldset>
 
       <fieldset>
         <legend>Difficulty</legend>
-        <details open>
+        <details >
           <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>Adjust difficulty</summary>
 
           <label>Goal bias g: {g.toFixed(2)}
@@ -293,14 +292,10 @@ export default function Sidebar(props: Props){
       </fieldset>
 
 
-      <div className="grid-2">
+      <div className="grid-3">
         <button className="btn" onClick={onNew}>New Maze</button>
         <button className="btn" onClick={onPrint}>Print</button>
-        <div className="grid-3">
-          <button className="btn" onClick={onNew}>New Maze</button>
-          <button className="btn" onClick={onPrint}>Print</button>
-          <button className="btn btn-primary" onClick={onShare}>Share</button>
-        </div>
+        <button className="btn btn-primary" onClick={onShare}>Share</button>
       </div>
 
       <fieldset>
