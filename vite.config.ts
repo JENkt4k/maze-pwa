@@ -24,7 +24,7 @@ export default defineConfig({
         'icons/icon-512.png'
       ],
       manifest: {
-        name: 'Kid-Friendly Maze',
+        name: 'InfaMaze',
         short_name: 'Maze',
         // Important for subpath hosting (e.g., GitHub Pages project site):
         start_url: BASE,
