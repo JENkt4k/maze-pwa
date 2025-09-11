@@ -339,7 +339,7 @@ export default function App() {
       <main className="panel main">
         <header className="sticky-top hstack" style={{ justifyContent:"space-between" }}>
           <div className="hstack" style={{ alignItems:"baseline", gap:12 }}>
-            <h1 style={{ margin:0, fontSize:22 }}>InfaMaze</h1>
+            <h1 style={{ margin:0, fontSize:22 }}>InfiMaze</h1>
             <div style={{ color:"#6b7280", fontSize:12 }}>seed {seed}</div>
           </div>
           <button className="btn" style={{ padding:"8px 12px" }}
