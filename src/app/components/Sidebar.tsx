@@ -1,12 +1,8 @@
-import React, { useRef, useState } from "react";
-import EmojiPicker from "./EmojiPicker"; 
+import React, { useEffect, useRef, useState } from "react";
+import EmojiPicker from "./EmojiPicker";
 
-type SavedMaze = {
-  id: string;
-  name: string;
-  params: { width:number;height:number;seed:number;g:number;b:number;tau:number };
-  createdAt: number;
-};
+import type { SavedMaze } from "../state";
+import { normalizeMarker } from "../maze";
 
 type Props = {
   canInstall: boolean;
@@ -17,12 +13,12 @@ type Props = {
   saveName: string; setSaveName: (s:string)=>void;
   saved: SavedMaze[]; selectedId: string|null;
   onSave: () => void; onLoad: (id:string)=>void; onDelete: (id:string)=>void;
-  isMobile: boolean;
   controlsOpen: boolean;
   onMinimize: () => void;
   lockSize: boolean;
   setLockSize: (v:boolean)=>void;
   onMaxDifficulty: () => void;
+  searching: boolean;
   startIcon: string | null;
   goalIcon: string | null;
   setStartIcon: (v: string | null) => void;
@@ -33,8 +29,6 @@ type Props = {
   setDfsSegMs: (n:number)=>void;
   lingerMs: number;
   setLingerMs: React.Dispatch<React.SetStateAction<number>>;
-  hideWallsDuringAnim: boolean;
-  setHideWallsDuringAnim: React.Dispatch<React.SetStateAction<boolean>>;
   onShare: () => void;
 };
 
@@ -42,31 +36,52 @@ export default function Sidebar(props: Props){
   const {
     canInstall, onInstall,
     width, height, g, b, tau,
-    setWidth, setHeight, setG, setB, setTau,
+    setG, setB, setTau,
     onNew, onPrint,
     saveName, setSaveName, saved = [], selectedId, onSave, onLoad, onDelete,
-    isMobile, controlsOpen, onMinimize,
+    controlsOpen, onMinimize,
     startIcon, goalIcon, setStartIcon, setGoalIcon,
     animateDFS, setAnimateDFS,
     dfsSegMs, setDfsSegMs,
     lingerMs, setLingerMs,
-    hideWallsDuringAnim,
-    setHideWallsDuringAnim,
     onShare,
   } = props;
 
   const [picker, setPicker] = useState<null | "start" | "goal">(null);
-  const startBtnRef = useRef<HTMLButtonElement | null>(null);
-  const goalBtnRef  = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => { if (!controlsOpen) setPicker(null); }, [controlsOpen]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  async function uploadMarker(file: File | undefined, setMarker: (value: string | null) => void) {
+    if (!file) return;
+    setUploadError(null);
+    if (!['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      setUploadError('Choose a PNG, JPEG, GIF, or WebP image smaller than 5 MB.');
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    try {
+      const image = new Image();
+      image.src = url;
+      await image.decode();
+      const scale = Math.min(1, 256 / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Canvas unavailable');
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      setMarker(normalizeMarker(canvas.toDataURL('image/png')));
+    } catch { setUploadError('This image could not be opened. Please choose another file.'); }
+    finally { URL.revokeObjectURL(url); }
+  }
+  const startBtnRef = useRef<HTMLButtonElement>(null);
+  const goalBtnRef = useRef<HTMLButtonElement>(null);
 
-  const display = props.isMobile ? (props.controlsOpen ? "flex" : "none") : "flex";
+  const display = controlsOpen ? "flex" : "none";
 
   const hasSaved = saved.length > 0;
 
-  // const display = isMobile ? (controlsOpen ? "flex" : "none") : "flex";
-
   return (
-    <aside className="panel controls" style={{ display, flexDirection:"column", gap:16 }}>
+    <aside id="controls-panel" className="panel controls" style={{ display, flexDirection:"column", gap:16 }}>
       <div className="sticky-top hstack" style={{ justifyContent:"space-between", paddingBottom:8 }}>
         <h2 style={{ margin:0, fontSize:20 }}>Maze Controls</h2>
         <div className="hstack" style={{ gap:6 }}>
@@ -112,6 +127,7 @@ export default function Sidebar(props: Props){
       {/* Markers */}
       <fieldset>
         <legend>Markers</legend>
+        {uploadError && <p role="alert">{uploadError}</p>}
         <details open>
           <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>
             Choose Start & Goal
@@ -123,8 +139,9 @@ export default function Sidebar(props: Props){
               <div className="hstack" style={{ gap:8 }}>
                 <input
                   type="text"
-                  value={startIcon ?? ""}
-                  onChange={(e) => setStartIcon(e.target.value || null)}
+                  aria-label="Start marker" maxLength={64}
+                  value={startIcon?.startsWith("data:") ? "" : startIcon ?? ""}
+                  onChange={(e) => setStartIcon(normalizeMarker(e.target.value))}
                   placeholder="🚀"
                   style={{ width:"6em", textAlign:"center" }}
                 />
@@ -137,6 +154,7 @@ export default function Sidebar(props: Props){
                 >
                   Pick emoji
                 </button>
+                <button className="btn btn-sm" type="button" aria-label="Clear start marker" onClick={() => setStartIcon(null)}>Clear</button>
               </div>
             </label>
 
@@ -145,8 +163,9 @@ export default function Sidebar(props: Props){
               <div className="hstack" style={{ gap:8 }}>
                 <input
                   type="text"
-                  value={goalIcon ?? ""}
-                  onChange={(e) => setGoalIcon(e.target.value || null)}
+                  aria-label="Goal marker" maxLength={64}
+                  value={goalIcon?.startsWith("data:") ? "" : goalIcon ?? ""}
+                  onChange={(e) => setGoalIcon(normalizeMarker(e.target.value))}
                   placeholder="🏁"
                   style={{ width:"6em", textAlign:"center" }}
                 />
@@ -159,6 +178,7 @@ export default function Sidebar(props: Props){
                 >
                   Pick emoji
                 </button>
+                <button className="btn btn-sm" type="button" aria-label="Clear goal marker" onClick={() => setGoalIcon(null)}>Clear</button>
               </div>
             </label>
 
@@ -166,15 +186,8 @@ export default function Sidebar(props: Props){
               Or upload custom image (start):
               <input
                 type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = () => setStartIcon(reader.result as string); // data URL
-                    reader.readAsDataURL(file);
-                  }
-                }}
+                accept="image/png,image/jpeg,image/gif,image/webp"
+                onChange={e => { void uploadMarker(e.target.files?.[0], setStartIcon); e.target.value = ""; }}
               />
             </label>
 
@@ -182,21 +195,12 @@ export default function Sidebar(props: Props){
               Or upload custom image (goal):
               <input
                 type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = () => setGoalIcon(reader.result as string);
-                    reader.readAsDataURL(file);
-                  }
-                }}
+                accept="image/png,image/jpeg,image/gif,image/webp"
+                onChange={e => { void uploadMarker(e.target.files?.[0], setGoalIcon); e.target.value = ""; }}
               />
             </label>
           </div>
         </details>
-        
-
 
         {/* Popovers (rendered at end of fieldset so z-index is sane) */}
         {picker === "start" && (
@@ -251,17 +255,6 @@ export default function Sidebar(props: Props){
             />
           </label>
 
-          {/* No effect - hiding control for now */}
-          {/* <label className="hstack" style={{ alignItems:"center", gap:8 }}>
-            <input
-              type="checkbox"
-              checked={hideWallsDuringAnim}
-              onChange={(e)=>setHideWallsDuringAnim(e.target.checked)}
-              disabled={!animateDFS}
-            />
-            <span>Hide walls during animation</span>
-          </label> */}
-              
         </details>
       </fieldset>
 
@@ -281,8 +274,8 @@ export default function Sidebar(props: Props){
           </label>
 
           <div className="hstack" style={{ gap:8, marginTop:8 }}>
-            <button className="btn btn-primary" type="button" onClick={props.onMaxDifficulty}>
-              Max difficulty
+            <button className="btn btn-primary" type="button" disabled={props.searching} onClick={props.onMaxDifficulty}>
+              {props.searching ? 'Searching…' : 'Max difficulty'}
             </button>
             <span style={{ fontSize:12, color:"#6b7280" }}>
               (coarse sweep over g/b/τ for current size & seed)
@@ -290,7 +283,6 @@ export default function Sidebar(props: Props){
           </div>
         </details>
       </fieldset>
-
 
       <div className="grid-3">
         <button className="btn" onClick={onNew}>New Maze</button>
@@ -301,7 +293,7 @@ export default function Sidebar(props: Props){
       <fieldset>
         <legend>Save / Load</legend>
         <div className="stack">
-          <input className="input" placeholder="Name this maze…" value={saveName} onChange={e=>setSaveName(e.target.value)}/>
+          <input className="input" aria-label="Maze name" maxLength={200} placeholder="Name this maze…" value={saveName} onChange={e=>setSaveName(e.target.value)}/>
           <button className="btn btn-primary" onClick={onSave}>Save current</button>
         </div>
 

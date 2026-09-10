@@ -1,72 +1,54 @@
-// src/app/components/EmojiPicker.tsx
-import React, { useEffect, useRef, useState, Suspense } from "react";
+﻿import React, { useEffect, useLayoutEffect, useRef, Suspense } from "react";
+import { createPortal } from "react-dom";
 
-// Lazy import to keep initial bundle small
 const LazyPicker = React.lazy(async () => {
-  const [modReact, data] = await Promise.all([
-    import("@emoji-mart/react"),
-    import("@emoji-mart/data"),
-  ]);
-  // Re-export as a default component that already has data bound
-  const Picker = (props: any) => <modReact.default data={data.default} {...props} />;
+  const [component, data] = await Promise.all([import("@emoji-mart/react"), import("@emoji-mart/data")]);
+  const Picker = (props: { onEmojiSelect: (emoji: { native?: string }) => void }) =>
+    <component.default data={data.default} {...props} theme="light" previewPosition="none" skinTonePosition="search" />;
   return { default: Picker };
 });
 
-type Props = {
-  onSelect: (emoji: string) => void;
-  onClose?: () => void;
-  anchorRef?: React.RefObject<HTMLElement | null>;
-};
+type Props = { onSelect: (emoji: string) => void; onClose: () => void; anchorRef: React.RefObject<HTMLElement> };
 
 export default function EmojiPicker({ onSelect, onClose, anchorRef }: Props) {
-  const rootRef = useRef<HTMLDivElement | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  // Position near anchor
-  useEffect(() => {
-    setMounted(true);
+  const rootRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
     const root = rootRef.current;
-    const anchor = anchorRef?.current;
     if (!root) return;
-    const r = anchor?.getBoundingClientRect();
-    if (r) {
-      const top = Math.max(8, r.bottom + 6 + window.scrollY);
-      const left = Math.max(8, r.left + window.scrollX);
-      root.style.top = `${top}px`;
+    const position = () => {
+      const anchor = anchorRef.current?.getBoundingClientRect();
+      const bounds = root.getBoundingClientRect();
+      const left = Math.max(8, Math.min(anchor?.left ?? 8, window.innerWidth - bounds.width - 8));
+      const below = (anchor?.bottom ?? 8) + 6;
+      const top = Math.max(8, Math.min(below + bounds.height <= window.innerHeight - 8 ? below : (anchor?.top ?? below) - bounds.height - 6, window.innerHeight - bounds.height - 8));
       root.style.left = `${left}px`;
-    } else {
-      root.style.top = `80px`;
-      root.style.left = `16px`;
-    }
+      root.style.top = `${top}px`;
+    };
+    const observer = new ResizeObserver(position);
+    observer.observe(root);
+    position();
+    root.focus();
+    window.addEventListener("resize", position);
+    window.addEventListener("scroll", position, true);
+    return () => { observer.disconnect(); window.removeEventListener("resize", position); window.removeEventListener("scroll", position, true); };
   }, [anchorRef]);
 
-  // Close on outside click / ESC
   useEffect(() => {
-    function onDoc(e: MouseEvent) {
-      if (!rootRef.current) return;
-      if (!rootRef.current.contains(e.target as Node)) onClose?.();
+    const anchor = anchorRef.current;
+    function outside(event: globalThis.PointerEvent) {
+      const target = event.target as Node;
+      if (!rootRef.current?.contains(target) && !anchor?.contains(target)) onClose();
     }
-    function onEsc(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose?.();
-    }
-    document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onEsc);
-    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onEsc); };
-  }, [onClose]);
+    function key(event: KeyboardEvent) { if (event.key === "Escape") { event.preventDefault(); onClose(); anchor?.focus(); } }
+    document.addEventListener("pointerdown", outside);
+    document.addEventListener("keydown", key);
+    return () => { document.removeEventListener("pointerdown", outside); document.removeEventListener("keydown", key); };
+  }, [onClose, anchorRef]);
 
-  if (!mounted) return null;
-
-  return (
-    <div ref={rootRef} className="emoji-popover" role="dialog" aria-label="Emoji picker">
-      <Suspense fallback={<div style={{ padding: 12 }}>Loading emojis…</div>}>
-        <LazyPicker
-          onEmojiSelect={(e: any) => { onSelect(e?.native ?? ""); onClose?.(); }}
-          theme="light"
-          dynamicWidth
-          previewPosition="none"
-          skinTonePosition="search"
-        />
-      </Suspense>
-    </div>
-  );
+  return createPortal(<div ref={rootRef} className="emoji-popover" role="dialog" aria-label="Emoji picker" tabIndex={-1}>
+    <button className="btn btn-sm" type="button" onClick={() => { onClose(); anchorRef.current?.focus(); }}>Close emoji picker</button>
+    <Suspense fallback={<div role="status">Loading emojis…</div>}>
+      <LazyPicker onEmojiSelect={emoji => { onSelect(emoji.native ?? ""); onClose(); anchorRef.current?.focus(); }} />
+    </Suspense>
+  </div>, document.body);
 }

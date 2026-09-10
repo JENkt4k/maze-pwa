@@ -1,4 +1,4 @@
-import React from "react";
+
 
 type Props = {
   visible?: boolean;          // ← render only when true (prevents focus issues)
