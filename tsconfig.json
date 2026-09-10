@@ -5,16 +5,18 @@
     "module": "ESNext",
     "moduleResolution": "Node",
     "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "jsx": "react-jsx",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["jest", "node"],
-    "baseUrl": ".",        // optional; only if you need aliases
-    "paths": {             // optional; example alias
+    "types": ["jest", "node", "vite/client", "vite-plugin-pwa/client"],
+    "baseUrl": ".",
+    "paths": {
       "@src/*": ["src/*"]
     }
   },
-  "include": ["src", "tests"],
+  "include": ["src", "tests", "e2e", "vite.config.ts", "playwright.config.ts"],
   "references": []
 }

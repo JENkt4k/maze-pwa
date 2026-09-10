@@ -13,10 +13,11 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
+      injectRegister: false,
       // Everything listed here must exist under `public/`
       includeAssets: [
-        'favicon.ico',
+        'icons/favicon.ico',
         'icons/icon-48.png',
         'icons/icon-192.png',
         'icons/icon-256.png',
@@ -47,6 +48,6 @@ export default defineConfig({
       }
     })
   ],
-  server: { port: 5173, open: true },
+  server: { port: 5173 },
   build: { outDir: 'dist', sourcemap: true }
 });
