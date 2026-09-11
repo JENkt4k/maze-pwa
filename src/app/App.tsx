@@ -1,5 +1,5 @@
 // src/app/App.tsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { registerSW } from "virtual:pwa-register";
 import PWABanner from "./components/PWABanner";
 import StatsCard from "./components/StatsCard";
@@ -13,8 +13,11 @@ import MazeView from "./components/MazeView";
 
 import { buildShareURL, parseFromURL, parseSettings, parseSaved, SETTINGS_KEY, STORAGE_KEY, type SavedMaze } from "./state";
 import { handlePrint } from "./print";
-import { type Stats } from "./maze";
+import { createMaze } from "./maze";
 import { useDifficultySearch } from "./hooks/useDifficultySearch";
+import { mazeToGraph } from '../maze/graph';
+import { solveMaze, type SolverId } from '../maze/solvers';
+import { useSolverPlayback } from './hooks/useSolverPlayback';
 
 const DEFAULT_START = "\u{1f680}";
 const DEFAULT_GOAL = "\u{1f3c1}";
@@ -126,10 +129,10 @@ export default function App() {
   const setWidth  = (w:number) => { const odd = w%2? w : w+1; setWidthRaw(odd); if (lockSize) setHeightRaw(odd); };
   const setHeight = (h:number) => { const odd = h%2? h : h+1; setHeightRaw(odd); if (lockSize) setWidthRaw(odd); };
 
-  // animation prefs
-  const [animateDFS, setAnimateDFS] = useState(persisted?.animateDFS ?? true);
-  const [dfsSegMs, setDfsSegMs]     = useState(persisted?.dfsSegMs ?? 35);
-  const [lingerMs, setLingerMs]     = useState(persisted?.lingerMs ?? 2000);
+  // Solver playback preferences. Legacy animation settings provide migration defaults.
+  const [solverEnabled, setSolverEnabled] = useState(persisted.solverEnabled ?? persisted.animateDFS ?? true);
+  const [solverAlgorithm, setSolverAlgorithm] = useState<SolverId>(persisted.solverAlgorithm ?? 'dfs');
+  const [solverStepMs, setSolverStepMs] = useState(persisted.solverStepMs ?? persisted.dfsSegMs ?? 35);
 
   // persist settings
   useEffect(() => {
@@ -144,15 +147,15 @@ export default function App() {
           tau,
           controlsOpen,
           lockSize,
-          animateDFS,
-          dfsSegMs,
-          lingerMs,
+          solverEnabled,
+          solverAlgorithm,
+          solverStepMs,
           startIcon,
           goalIcon,
         }));
       setSettingsError(null);
     } catch { setSettingsError("Settings could not be stored. They will reset when this page is closed."); }
-  }, [seed,width,height,g,b,tau,controlsOpen,lockSize, animateDFS, dfsSegMs, lingerMs, startIcon, goalIcon]);
+  }, [seed,width,height,g,b,tau,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,startIcon,goalIcon]);
 
   // compute margin/stroke once from cell
   const margin = Math.round(cell/2);
@@ -160,9 +163,6 @@ export default function App() {
 
   // print: keep the latest svg string from MazeView
   const [currentSVG, setCurrentSVG] = useState<string>("");
-
-  // stats from MazeView
-  const [stats, setStats] = useState<Stats>({ L:0,T:0,J:0,E:0,D:0 });
 
   // Track the breakpoint without overwriting the user's controls preference.
   const [isMobile, setIsMobile] = useState(false);
@@ -178,6 +178,11 @@ export default function App() {
   });
   const newMaze = () => setSeed(s => (s + 1) | 0);
   const mazeKey = `${width}:${height}:${seed}:${g}:${b}:${tau}`;
+  const mazeData = useMemo(() => createMaze({ width, height, seed, g, b, tau }), [width, height, seed, g, b, tau]);
+  const mazeGraph = useMemo(() => mazeToGraph(mazeData), [mazeData]);
+  const solverRun = useMemo(() => solveMaze(mazeGraph, solverAlgorithm), [mazeGraph, solverAlgorithm]);
+  const solverRunKey = `${mazeKey}:${solverAlgorithm}`;
+  const playback = useSolverPlayback(solverRun.events.length, solverRunKey, solverEnabled, solverStepMs);
 
   return (
     <div className={`shell${controlsOpen ? "" : " controls-closed"}`}>
@@ -196,20 +201,22 @@ export default function App() {
 
         {(storageError || settingsError || searchError) && <div role="alert" style={{ padding: 12, color: "#b91c1c" }}>{storageError || settingsError || searchError}</div>}
         <section className="stack">
-          {/* Maze + drawing; MazeView owns animation & emits svg/stats */}
+          {/* Maze, solver playback, and drawing share one generated maze snapshot. */}
           <div className="draw-wrap">
             <MazeView
               hostRef={svgHostRef}
-              params={{ width, height, seed, g, b, tau }}
+              data={mazeData}
+              graph={mazeGraph}
+              solverRun={solverRun}
+              solverEnabled={solverEnabled}
+              solverEventIndex={playback.state.index}
               render={{ cell, margin, stroke, startIcon, goalIcon, iconScale: 0.7 }}
-              animation={{ enabled: animateDFS, segMs: dfsSegMs, lingerMs }}
-              onStats={setStats}
               onSVGChange={setCurrentSVG}
             />
             <DrawingCanvas hostRef={svgHostRef} mazeKey={mazeKey} />
           </div>
 
-          <StatsCard stats={stats} />
+          <StatsCard stats={mazeData.stats} />
         </section>
       </main>
 
@@ -249,13 +256,22 @@ export default function App() {
         setStartIcon={setStartIcon}
         setGoalIcon={setGoalIcon}
 
-        /* Animation (if Sidebar shows these controls) */
-        animateDFS={animateDFS}
-        setAnimateDFS={setAnimateDFS}
-        dfsSegMs={dfsSegMs}
-        setDfsSegMs={setDfsSegMs}
-        lingerMs={lingerMs}
-        setLingerMs={setLingerMs}
+        solver={{
+          algorithm: solverAlgorithm,
+          setAlgorithm: setSolverAlgorithm,
+          enabled: solverEnabled,
+          setEnabled: setSolverEnabled,
+          speed: solverStepMs,
+          setSpeed: setSolverStepMs,
+          state: playback.state,
+          eventCount: solverRun.events.length,
+          metrics: solverRun.metrics,
+          play: playback.play,
+          pause: playback.pause,
+          restart: playback.restart,
+          step: playback.step,
+          seek: playback.seek,
+        }}
 
         /* Share */
         onShare={handleShare}
