@@ -1,4 +1,4 @@
-import React from "react";
+
 
 type Props = {
   offlineReady: boolean;
@@ -10,8 +10,8 @@ type Props = {
 export default function PWABanner({ offlineReady, needRefresh, onUpdate, onClose }: Props) {
   if (!offlineReady && !needRefresh) return null;
   return (
-    <div className="pwa-banner">
-      <span>{offlineReady ? "App is ready to work offline." : "A new version is available."}</span>
+    <div className="pwa-banner" role="status">
+      <span>{needRefresh ? "A new version is available. Updating clears the drawn path." : "App is ready to work offline."}</span>
       <div className="hstack">
         {needRefresh && (
           <button className="btn btn-primary" onClick={onUpdate}>Update</button>

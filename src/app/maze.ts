@@ -1,27 +1,43 @@
-// src/maze.ts
 export type Cell = { x:number; y:number; n:1|0; s:1|0; e:1|0; w:1|0 };
 export type CarveStep = { x:number; y:number; nx:number; ny:number };
+export type GeneratorId = 'dfs' | 'prim' | 'kruskal';
+export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number;generator?:GeneratorId };
 export type Stats = { L:number; T:number; J:number; E:number; D:number };
+
+export const GENERATORS: Readonly<Record<GeneratorId, { id:GeneratorId; name:string; description:string }>> = {
+  dfs: { id:'dfs', name:'Randomized DFS', description:'Carves long passages with an iterative depth-first backtracker.' },
+  prim: { id:'prim', name:'Randomized Prim', description:'Grows outward from the start with a randomized frontier.' },
+  kruskal: { id:'kruskal', name:'Randomized Kruskal', description:'Joins random cell regions until the entire maze is connected.' },
+};
 
 export type MazeResult = {
   // final rendered grid (tree + braids)
   maze: Cell[][];
-  // DFS spanning-tree carve steps (use for animation + stats)
+  // DFS spanning-tree carve steps for animation
   treeSteps: CarveStep[];
   // optional: the extra edges knocked out by braiding
   braidEdits: CarveStep[];
-  // stats computed **only** from the tree
+  // Statistics of the final maze and its shortest start-to-goal solution
   stats: Stats;
   // start/goal for markers
   start: {x:number;y:number};
   goal:  {x:number;y:number};
 };
 
-function isMazeResult(x: any): x is MazeResult {
-  return x && x.maze && Array.isArray(x.maze);
+function isMazeResult(x: Cell[][] | MazeResult): x is MazeResult {
+  return !Array.isArray(x);
 }
 
-export function createMaze(params: { width:number;height:number;seed:number;g:number;b:number;tau:number }): MazeResult {
+export function createMaze(params: MazeParams): MazeResult {
+  for (const dimension of [params.width, params.height]) {
+    if (!Number.isInteger(dimension) || dimension < 1 || dimension > 101) throw new RangeError("Maze dimensions must be integers from 1 to 101");
+  }
+  if (!Number.isSafeInteger(params.seed)) throw new RangeError("Seed must be a safe integer");
+  for (const value of [params.g, params.b, params.tau]) {
+    if (!Number.isFinite(value) || value < 0 || value > 1) throw new RangeError("Maze biases must be between 0 and 1");
+  }
+  const generator = params.generator ?? 'dfs';
+  if (!(generator in GENERATORS)) throw new RangeError('Unknown maze generator');
   const { width: W, height: H, seed, g, b, tau } = params;
   const rnd = mulberry32(seed);
 
@@ -39,6 +55,44 @@ export function createMaze(params: { width:number;height:number;seed:number;g:nu
   const stack: {x:number;y:number}[] = [];
   const treeSteps: CarveStep[] = [];
 
+  const carve = (x:number, y:number, d: typeof DIRS[number]) => {
+    const nx=x+d.dx, ny=y+d.dy;
+    tree[y][x][d.a]=0; tree[ny][nx][d.b]=0;
+    treeSteps.push({x,y,nx,ny});
+  };
+
+  if (generator === 'prim') {
+    type Frontier = {x:number;y:number;d:typeof DIRS[number]};
+    const frontier: Frontier[]=[];
+    const addFrontier=(x:number,y:number) => {
+      for (const d of DIRS) if (inb(x+d.dx,y+d.dy) && !seen.has(key(x+d.dx,y+d.dy))) frontier.push({x,y,d});
+    };
+    seen.add(key(start.x,start.y)); addFrontier(start.x,start.y);
+    while(frontier.length){
+      const index=Math.floor(rnd()*frontier.length), edge=frontier[index];
+      frontier[index]=frontier[frontier.length-1]; frontier.pop();
+      const nx=edge.x+edge.d.dx, ny=edge.y+edge.d.dy;
+      if(seen.has(key(nx,ny))) continue;
+      carve(edge.x,edge.y,edge.d); seen.add(key(nx,ny)); addFrontier(nx,ny);
+    }
+  } else if (generator === 'kruskal') {
+    const edges:{x:number;y:number;d:typeof DIRS[number]}[]=[];
+    for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+      if(x+1<W) edges.push({x,y,d:DIRS[0]});
+      if(y+1<H) edges.push({x,y,d:DIRS[2]});
+    }
+    for(let i=edges.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[edges[i],edges[j]]=[edges[j],edges[i]];}
+    const parent=Array.from({length:W*H},(_,i)=>i);
+    const root=(id:number):number => parent[id]===id?id:(parent[id]=root(parent[id]));
+    for(const edge of edges){
+      const nx=edge.x+edge.d.dx, ny=edge.y+edge.d.dy;
+      const a=root(edge.y*W+edge.x), z=root(ny*W+nx);
+      if(a===z) continue;
+      parent[a]=z; carve(edge.x,edge.y,edge.d);
+    }
+  }
+
+  if (generator === 'dfs') {
   stack.push(start);
   seen.add(key(start.x,start.y));
 
@@ -58,28 +112,20 @@ export function createMaze(params: { width:number;height:number;seed:number;g:nu
     if (candidates.length === 0) { stack.pop(); continue; }
 
     // ⬅️ choose using goal bias g and straight bonus τ
-    const d = chooseDirWeighted(cur.x, cur.y, prev, goal, g, tau, rnd);
-
-    const nx = cur.x + d.dx, ny = cur.y + d.dy;
-    if (!inb(nx, ny) || seen.has(key(nx, ny))) {
-      // rare when chosen dir isn’t valid due to weights; fall back to any candidate
-      const d2 = candidates[(rnd()*candidates.length)|0];
-      const nx2 = cur.x + d2.dx, ny2 = cur.y + d2.dy;
-      const a = tree[cur.y][cur.x], bcell = tree[ny2][nx2];
-      (a as any)[d2.a] = 0; (bcell as any)[d2.b] = 0;
-      treeSteps.push({ x:cur.x, y:cur.y, nx:nx2, ny:ny2 });
-      stack.push({ x:nx2, y:ny2 }); seen.add(key(nx2,ny2));
-      continue;
+    // Preserve the v1 random sequence so existing saved/shared mazes retain
+    // their layouts. Invalid weighted directions fall back to a valid choice.
+    let d = chooseDirWeighted(DIRS, cur.x, cur.y, prev, goal, g, tau, rnd);
+    if (!inb(cur.x + d.dx, cur.y + d.dy) || seen.has(key(cur.x + d.dx, cur.y + d.dy))) {
+      d = candidates[Math.floor(rnd() * candidates.length)];
     }
 
+    const nx = cur.x + d.dx, ny = cur.y + d.dy;
     const a = tree[cur.y][cur.x], bcell = tree[ny][nx];
-    (a as any)[d.a] = 0; (bcell as any)[d.b] = 0;
+    a[d.a] = 0; bcell[d.b] = 0;
     treeSteps.push({ x:cur.x, y:cur.y, nx, ny });
     stack.push({ x:nx, y:ny }); seen.add(key(nx,ny));
   }
-
-    // 3) compute STATS on the **tree** only (not on braid-augmented graph)
-  const stats = computeTreeStats(tree, treeSteps);
+  }
 
   // 2) clone tree into final grid and apply braids (recorded separately)
   const maze: Cell[][] = tree.map(row => row.map(c => ({...c})));
@@ -89,24 +135,20 @@ export function createMaze(params: { width:number;height:number;seed:number;g:nu
       const c = maze[y][x];
       const deg = openDeg(c); // degree in current final graph
       if (deg === 1 && rnd() < b) {
-        const walls: ("n"|"s"|"e"|"w")[] = [];
-        if (c.n) walls.push("n"); if (c.s) walls.push("s"); if (c.e) walls.push("e"); if (c.w) walls.push("w");
+        // Wall order and boundary skips are part of the v1 seed contract.
+        const walls = [DIRS[3], DIRS[2], DIRS[0], DIRS[1]].filter(d => c[d.a]);
         if (!walls.length) continue;
-        const w = walls[Math.floor(rnd()*walls.length)];
-        const dx = w==="e"?1:w==="w"?-1:0;
-        const dy = w==="s"?1:w==="n"?-1:0;
-        const nx = x+dx, ny = y+dy;
-        if (inb(nx,ny)) {
-          (c as any)[w] = 0;
-          (maze[ny][nx] as any)[opp(w)] = 0;
-          braidEdits.push({ x, y, nx, ny });
-        }
+        const d = walls[Math.floor(rnd() * walls.length)];
+        const nx = x + d.dx, ny = y + d.dy;
+        if (!inb(nx, ny)) continue;
+        c[d.a] = 0;
+        maze[ny][nx][d.b] = 0;
+        braidEdits.push({ x, y, nx, ny });
       }
     }
   }
 
-
-
+  const stats = computeStats(maze, start, goal);
   return { maze, treeSteps, braidEdits, stats, start, goal };
 }
 
@@ -121,29 +163,14 @@ const DIRS = [
   { dx: 0, dy:-1, a: "n" as const, b: "s" as const },
 ];
 
-function biasedDirs(cur:{x:number;y:number}, goal:{x:number;y:number}, g:number, tau:number){
-  const dirs = [...DIRS];
-  // goal bias
-  dirs.sort((A,B) => {
-    const da = Math.abs((cur.x + A.dx) - goal.x) + Math.abs((cur.y + A.dy) - goal.y);
-    const db = Math.abs((cur.x + B.dx) - goal.x) + Math.abs((cur.y + B.dy) - goal.y);
-    return (da - db) * (g || 0);
-  });
-  // turn penalty prefers continuing vector
-  // (we can’t know prev in this pure function; the DFS loop already biases based on prev)
-  return dirs;
-}
-
-// weight helper inside maze.ts
 function chooseDirWeighted(
+  dirs: typeof DIRS,
   x:number, y:number,
   prev:{dx:number;dy:number}|null,
   goal:{x:number;y:number},
   g:number, tau:number,
   rnd:()=>number
 ){
-  // candidate directions (copy to keep DIRS const)
-  const dirs = [...DIRS];
 
   // compute weights
   const baseDist = Math.abs(goal.x - x) + Math.abs(goal.y - y); // manhattan
@@ -165,68 +192,81 @@ function chooseDirWeighted(
   return dirs[dirs.length - 1];
 }
 
-
-function shuffleInPlace<T>(a:T[], rnd:()=>number){ for(let i=a.length-1;i>0;i--){ const j=(rnd()* (i+1))|0; [a[i],a[j]]=[a[j],a[i]]; } }
-
-function opp(w:"n"|"s"|"e"|"w"): "n"|"s"|"e"|"w" { return w==="n"?"s": w==="s"?"n": w==="e"?"w":"e"; }
 function openDeg(c:Cell){ return (c.n?0:1)+(c.s?0:1)+(c.e?0:1)+(c.w?0:1); }
 
-/** Compute stats from the DFS spanning tree only (stable across features) */
-function computeTreeStats(tree: Cell[][], treeSteps: CarveStep[]): Stats {
-  const H = tree.length, W = tree[0].length;
-
-  // Degree-based counts on the tree (not the braided graph)
-  let J=0, E=0;
-  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
-    const c = tree[y][x];
-    const deg = openDeg(c);
-    if (deg === 1) E++;
-    else if (deg >= 3) J++;
+/** Shortest-path length/turn rate and graph counts. D is an uncalibrated
+ * heuristic: logarithmic route length, route turns, junction/dead-end density. */
+function computeStats(maze: Cell[][], start: {x:number;y:number}, goal: {x:number;y:number}): Stats {
+  const W = maze[0].length, count = W * maze.length;
+  const parents = new Int32Array(count).fill(-1);
+  const first = start.y * W + start.x, last = goal.y * W + goal.x;
+  const queue = [first];
+  parents[first] = first;
+  for (let head = 0; head < queue.length && parents[last] === -1; head++) {
+    const id = queue[head], x = id % W, y = Math.floor(id / W);
+    for (const d of DIRS) {
+      if (maze[y][x][d.a]) continue;
+      const next = (y + d.dy) * W + x + d.dx;
+      if (parents[next] !== -1) continue;
+      parents[next] = id;
+      queue.push(next);
+    }
   }
-
-  // L: number of nodes in the tree visit order (edges + 1)
-  const L = treeSteps.length + 1;
-
-  // Turns along the DFS carve sequence
-  let turns = 0;
-  for (let i=1;i<treeSteps.length;i++){
-    const a = treeSteps[i-1], b = treeSteps[i];
-    const ax=a.nx-a.x, ay=a.ny-a.y, bx=b.nx-b.x, by=b.ny-b.y;
-    if (ax!==bx || ay!==by) turns++;
+  const path = [last];
+  while (path[path.length - 1] !== first) path.push(parents[path[path.length - 1]]);
+  path.reverse();
+  const L = path.length - 1;
+  let turns = 0, J = 0, E = 0;
+  for (let i = 2; i < path.length; i++) {
+    if (path[i] - path[i-1] !== path[i-1] - path[i-2]) turns++;
   }
-  const T = L ? turns / L : 0;
-
-  // Difficulty normalization tuned to match the historical baseline.
-  // If your test expects ~5.185 for W=19,H=19,seed=42,g=.3,b=.15,tau=.4 on *main*,
-  // the tree-only metric below will match (adjust K if your main used a slightly different scale).
-  // const K = 20; // baseline constant used previously
-  // const D = Number(((L * (1 + T) + J*0.5 + E*0.3) / K).toFixed(3));
-  const D = 0.7 * Math.log2(Math.max(2, L)) + 0.8 * T + 0.5 * (J / Math.max(1,L)) + 0.3 * (E / Math.max(1,L));
+  for (const row of maze) for (const cell of row) {
+    const degree = openDeg(cell);
+    if (degree === 1) E++;
+    if (degree >= 3) J++;
+  }
+  const T = L > 1 ? turns / (L - 1) : 0;
+  const D = L === 0 ? 0 : 0.7 * Math.log2(L + 1) + 0.8 * T + 0.5 * J / count + 0.3 * E / count;
   return { L, T, J, E, D: +D.toFixed(3) };
-
-  // return { L, T, J, E, D };
 }
 
-function isDataURL(str?: string): boolean {
-  if (!str) return false;
-  // quick check: starts with "data:" and has a comma separating metadata and payload
-  return /^data:([a-z]+\/[a-z0-9\-\+\.]+)?(;[a-z\-]+\=[a-z0-9\-\.]+)*(;base64)?,/i.test(str);
+/** Search a bounded parameter grid; include the current maze and preserve its seed. */
+export function findMaxDifficulty(params: MazeParams): MazeParams {
+  let best = { ...params }, score = createMaze(best).stats.D;
+  for (const g of [0, .2, .4, .6, .8, 1])
+    for (const b of [0, .1, .2, .3, .4, .5])
+      for (const tau of [0, .2, .4, .6, .8, 1]) {
+        const candidate = { ...params, g, b, tau };
+        const next = createMaze(candidate).stats.D;
+        if (next > score) { best = candidate; score = next; }
+      }
+  return best;
+}
+
+const RASTER_DATA = /^data:image\/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/]+={0,2}$/i;
+/** Only bounded plain text or base64 raster images may be persisted/rendered. */
+export function normalizeMarker(value: unknown): string | null {
+  if (typeof value !== "string" || !value || value.length > 2_000_000) return null;
+  if (/^data:/i.test(value)) return RASTER_DATA.test(value) ? value : null;
+  return value.length <= 64 ? value : null;
+}
+function escapeXML(value: string): string {
+  return value.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[c]!));
 }
 
 export function toSVG(
   input: Cell[][] | MazeResult,
   opts: {
     cell:number; margin:number; stroke?:number;
-    showStartGoal?:boolean; startIcon?:string; goalIcon?:string; iconScale?:number;
-    // DFS animation (optional)
-    dfsSteps?: CarveStep[]; dfsTotalSec?: number; dfsPassageWidth?: number;
-    hideWallsDuringAnim?: boolean;
+    showStartGoal?:boolean; startIcon?:string|null; goalIcon?:string|null; iconScale?:number;
   }
 ): string {
   const m  = isMazeResult(input) ? input.maze : input;
   const SG = isMazeResult(input) ? {start: input.start, goal: input.goal} : null;
 
   const { cell, margin, stroke = 2 } = opts;
+  if (![cell, margin, stroke, opts.iconScale ?? .8].every(Number.isFinite) || cell <= 0 || margin < 0 || stroke <= 0 || (opts.iconScale ?? .8) <= 0) throw new RangeError("Invalid SVG dimensions");
+  const startIcon = normalizeMarker(opts.startIcon), goalIcon = normalizeMarker(opts.goalIcon);
   const H = m.length, W = m[0]?.length ?? 0;
   const widthPx  = W * cell + margin * 2;
   const heightPx = H * cell + margin * 2;
@@ -234,8 +274,7 @@ export function toSVG(
   const cx  = (x:number)=> margin + x*cell + cell/2;
   const cy  = (y:number)=> margin + y*cell + cell/2;
 
-  // (Tip: drop width/height attrs for responsive scaling; keep if you prefer)
-  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${widthPx} ${heightPx}">`;
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Maze with start at the left and goal at the right" viewBox="0 0 ${widthPx} ${heightPx}">`;
 
   // Walls
   let walls = "";
@@ -246,8 +285,7 @@ export function toSVG(
     if (y===H-1 && c.s) walls += `<line x1="${margin+x*cell}" y1="${margin+(y+1)*cell}" x2="${margin+(x+1)*cell}" y2="${margin+(y+1)*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
     if (x===W-1 && c.e) walls += `<line x1="${margin+(x+1)*cell}" y1="${margin+y*cell}" x2="${margin+(x+1)*cell}" y2="${margin+(y+1)*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
   }
-  const wallsClass = opts.hideWallsDuringAnim ? `class="walls hide"` : `class="walls"`;
-  svg += `<g ${wallsClass}>${walls}</g>`;
+  svg += `<g class="walls">${walls}</g>`;
 
   // Start/Goal (prefer MazeResult’s start/goal if available; fallback to mid-row ends)
   if (opts.showStartGoal !== false) {
@@ -258,36 +296,21 @@ export function toSVG(
     const r = Math.max(3, Math.round(cell*0.25));
     const fs = cell * (opts.iconScale ?? 0.8);
 
-    if (isDataURL(opts.startIcon)) {
-      svg += `<image href="${opts.startIcon}" x="${sX - fs/2}" y="${sY - fs/2}" width="${fs}" height="${fs}" />`;
-    } else if (opts.startIcon) {
-      svg += `<text x="${sX}" y="${sY}" font-size="${fs}" text-anchor="middle" dominant-baseline="central">${opts.startIcon}</text>`;
+    if (startIcon && RASTER_DATA.test(startIcon)) {
+      svg += `<image href="${escapeXML(startIcon)}" x="${sX - fs/2}" y="${sY - fs/2}" width="${fs}" height="${fs}" />`;
+    } else if (startIcon) {
+      svg += `<text x="${sX}" y="${sY}" font-size="${fs}" text-anchor="middle" dominant-baseline="central">${escapeXML(startIcon!)}</text>`;
     } else {
       svg += `<circle cx="${sX}" cy="${sY}" r="${r}" fill="limegreen"/>`;
     }
 
-    if (isDataURL(opts.goalIcon)) {
-      svg += `<image href="${opts.goalIcon}" x="${gX - fs/2}" y="${gY - fs/2}" width="${fs}" height="${fs}" />`;
-    } else if (opts.goalIcon) {
-      svg += `<text x="${gX}" y="${gY}" font-size="${fs}" text-anchor="middle" dominant-baseline="central">${opts.goalIcon}</text>`;
+    if (goalIcon && RASTER_DATA.test(goalIcon)) {
+      svg += `<image href="${escapeXML(goalIcon)}" x="${gX - fs/2}" y="${gY - fs/2}" width="${fs}" height="${fs}" />`;
+    } else if (goalIcon) {
+      svg += `<text x="${gX}" y="${gY}" font-size="${fs}" text-anchor="middle" dominant-baseline="central">${escapeXML(goalIcon!)}</text>`;
     } else {
       svg += `<circle cx="${gX}" cy="${gY}" r="${r}" fill="crimson"/>`;
     }
-  }
-
-  // Optional embedded DFS path (still allowed)
-  if (opts.dfsSteps && opts.dfsSteps.length) {
-    const d = `M ${cx(opts.dfsSteps[0].x)} ${cy(opts.dfsSteps[0].y)}`
-      + opts.dfsSteps.map(s => ` L ${cx(s.nx)} ${cy(s.ny)}`).join("");
-    const dur  = Math.max(0.2, opts.dfsTotalSec ?? 4);
-    const pass = Math.max(1, opts.dfsPassageWidth ?? (cell - stroke - 1));
-    svg += `
-<g class="dfs-anim" style="--dur:${dur}s">
-  <path d="${d}" fill="none" stroke="#3b82f6" stroke-width="${pass}"
-        stroke-linecap="round" stroke-linejoin="round"
-        vector-effect="non-scaling-stroke" pathLength="1"
-        style="stroke-dasharray:1;stroke-dashoffset:1" />
-</g>`;
   }
 
   svg += `</svg>`;

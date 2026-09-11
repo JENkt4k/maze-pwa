@@ -1,5 +1,5 @@
 // src/app/App.tsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { registerSW } from "virtual:pwa-register";
 import PWABanner from "./components/PWABanner";
 import StatsCard from "./components/StatsCard";
@@ -10,179 +10,38 @@ import { useResizeObserver } from "./hooks/useResizeObserver";
 import "../style.css";
 import DrawingCanvas from "./components/DrawingCanvas";
 import MazeView from "./components/MazeView";
-import { createMaze } from "./maze"; // still used by max-difficulty sweep
 
-const SETTINGS_KEY = "maze:settings:v1";
+import { buildShareURL, parseFromURL, parseSettings, parseSaved, SETTINGS_KEY, STORAGE_KEY, type SavedMaze } from "./state";
+import { handlePrint } from "./print";
+import { createMaze, type GeneratorId } from "./maze";
+import { useDifficultySearch } from "./hooks/useDifficultySearch";
+import { mazeToGraph } from '../maze/graph';
+import { solveMaze, type SolverId } from '../maze/solvers';
+import { useSolverPlayback } from './hooks/useSolverPlayback';
+import type { AnimationMode } from '../maze/animation';
 
-type Settings = {
-  seed: number;
-  width: number;
-  height: number;
-  g: number;
-  b: number;
-  tau: number;
-  controlsOpen: boolean;
-  lockSize: boolean;
-  animateDFS: boolean;
-  dfsSegMs: number;
-  lingerMs: number;
-  hideWallsDuringAnim: boolean;
-};
-
-
-function loadSettings(): Partial<Settings> | null {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch { return null; }
-}
-
-function saveSettings(s: Settings) {
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch {}
-}
-
-type SavedMaze = {
-  id: string;
-  name: string;
-  params: { width:number;height:number;seed:number;g:number;b:number;tau:number };
-  createdAt: number;
-};
-
-const STORAGE_KEY = "savedMazes:v1";
-const clamp = (n:number, lo:number, hi:number) => Math.max(lo, Math.min(hi, n));
-const loadSaved = ():SavedMaze[] => { try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; } catch { return []; } };
-const saveAll = (list:SavedMaze[]) => localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
-
-// put at module scope (top of App.tsx, outside the component)
-let __printing = false;
-
-function isIOS() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !("MSStream" in window);
-}
-function isStandalonePWA() {
-  return window.matchMedia?.("(display-mode: standalone)").matches || (navigator as any).standalone === true;
-}
-
-
-function handlePrint(svg: string) {
-  if (__printing) return; __printing = true;
-  if (isIOS() || isStandalonePWA()) {
-    requestAnimationFrame(() => {
-      window.print();
-      const done = () => { __printing = false; window.removeEventListener("afterprint", done); };
-      window.addEventListener("afterprint", done); setTimeout(done, 1500);
-    }); return;
-  }
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Maze Print</title>
-<style>html,body{margin:0} .wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px}
-svg{width:95vw;height:auto;max-height:95vh} @page{margin:10mm} @media print{.wrap{padding:0}}</style></head>
-<body><div class="wrap">${svg}</div></body></html>`;
-  const iframe = document.createElement("iframe");
-  Object.assign(iframe.style, { position:"fixed", right:"0", bottom:"0", width:"0", height:"0", border:"0" });
-  iframe.referrerPolicy = "no-referrer";
-  iframe.onload = () => {
-    const iw = iframe.contentWindow; if (!iw) { iframe.remove(); __printing=false; return; }
-    const done = () => { try{iframe.remove();}catch{} __printing=false; iw.removeEventListener?.("afterprint", done as any); };
-    iw.addEventListener?.("afterprint", done as any);
-    try { iw.focus(); iw.requestAnimationFrame?.(()=> iw.print()); setTimeout(()=> iw.print(), 50); } catch { setTimeout(done,1500); }
-  };
-  (iframe as any).srcdoc = html; document.body.appendChild(iframe);
-}
-
-const toOdd = (n:number) => (n % 2 ? n : n + 1);
-const clamp01 = (x:number) => Math.max(0, Math.min(1, x));
-const clampB  = (x:number) => Math.max(0, Math.min(0.5, x));
-
-
-function parseFromURL() {
-  const q = new URLSearchParams(window.location.search);
-
-  const getNum = (k: string): number | undefined => {
-    if (!q.has(k)) return undefined;                  // key not present
-    const raw = q.get(k);
-    if (raw == null) return undefined;
-    if (raw.trim() === "") return undefined;          // present but empty (?k=)
-    const v = Number(raw);
-    return Number.isFinite(v) ? v : undefined;        // ignore NaN / Infinity
-  };
-
-  const parseI = (
-    k: string, lo: number, hi: number, makeOdd = false
-  ): number | undefined => {
-    const v = getNum(k);
-    if (v === undefined) return undefined;
-    const vv = Math.max(lo, Math.min(hi, Math.trunc(v)));
-    return makeOdd ? toOdd(vv) : vv;
-  };
-
-  const parseF = (
-    k: string, clampFn: (x:number)=>number
-  ): number | undefined => {
-    const v = getNum(k);
-    if (v === undefined) return undefined;
-    return clampFn(v);
-  };
-
-  const getEmoji = (k: string): string | null | undefined => {
-    if (!q.has(k)) return undefined;                  // don’t override if absent
-    const raw = q.get(k) ?? "";
-    const s = raw.trim();
-    return s === "" ? null : decodeURIComponent(s);   // explicit empty clears
-  };
-
-  return {
-    width:     parseI("w",   7, 41, true),
-    height:    parseI("h",   7, 41, true),
-    seed:      parseI("seed",-2147483648, 2147483647, false),
-    g:         parseF("g",   clamp01),
-    b:         parseF("b",   clampB),
-    tau:       parseF("tau", clamp01),
-    startIcon: getEmoji("start"),
-    goalIcon:  getEmoji("goal"),
-  };
-}
-
-function buildShareURL(p:{
-  width:number;height:number;seed:number;g:number;b:number;tau:number;
-  startIcon:string|null; goalIcon:string|null;
-}) {
-  const u = new URL(window.location.href);
-  const q = u.searchParams;
-  q.set("w", String(p.width));
-  q.set("h", String(p.height));
-  q.set("seed", String(p.seed));
-  q.set("g", p.g.toFixed(2));
-  q.set("b", p.b.toFixed(2));
-  q.set("tau", p.tau.toFixed(2));
-  // only include emoji markers (skip large data URLs)
-  if (p.startIcon && p.startIcon.length <= 4) q.set("start", encodeURIComponent(p.startIcon)); else q.delete("start");
-  if (p.goalIcon  && p.goalIcon.length  <= 4) q.set("goal",  encodeURIComponent(p.goalIcon));  else q.delete("goal");
-  u.search = q.toString();
-  return u.toString();
-}
-
+const DEFAULT_START = "\u{1f680}";
+const DEFAULT_GOAL = "\u{1f3c1}";
 
 export default function App() {
-  const hostRef = useRef<HTMLDivElement | null>(null);
   /* PWA */
   const [needRefresh, setNeedRefresh] = useState(false);
   const [offlineReady, setOfflineReady] = useState(false);
   const updateSWRef = useRef<((reloadPage?: boolean) => void) | null>(null);
   useEffect(() => {
+    if (updateSWRef.current) return;
     const updateSW = registerSW({ immediate: true, onNeedRefresh: () => setNeedRefresh(true), onOfflineReady: () => setOfflineReady(true) });
     updateSWRef.current = updateSW;
   }, []);
   const { canInstall, install } = usePWAInstall();
 
   /* Load from URL if present (overrides some settings) */
-  const fromURL = parseFromURL();
-
+  const [fromURL] = useState(() => parseFromURL(window.location.search));
 
   /* Persisted params */
-  const persisted = (() => { try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null"); } catch { return null; } })();
+  const [storageError, setStorageError] = useState<string | null>(null);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [persisted] = useState(() => { try { return parseSettings(localStorage.getItem(SETTINGS_KEY)); } catch { return {}; } });
 
   const [seed, setSeed]        = useState(fromURL.seed   ?? persisted?.seed   ?? 42);
   const [width, setWidthRaw]   = useState(fromURL.width  ?? persisted?.width  ?? 19);
@@ -190,50 +49,59 @@ export default function App() {
   const [g, setG]              = useState(fromURL.g      ?? persisted?.g      ?? 0.3);
   const [b, setB]              = useState(fromURL.b      ?? persisted?.b      ?? 0.15);
   const [tau, setTau]          = useState(fromURL.tau    ?? persisted?.tau    ?? 0.4);
-  const [controlsOpen, setControlsOpen] = useState(persisted?.controlsOpen ?? true);
-  const [lockSize, setLockSize]         = useState(persisted?.lockSize ?? false);
+  const [generator, setGenerator] = useState<GeneratorId>(fromURL.generator ?? persisted.generator ?? 'dfs');
+  const [controlsOpen, setControlsOpen] = useState(persisted.controlsOpen ?? !window.matchMedia("(max-width: 840px)").matches);
+  const [lockSize, setLockSize]         = useState((persisted.lockSize ?? false) && width === height);
 
   // Markers/emoji:
-  const [startIcon, setStartIcon] = useState<string | null>(fromURL.startIcon ?? persisted?.startIcon ?? "🚀");
-  const [goalIcon,  setGoalIcon]  = useState<string | null>(fromURL.goalIcon  ?? persisted?.goalIcon  ?? "🏁");
+  const [startIcon, setStartIcon] = useState<string | null>(fromURL.startIcon !== undefined ? fromURL.startIcon : persisted.startIcon !== undefined ? persisted.startIcon : DEFAULT_START);
+  const [goalIcon, setGoalIcon] = useState<string | null>(fromURL.goalIcon !== undefined ? fromURL.goalIcon : persisted.goalIcon !== undefined ? persisted.goalIcon : DEFAULT_GOAL);
 
   // saved mazes UI state and handlers
   const [saveName, setSaveName] = useState<string>("");
-  const [saved, setSaved] = useState<SavedMaze[]>(() => loadSaved());
+  const [saved, setSaved] = useState<SavedMaze[]>(() => { try { return parseSaved(localStorage.getItem(STORAGE_KEY)); } catch { return []; } });
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const handleSave = () => {
-    const name = saveName.trim() || `Maze ${saved.length + 1}`;
-    const params = { width, height, seed, g, b, tau };
-    const id = uid();
+    const name = saveName.trim().slice(0, 200) || `Maze ${saved.length + 1}`;
+    const params = { width, height, seed, g, b, tau, generator, startIcon, goalIcon };
+    const id = crypto.randomUUID();
     const newMaze: SavedMaze = { id, name, params, createdAt: Date.now() };
     const updated = [...saved, newMaze];
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); }
+    catch { setStorageError("Could not update saved mazes. Browser storage may be full or unavailable."); return; }
+    setStorageError(null);
     setSaved(updated);
-    saveAll(updated);
     setSelectedId(id);
   };
 
   const handleLoad = (id: string) => {
     const maze = saved.find(m => m.id === id);
     if (!maze) return;
-    setWidth(maze.params.width);
-    setHeight(maze.params.height);
+    setWidthRaw(maze.params.width);
+    setHeightRaw(maze.params.height);
+    if (maze.params.width !== maze.params.height) setLockSize(false);
+    setStartIcon(maze.params.startIcon === undefined ? DEFAULT_START : maze.params.startIcon);
+    setGoalIcon(maze.params.goalIcon === undefined ? DEFAULT_GOAL : maze.params.goalIcon);
     setSeed(maze.params.seed);
     setG(maze.params.g);
     setB(maze.params.b);
     setTau(maze.params.tau);
+    setGenerator(maze.params.generator ?? 'dfs');
     setSelectedId(id);
   };
 
   const handleDelete = (id: string) => {
     const updated = saved.filter(m => m.id !== id);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); }
+    catch { setStorageError("Could not update saved mazes. Browser storage may be full or unavailable."); return; }
+    setStorageError(null);
     setSaved(updated);
-    saveAll(updated);
     if (selectedId === id) setSelectedId(null);
   };
 
   const handleShare = async () => {
-    const url = buildShareURL({ width, height, seed, g, b, tau, startIcon, goalIcon });
+    const url = buildShareURL(window.location.href, { width, height, seed, g, b, tau, generator, startIcon, goalIcon });
     try {
       // Native share on mobile; clipboard elsewhere
       if (navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
@@ -242,8 +110,9 @@ export default function App() {
         await navigator.clipboard.writeText(url);
         alert("Share link copied to clipboard!");
       }
-    } catch {
-      // rock-bottom fallback
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      // Fallback when clipboard or native sharing is unavailable.
       prompt("Copy this link:", url);
     }
   };
@@ -263,18 +132,21 @@ export default function App() {
   const setWidth  = (w:number) => { const odd = w%2? w : w+1; setWidthRaw(odd); if (lockSize) setHeightRaw(odd); };
   const setHeight = (h:number) => { const odd = h%2? h : h+1; setHeightRaw(odd); if (lockSize) setWidthRaw(odd); };
 
-  // animation prefs
-  const [animateDFS, setAnimateDFS] = useState(persisted?.animateDFS ?? true);
-  const [dfsSegMs, setDfsSegMs]     = useState(persisted?.dfsSegMs ?? 35);
-  const [lingerMs, setLingerMs]     = useState(persisted?.lingerMs ?? 2000);
-  const [hideWallsDuringAnim, setHideWallsDuringAnim] = useState(persisted?.hideWallsDuringAnim ?? true);
-
+  // Solver playback preferences. Legacy animation settings provide migration defaults.
+  const [solverEnabled, setSolverEnabled] = useState(persisted.solverEnabled ?? persisted.animateDFS ?? true);
+  const [solverAlgorithm, setSolverAlgorithm] = useState<SolverId>(persisted.solverAlgorithm ?? 'dfs');
+  const [solverStepMs, setSolverStepMs] = useState(persisted.solverStepMs ?? persisted.dfsSegMs ?? 35);
+  const [animationMode, setAnimationMode] = useState<AnimationMode>(persisted.animationMode ?? 'build-solve');
+  const [generationColor, setGenerationColor] = useState(persisted.generationColor ?? '#14b8a6');
+  const [generationOpacity, setGenerationOpacity] = useState(persisted.generationOpacity ?? .35);
+  const [solverColor, setSolverColor] = useState(persisted.solverColor ?? '#2563eb');
+  const [solverOpacity, setSolverOpacity] = useState(persisted.solverOpacity ?? .65);
 
   // persist settings
   useEffect(() => {
     try {
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(
-        { 
+        {
           seed,
           width,
           height,
@@ -283,13 +155,21 @@ export default function App() {
           tau,
           controlsOpen,
           lockSize,
-          animateDFS,
-          dfsSegMs,
-          lingerMs,
-          hideWallsDuringAnim,
+          solverEnabled,
+          solverAlgorithm,
+          solverStepMs,
+          animationMode,
+          generator,
+          generationColor,
+          generationOpacity,
+          solverColor,
+          solverOpacity,
+          startIcon,
+          goalIcon,
         }));
-    } catch {}
-  }, [seed,width,height,g,b,tau,controlsOpen,lockSize, animateDFS, dfsSegMs, lingerMs, hideWallsDuringAnim]);
+      setSettingsError(null);
+    } catch { setSettingsError("Settings could not be stored. They will reset when this page is closed."); }
+  }, [seed,width,height,g,b,tau,generator,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
 
   // compute margin/stroke once from cell
   const margin = Math.round(cell/2);
@@ -298,44 +178,35 @@ export default function App() {
   // print: keep the latest svg string from MazeView
   const [currentSVG, setCurrentSVG] = useState<string>("");
 
-  // stats from MazeView
-  const [stats, setStats] = useState<any>({ L:0,T:0,J:0,E:0,D:0 });
-
-  // mobile / controls open behavior (same as your baseline)
+  // Track the breakpoint without overwriting the user's controls preference.
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 840px)");
-    const apply = () => { setIsMobile(mq.matches); setControlsOpen(!mq.matches); };
+    const apply = () => { setIsMobile(mq.matches); };
     apply(); mq.addEventListener("change", apply);
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  // actions (new maze, save/load, delete) — same as your baseline
-  // … keep your existing handlers here (omitted for brevity) …
-
-  // quick max-difficulty sweep (uses createMaze; unchanged from your baseline)
-  const findMaxDifficulty = () => {
-    const gVals = [0.0,0.2,0.4,0.6,0.8,1.0];
-    const bVals = [0.00,0.10,0.20,0.30,0.40,0.50];
-    const tVals = [0.0,0.2,0.4,0.6,0.8,1.0];
-    let best: { g:number;b:number;tau:number; D:number } | null = null;
-    for (const gg of gVals) for (const bb of bVals) for (const tt of tVals) {
-      const { stats } = createMaze({ width, height, seed, g:gg, b:bb, tau:tt });
-      const D = Number(stats?.D ?? 0);
-      if (!best || D > best.D) best = { g:gg, b:bb, tau:tt, D };
-    }
-    if (best) {
-      setG(best.g); setB(best.b); setTau(best.tau); setSeed((s: number) => s + 1);
-    }
-  };
-
-  interface NewMazeFn {
-    (): void;
-  }
-  const newMaze: NewMazeFn = () => setSeed((s: number) => s + 1);
+  const { search: findMaxDifficulty, searching, error: searchError } = useDifficultySearch({ width, height, seed, g, b, tau, generator }, best => {
+    setG(best.g); setB(best.b); setTau(best.tau); setSeed(best.seed);
+  });
+  const newMaze = () => setSeed(s => (s + 1) | 0);
+  const mazeKey = `${generator}:${width}:${height}:${seed}:${g}:${b}:${tau}`;
+  const mazeData = useMemo(() => createMaze({ width, height, seed, g, b, tau, generator }), [width, height, seed, g, b, tau, generator]);
+  const mazeGraph = useMemo(() => mazeToGraph(mazeData), [mazeData]);
+  const solverRun = useMemo(() => solveMaze(mazeGraph, solverAlgorithm), [mazeGraph, solverAlgorithm]);
+  const buildEventCount = mazeData.treeSteps.length + mazeData.braidEdits.length;
+  const includesBuild = animationMode !== 'solve';
+  const includesSolve = animationMode !== 'build';
+  const animationEventCount = (includesBuild ? buildEventCount : 0) + (includesSolve ? solverRun.events.length : 0);
+  const animationRunKey = `${mazeKey}:${solverAlgorithm}:${animationMode}`;
+  const playback = useSolverPlayback(animationEventCount, animationRunKey, solverEnabled, solverStepMs);
+  const generationEventIndex = includesBuild ? Math.min(playback.state.index, buildEventCount) : 0;
+  const solverEventIndex = includesSolve ? Math.max(0, playback.state.index - (includesBuild ? buildEventCount : 0)) : 0;
+  const animationPhase = playback.state.finished ? 'Complete' : includesBuild && playback.state.index < buildEventCount ? 'Building' : 'Solving';
 
   return (
-    <div className="shell">
+    <div className={`shell${controlsOpen ? "" : " controls-closed"}`}>
       <main className="panel main">
         <header className="sticky-top hstack" style={{ justifyContent:"space-between" }}>
           <div className="hstack" style={{ alignItems:"baseline", gap:12 }}>
@@ -349,21 +220,30 @@ export default function App() {
           </button>
         </header>
 
+        {(storageError || settingsError || searchError) && <div role="alert" style={{ padding: 12, color: "#b91c1c" }}>{storageError || settingsError || searchError}</div>}
         <section className="stack">
-          {/* Maze + drawing; MazeView owns animation & emits svg/stats */}
+          {/* Maze, solver playback, and drawing share one generated maze snapshot. */}
           <div className="draw-wrap">
             <MazeView
               hostRef={svgHostRef}
-              params={{ width, height, seed, g, b, tau }}
+              data={mazeData}
+              graph={mazeGraph}
+              solverRun={solverRun}
+              solverEnabled={solverEnabled}
+              solverEventIndex={solverEventIndex}
+              generationEventIndex={generationEventIndex}
+              generationComplete={generationEventIndex >= buildEventCount}
+              generationColor={generationColor}
+              generationOpacity={generationOpacity}
+              solverColor={solverColor}
+              solverOpacity={solverOpacity}
               render={{ cell, margin, stroke, startIcon, goalIcon, iconScale: 0.7 }}
-              animation={{ enabled: animateDFS, segMs: dfsSegMs, lingerMs, hideWallsDuringAnim }}
-              onStats={setStats}
               onSVGChange={setCurrentSVG}
             />
-            <DrawingCanvas hostRef={svgHostRef} />
+            <DrawingCanvas hostRef={svgHostRef} mazeKey={mazeKey} />
           </div>
 
-          <StatsCard stats={stats} />
+          <StatsCard stats={mazeData.stats} />
         </section>
       </main>
 
@@ -380,6 +260,7 @@ export default function App() {
         onNew={newMaze}
         onPrint={() => handlePrint(currentSVG)}
         onMaxDifficulty={findMaxDifficulty}
+        searching={searching}
 
         /* Save/Load */
         saveName={saveName}
@@ -391,11 +272,10 @@ export default function App() {
         onDelete={handleDelete}
 
         /* UI state */
-        isMobile={isMobile}
         controlsOpen={controlsOpen}
         onMinimize={() => setControlsOpen(false)}
         lockSize={lockSize}
-        setLockSize={setLockSize}
+        setLockSize={value => { setLockSize(value); if (value) setHeightRaw(width); }}
 
         /* Markers */
         startIcon={startIcon}
@@ -403,20 +283,39 @@ export default function App() {
         setStartIcon={setStartIcon}
         setGoalIcon={setGoalIcon}
 
-        /* Animation (if Sidebar shows these controls) */
-        animateDFS={animateDFS}
-        setAnimateDFS={setAnimateDFS}
-        dfsSegMs={dfsSegMs}
-        setDfsSegMs={setDfsSegMs}
-        lingerMs={lingerMs}
-        setLingerMs={setLingerMs}
-        hideWallsDuringAnim={hideWallsDuringAnim}
-        setHideWallsDuringAnim={setHideWallsDuringAnim}
+        animation={{
+          mode: animationMode,
+          setMode: setAnimationMode,
+          generator,
+          setGenerator,
+          solver: solverAlgorithm,
+          setSolver: setSolverAlgorithm,
+          enabled: solverEnabled,
+          setEnabled: setSolverEnabled,
+          speed: solverStepMs,
+          setSpeed: setSolverStepMs,
+          generationColor,
+          setGenerationColor,
+          generationOpacity,
+          setGenerationOpacity,
+          solverColor,
+          setSolverColor,
+          solverOpacity,
+          setSolverOpacity,
+          state: playback.state,
+          phase: animationPhase,
+          eventCount: animationEventCount,
+          metrics: solverRun.metrics,
+          play: playback.play,
+          pause: playback.pause,
+          restart: playback.restart,
+          step: playback.step,
+          seek: playback.seek,
+        }}
 
         /* Share */
         onShare={handleShare}
       />
-
 
       <Fab
         visible={true}

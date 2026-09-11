@@ -1,139 +1,101 @@
-import React, { useEffect, useRef, useState, useLayoutEffect } from "react";
+﻿import { useLayoutEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
+import { createPortal } from "react-dom";
 
-type Props = { hostRef: React.RefObject<HTMLDivElement | null> };
-type Mode = "draw" | "erase";
+type Point = { x: number; y: number };
+type Stroke = { mode: "draw" | "erase"; width: number; points: Point[] };
+type Props = { hostRef: RefObject<HTMLDivElement>; mazeKey: string };
 
+export default function DrawingCanvas({ hostRef, mazeKey }: Props) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [host, setHost] = useState<HTMLDivElement | null>(null);
+  const [mode, setMode] = useState<"draw" | "erase" | "scroll">("draw");
+  const [pen, setPen] = useState(5);
+  const strokes = useRef<Stroke[]>([]);
+  const activePointer = useRef<number | null>(null);
+  const size = useRef({ width: 1, height: 1 });
 
-export default function DrawingCanvas({ hostRef }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [mode, setMode] = useState<Mode>("draw");
-  const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
-  const [pen, setPen] = useState<number>(5);
-  const drawing = useRef(false);
-  const last = useRef<{ x: number; y: number } | null>(null);
-  const extraBottomPx = 48; // this is needed at construction, but updated in useLayoutEffect below
-                            // bar.getBoundingClientRect().height) + 12; // +top gap
-
-  // Size canvas to host (and DPR)
-  useEffect(() => {
-    if (!hostRef.current) return;
-    const ro = new ResizeObserver(() => {
-      const rect = hostRef.current!.getBoundingClientRect();
-      setSize({ w: Math.max(1, rect.width | 0), h: Math.max(1, rect.height + extraBottomPx | 0) });
-    });
-    ro.observe(hostRef.current);
-    return () => ro.disconnect();
-  }, [hostRef]);
-
-  useEffect(() => {
-    const cv = canvasRef.current; if (!cv) return;
-    const dpr = Math.max(1, window.devicePixelRatio || 1);
-    cv.width = Math.round(size.w * dpr);
-    cv.height = Math.round(size.h * dpr);
-    cv.style.width = `${size.w}px`;
-    cv.style.height = `${size.h}px`;
-    const ctx = cv.getContext("2d"); if (!ctx) return;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  function repaint() {
+    const cv = canvasRef.current, ctx = cv?.getContext("2d");
+    if (!cv || !ctx) return;
+    const { width, height } = size.current;
+    ctx.clearRect(0, 0, width, height);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-  }, [size]);
-
-  // In DrawingCanvas.tsx
-  const barRef = useRef<HTMLDivElement|null>(null);
-  useLayoutEffect(() => {
-    const el = hostRef.current?.parentElement; // .draw-wrap
-    const bar = barRef.current;
-    if (!el || !bar) return;
-    const h = Math.ceil(bar.getBoundingClientRect().height) + 12; // +top gap
-    el.style.paddingTop = `${h}px`;
-  }, []);
-
-  const getPt = (e: PointerEvent | React.PointerEvent<HTMLCanvasElement>) => {
-    const rect = canvasRef.current!.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  };
-
-  function pointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
-    e.currentTarget.setPointerCapture(e.pointerId);
-    drawing.current = true;
-    last.current = getPt(e);
-    stroke(e);
-  }
-  function pointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
-    if (!drawing.current) return;
-    stroke(e);
-  }
-  function pointerUp() {
-    drawing.current = false;
-    last.current = null;
-  }
-
-  function stroke(e: React.PointerEvent<HTMLCanvasElement>) {
-    const ctx = canvasRef.current!.getContext("2d")!;
-    const p = getPt(e);
-    const prev = last.current ?? p;
-
-    if (mode === "erase") {
-      ctx.globalCompositeOperation = "destination-out";
-      ctx.strokeStyle = "rgba(0,0,0,1)";
-    } else {
-      ctx.globalCompositeOperation = "source-over";
-      ctx.strokeStyle = "#ef4444";
+    for (const stroke of strokes.current) {
+      ctx.globalCompositeOperation = stroke.mode === "erase" ? "destination-out" : "source-over";
+      ctx.strokeStyle = ctx.fillStyle = "#ef4444";
+      ctx.lineWidth = stroke.width * width;
+      const first = stroke.points[0];
+      ctx.beginPath();
+      if (stroke.points.length === 1) {
+        ctx.arc(first.x * width, first.y * height, ctx.lineWidth / 2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.moveTo(first.x * width, first.y * height);
+        for (const point of stroke.points.slice(1)) ctx.lineTo(point.x * width, point.y * height);
+        ctx.stroke();
+      }
     }
-
-    ctx.lineWidth = pen;
-    ctx.beginPath();
-    ctx.moveTo(prev.x, prev.y);
-    ctx.lineTo(p.x, p.y);
-    ctx.stroke();
-
-    last.current = p;
   }
 
-  function clearAll() {
-    const cv = canvasRef.current; if (!cv) return;
-    const ctx = cv.getContext("2d")!;
-    ctx.clearRect(0, 0, cv.width, cv.height);
+  useLayoutEffect(() => { setHost(hostRef.current); }, [hostRef]);
+  useLayoutEffect(() => {
+    if (!host) return;
+    const resize = () => {
+      const cv = canvasRef.current;
+      if (!cv) return;
+      const rect = host.getBoundingClientRect();
+      size.current = { width: Math.max(1, rect.width), height: Math.max(1, rect.height) };
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      cv.width = Math.round(size.current.width * dpr);
+      cv.height = Math.round(size.current.height * dpr);
+      cv.getContext("2d")?.setTransform(dpr, 0, 0, dpr, 0, 0);
+      repaint();
+    };
+    const observer = new ResizeObserver(resize);
+    observer.observe(host);
+    window.addEventListener("resize", resize);
+    resize();
+    return () => { observer.disconnect(); window.removeEventListener("resize", resize); };
+  }, [host]);
+
+  useLayoutEffect(() => {
+    strokes.current = [];
+    activePointer.current = null;
+    repaint();
+  }, [mazeKey]);
+
+  const point = (event: PointerEvent<HTMLCanvasElement>): Point => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    return { x: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)), y: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)) };
+  };
+  function down(event: PointerEvent<HTMLCanvasElement>) {
+    if (mode === "scroll" || activePointer.current !== null || event.button !== 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    activePointer.current = event.pointerId;
+    strokes.current.push({ mode, width: pen / size.current.width, points: [point(event)] });
+    repaint();
+  }
+  function move(event: PointerEvent<HTMLCanvasElement>) {
+    if (activePointer.current !== event.pointerId) return;
+    strokes.current[strokes.current.length - 1]?.points.push(point(event));
+    repaint();
+  }
+  function up(event: PointerEvent<HTMLCanvasElement>) {
+    if (activePointer.current === event.pointerId) activePointer.current = null;
   }
 
-  return (
-    <>
-      {/* Absolute canvas overlay (interactive) */}
-      <canvas
-        ref={canvasRef}
-        className="draw-canvas"
-        onPointerDown={pointerDown}
-        onPointerMove={pointerMove}
-        onPointerUp={pointerUp}
-        onPointerCancel={pointerUp}
-      />
-      {/* Toolbar as a separate absolutely positioned sibling (clickable) */}
-      <div ref={barRef} className="draw-toolbar">
-        <button type="button"
-          className={`btn btn-sm ${mode === "draw" ? "btn-primary" : ""}`}
-          onClick={() => setMode("draw")}
-          aria-pressed={mode === "draw"}
-          aria-label="Draw mode"
-          title="Draw"
-        >
-          ✍️
-        </button>
-        <button type="button"
-          className={`btn btn-sm ${mode === "erase" ? "btn-primary" : ""}`}
-          onClick={() => setMode("erase")}
-          aria-pressed={mode === "erase"}
-          aria-label="Erase mode"
-          title="Erase"
-        >
-          🧽
-        </button>
-        <label className="hstack" style={{ gap: 6, alignItems: "center" }}>
-          <span style={{ fontSize: 12, color: "#6b7280" }}>Pen</span>
-          <input type="range" min={2} max={24} step={1} value={pen}
-                 onChange={(e) => setPen(parseInt(e.target.value))} />
-        </label>
-        <button type="button" className="btn btn-sm" onClick={clearAll} aria-label="Clear path">Clear</button>
-      </div>
-    </>
-  );
+  return <>
+    {host && createPortal(<canvas ref={canvasRef} className="draw-canvas" aria-label="Draw a path on the maze"
+      style={{ pointerEvents: mode === "scroll" ? "none" : "auto" }}
+      onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onLostPointerCapture={up} />, host)}
+    <div className="draw-toolbar" role="group" aria-label="Drawing tools">
+      {(["draw", "erase", "scroll"] as const).map(value => <button key={value} type="button"
+        className={`btn btn-sm${mode === value ? " btn-primary" : ""}`} aria-pressed={mode === value}
+        onClick={() => { activePointer.current = null; setMode(value); }}>{value === "draw" ? "Draw" : value === "erase" ? "Erase" : "Scroll"}</button>)}
+      <label className="hstack">Pen<input type="range" min={2} max={24} step={1} value={pen}
+        onChange={event => setPen(Number(event.target.value))} /></label>
+      <button type="button" className="btn btn-sm" onClick={() => { strokes.current = []; activePointer.current = null; repaint(); }}>Clear</button>
+    </div>
+  </>;
 }

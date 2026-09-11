@@ -1,17 +1,17 @@
 name: Deploy Vite + PWA to GitHub Pages
 
 on:
+  pull_request:
+    branches: [ main ]
   push:
     branches: [ main ]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: 'pages'
+  group: 'pages-${{ github.ref }}'
   cancel-in-progress: true
 
 jobs:
@@ -24,11 +24,14 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
 
       - name: Install
         run: npm ci
+
+      - name: Unit and component regressions
+        run: npm test -- --runInBand
 
       # Detect if this is a project page or a user/org page
       # Project pages need base="/<repo>/"; user/org pages use base="/"
@@ -50,12 +53,24 @@ jobs:
           VITE_BASE: ${{ env.VITE_BASE }}
         run: npm run build
 
+      - name: Install browser for regression checks
+        run: npx playwright install --with-deps chromium
+
+      - name: Production browser and offline regressions
+        env:
+          TEST_BASE: ${{ env.VITE_BASE }}
+        run: npm run test:e2e
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
   deploy:
+    if: github.event_name != 'pull_request'
+    permissions:
+      pages: write
+      id-token: write
     needs: build
     runs-on: ubuntu-latest
     environment:

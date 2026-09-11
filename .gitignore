@@ -6,4 +6,5 @@
 /.idea
 .DS_Store
 /.npm-cache
-test-results/
+/test-results
+/playwright-report
