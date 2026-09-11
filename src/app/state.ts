@@ -1,7 +1,7 @@
 import { normalizeMarker, type GeneratorId, type MazeParams } from './maze';
 import type { SolverId } from '../maze/solvers';
 import type { AnimationMode } from '../maze/animation';
-import type { MaskId } from '../maze/masks';
+import { CUSTOM_MASK_SIZE, type CustomMask, type MaskId } from '../maze/masks';
 
 export const SETTINGS_KEY = 'maze:settings:v1';
 export const STORAGE_KEY = 'savedMazes:v1';
@@ -42,7 +42,11 @@ export function validateSettings(value: unknown): Partial<Settings> {
   for (const key of ['controlsOpen', 'lockSize', 'animateDFS', 'solverEnabled']) if (typeof value[key] === 'boolean') out[key] = value[key];
   if (['dfs', 'bfs', 'dijkstra', 'astar'].includes(String(value.solverAlgorithm))) out.solverAlgorithm = value.solverAlgorithm;
   if (['dfs', 'prim', 'kruskal'].includes(String(value.generator))) out.generator = value.generator as GeneratorId;
-  if (['rectangle','ellipse','diamond','heart'].includes(String(value.mask))) out.mask=value.mask as MaskId;
+  if (['rectangle','ellipse','diamond','heart','star','cup','brain','moose','custom'].includes(String(value.mask))) out.mask=value.mask as MaskId;
+  if(record(value.customMask)&&typeof value.customMask.pixels==='string'&&value.customMask.pixels.length<=Math.ceil(CUSTOM_MASK_SIZE**2/3)*4&&typeof value.customMask.threshold==='number'){
+    const threshold=Math.max(1,Math.min(254,Math.trunc(value.customMask.threshold)));
+    out.customMask={pixels:value.customMask.pixels,threshold,invert:value.customMask.invert===true,name:typeof value.customMask.name==='string'?value.customMask.name.slice(0,100):undefined} satisfies CustomMask;
+  }
   if (['build-solve', 'build', 'solve'].includes(String(value.animationMode))) out.animationMode = value.animationMode as AnimationMode;
   if (typeof value.generationColor === 'string' && /^#[0-9a-f]{6}$/i.test(value.generationColor)) out.generationColor = value.generationColor.toLowerCase();
   if (typeof value.solverColor === 'string' && /^#[0-9a-f]{6}$/i.test(value.solverColor)) out.solverColor = value.solverColor.toLowerCase();
@@ -77,6 +81,7 @@ export function parseFromURL(search: string): Partial<Settings> {
   }
   if (q.has('gen')) values.generator = q.get('gen');
   if (q.has('mask')) values.mask=q.get('mask');
+  if(q.has('cm')) values.customMask={pixels:q.get('cm'),threshold:Number(q.get('ct')??160),invert:q.get('ci')==='1',name:q.get('cn')??undefined};
   for (const [query, key] of [['start', 'startIcon'], ['goal', 'goalIcon']]) {
     if (!q.has(query)) continue;
     let marker = q.get(query) ?? '';
@@ -92,6 +97,8 @@ export function buildShareURL(base: string, p: MazeParams & Markers): string {
   for (const [query, key] of [['w', 'width'], ['h', 'height'], ['seed', 'seed'], ['g', 'g'], ['b', 'b'], ['tau', 'tau']] as const) u.searchParams.set(query, String(p[key]));
   if (p.generator && p.generator !== 'dfs') u.searchParams.set('gen', p.generator); else u.searchParams.delete('gen');
   if (p.mask && p.mask !== 'rectangle') u.searchParams.set('mask',p.mask); else u.searchParams.delete('mask');
+  if(p.mask==='custom'&&p.customMask){u.searchParams.set('cm',p.customMask.pixels);u.searchParams.set('ct',String(p.customMask.threshold));if(p.customMask.invert)u.searchParams.set('ci','1');else u.searchParams.delete('ci');if(p.customMask.name)u.searchParams.set('cn',p.customMask.name);else u.searchParams.delete('cn');}
+  else for(const key of ['cm','ct','ci','cn'])u.searchParams.delete(key);
   // Raster uploads are kept locally; explicit empty values prevent recipient defaults.
   for (const [query, marker] of [['start', p.startIcon], ['goal', p.goalIcon]] as const) u.searchParams.set(query, /^data:/i.test(marker ?? '') ? '' : marker ?? '');
   return u.toString();

@@ -41,13 +41,24 @@ test.each(['dfs','prim','kruskal'] as const)('%s generation is deterministic, co
   expect(first.stats.L).toBeGreaterThan(0);
 });
 
-test.each((['ellipse','diamond','heart'] as const).flatMap(mask=>(['dfs','prim','kruskal'] as const).map(generator=>({mask,generator}))))('$mask mask works with $generator generation',({mask,generator})=>{
+test.each((['ellipse','diamond','heart','star','cup','brain','moose'] as const).flatMap(mask=>(['dfs','prim','kruskal'] as const).map(generator=>({mask,generator}))))('$mask mask works with $generator generation',({mask,generator})=>{
     const result=createMaze({...baseline,mask,generator,b:.2});
     const active=result.mask.flat().filter(Boolean).length;
     expect(result.treeSteps).toHaveLength(active-1);
     expect(mazeToGraph(result).nodes.size).toBe(active);
     expect(result.mask[result.start.y][result.start.x]).toBe(true);
     expect(result.mask[result.goal.y][result.goal.x]).toBe(true);
+});
+
+test('custom raster masks are reduced to one connected, solvable region',()=>{
+  const pixels=new Uint8ClampedArray(41**2).fill(255);
+  for(let y=8;y<34;y++)for(let x=6;x<30;x++)pixels[y*41+x]=0;
+  const customMask={pixels:btoa(String.fromCharCode(...pixels)),threshold:128,invert:false};
+  const result=createMaze({...baseline,mask:'custom',customMask});
+  const active=result.mask.flat().filter(Boolean).length;
+  expect(active).toBeGreaterThan(20);
+  expect(result.treeSteps).toHaveLength(active-1);
+  expect(mazeToGraph(result).nodes.size).toBe(active);
 });
 
 test.each(['ellipse','diamond','heart'] as const)('%s SVG closes every active-cell mask boundary',mask=>{

@@ -25,7 +25,7 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
 ## Features and behavior
 
 - Generate deterministic mazes with odd widths/heights from 7 to 41 cells.
-- Select rectangular, elliptical, diamond, or heart-shaped maze masks. Generation,
+- Select rectangular, elliptical, diamond, heart, star, cup, brain, or moose-shaped maze masks. Import PNG, JPEG, or WebP silhouettes and tune their threshold or inversion with a live preview. Generation,
   solving, animation, saving, and sharing all respect the selected shape.
 - Adjust goal bias, braiding, and straight-direction preference. Square lock
   synchronizes dimensions; loading a rectangular saved maze releases the lock.

@@ -5,6 +5,8 @@ import type { SavedMaze } from "../state";
 import { normalizeMarker } from "../maze";
 import AnimationControls, { type AnimationControlsProps } from './AnimationControls';
 import { MASKS, type MaskId } from '../../maze/masks';
+import type { CustomMask } from '../../maze/masks';
+import CustomMaskControls from './CustomMaskControls';
 
 type Props = {
   canInstall: boolean;
@@ -19,7 +21,7 @@ type Props = {
   onMinimize: () => void;
   lockSize: boolean;
   setLockSize: (v:boolean)=>void;
-  mask:MaskId; setMask:(mask:MaskId)=>void;
+  mask:MaskId; setMask:(mask:MaskId)=>void; customMask?:CustomMask; setCustomMask:(mask:CustomMask)=>void;
   onMaxDifficulty: () => void;
   searching: boolean;
   startIcon: string | null;
@@ -96,6 +98,7 @@ export default function Sidebar(props: Props){
               {Object.values(MASKS).map(mask=><option key={mask.id} value={mask.id}>{mask.name}</option>)}
             </select>
           </label>
+          {props.mask==='custom'&&<CustomMaskControls value={props.customMask} onChange={props.setCustomMask} width={width} height={height}/>}
 
           <label>Width: {width}
             <input
