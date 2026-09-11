@@ -5,6 +5,11 @@ sharing, and printing mazes.
 
 ![InfiMaze screenshot](screenshots/maze.png)
 
+NEW SOLVER + BUILDER ANIMATIONS!
+
+![InfiMaze screenshot](screenshots/animation-1-new.png)
+![InfiMaze screenshot](screenshots/animation-2-new.png)
+
 ## Run locally
 
 Use Node.js 24 (also used by CI).
