@@ -37,18 +37,18 @@ export default function AnimationControls(props:AnimationControlsProps){
   const progress=props.eventCount===0?0:Math.round(props.state.index/props.eventCount*100);
   return <div className="solver-controls">
     <label>Animation mode
-      <select value={props.mode} onChange={event=>props.setMode(event.target.value as AnimationMode)}>
+      <select name="animation-mode" value={props.mode} onChange={event=>props.setMode(event.target.value as AnimationMode)}>
         {Object.entries(ANIMATION_MODES).map(([id,name])=><option key={id} value={id}>{name}</option>)}
       </select>
     </label>
     <label>Generation algorithm
-      <select value={props.generator} disabled={props.mode==='solve'} onChange={event=>props.setGenerator(event.target.value as GeneratorId)}>
+      <select name="generation-algorithm" value={props.generator} disabled={props.mode==='solve'} onChange={event=>props.setGenerator(event.target.value as GeneratorId)}>
         {Object.values(GENERATORS).map(option=><option key={option.id} value={option.id}>{option.name}</option>)}
       </select>
     </label>
     {props.mode!=='solve'&&<p className="solver-description">{GENERATORS[props.generator].description}</p>}
     <label>Solving algorithm
-      <select value={props.solver} disabled={props.mode==='build'} onChange={event=>props.setSolver(event.target.value as SolverId)}>
+      <select name="solving-algorithm" value={props.solver} disabled={props.mode==='build'} onChange={event=>props.setSolver(event.target.value as SolverId)}>
         {Object.values(SOLVERS).map(option=><option key={option.id} value={option.id}>{option.name}</option>)}
       </select>
     </label>

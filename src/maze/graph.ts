@@ -24,7 +24,7 @@ export const nodeId = (point: Point): NodeId => `${point.x},${point.y}`;
 
 export function mazeToGraph(result: MazeResult): MazeGraph {
   const nodes = new Map<NodeId, MazeNode>();
-  for (const row of result.maze) for (const cell of row) {
+  for (const row of result.maze) for (const cell of row) if(result.mask[cell.y][cell.x]) {
     const neighbors = DIRECTIONS
       .filter(direction => cell[direction.wall] === 0)
       .map(direction => nodeId({ x: cell.x + direction.dx, y: cell.y + direction.dy }));

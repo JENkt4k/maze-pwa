@@ -1,5 +1,6 @@
 ﻿import { createHash } from 'node:crypto';
 import { createMaze, findMaxDifficulty, normalizeMarker, toSVG, type MazeParams } from '@src/app/maze';
+import { mazeToGraph } from '@src/maze/graph';
 
 const baseline: MazeParams = { width:19, height:19, seed:42, g:.3, b:.15, tau:.4 };
 
@@ -38,6 +39,15 @@ test.each(['dfs','prim','kruskal'] as const)('%s generation is deterministic, co
   expect(first).toEqual(second);
   expect(first.treeSteps).toHaveLength(baseline.width*baseline.height-1);
   expect(first.stats.L).toBeGreaterThan(0);
+});
+
+test.each((['ellipse','diamond','heart'] as const).flatMap(mask=>(['dfs','prim','kruskal'] as const).map(generator=>({mask,generator}))))('$mask mask works with $generator generation',({mask,generator})=>{
+    const result=createMaze({...baseline,mask,generator,b:.2});
+    const active=result.mask.flat().filter(Boolean).length;
+    expect(result.treeSteps).toHaveLength(active-1);
+    expect(mazeToGraph(result).nodes.size).toBe(active);
+    expect(result.mask[result.start.y][result.start.x]).toBe(true);
+    expect(result.mask[result.goal.y][result.goal.x]).toBe(true);
 });
 
 test('solution length is the shortest route through tree and braid edges', () => {

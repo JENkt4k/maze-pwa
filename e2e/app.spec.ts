@@ -36,6 +36,10 @@ test('markers are escaped; malformed URLs do not crash; desktop/mobile controls 
 
 test('saved rectangular maze and markers restore despite square lock; empty markers persist', async ({page}) => {
   await page.goto('./');
+  const shape=page.getByLabel('Maze shape');
+  await expect(shape).toHaveValue('rectangle');
+  await shape.selectOption('heart');
+  await expect(shape).toHaveValue('heart');
   await page.getByText('Adjust size',{exact:true}).click();
   await page.getByLabel(/^Height:/).fill('9');
   await page.getByLabel('Start marker',{exact:true}).fill('👨‍👩‍👧‍👦');

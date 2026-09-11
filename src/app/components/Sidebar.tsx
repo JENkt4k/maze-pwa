@@ -4,6 +4,7 @@ import EmojiPicker from "./EmojiPicker";
 import type { SavedMaze } from "../state";
 import { normalizeMarker } from "../maze";
 import AnimationControls, { type AnimationControlsProps } from './AnimationControls';
+import { MASKS, type MaskId } from '../../maze/masks';
 
 type Props = {
   canInstall: boolean;
@@ -18,6 +19,7 @@ type Props = {
   onMinimize: () => void;
   lockSize: boolean;
   setLockSize: (v:boolean)=>void;
+  mask:MaskId; setMask:(mask:MaskId)=>void;
   onMaxDifficulty: () => void;
   searching: boolean;
   startIcon: string | null;
@@ -88,6 +90,12 @@ export default function Sidebar(props: Props){
         <legend>Size</legend>
         <details>
           <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>Adjust size</summary>
+
+          <label>Maze shape
+            <select name="maze-shape" value={props.mask} onChange={e=>props.setMask(e.target.value as MaskId)}>
+              {Object.values(MASKS).map(mask=><option key={mask.id} value={mask.id}>{mask.name}</option>)}
+            </select>
+          </label>
 
           <label>Width: {width}
             <input
