@@ -68,6 +68,18 @@ test('shape selector changes the maze mask', async ({page}) => {
   await expect.poll(()=>page.locator('#print-maze-only .walls').innerHTML()).not.toBe(rectangularWalls);
 });
 
+test('custom silhouette upload exposes preview controls and builds a maze',async({page})=>{
+  await page.goto('./');
+  await page.getByText('Adjust size',{exact:true}).click();
+  await page.getByLabel('Maze shape').selectOption('custom');
+  await page.getByLabel('Silhouette image').setInputFiles('public/silhouettes/brain.png');
+  await expect(page.getByLabel('Custom mask preview')).toBeVisible();
+  await expect(page.getByText(/brain\.png · \d+ active cells/)).toBeVisible();
+  await page.getByLabel(/Threshold:/).fill('120');
+  await page.getByLabel('Invert light and dark').check();
+  await expect(page.locator('#print-maze-only')).toBeVisible();
+});
+
 test('storage failure does not pretend to save a maze', async ({page}) => {
   await page.goto('./');
   await page.evaluate(() => {

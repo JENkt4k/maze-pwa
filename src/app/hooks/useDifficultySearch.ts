@@ -5,12 +5,12 @@ export function useDifficultySearch(params: MazeParams, apply: (params: MazePara
   const workerRef = useRef<Worker | null>(null);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { width, height, seed, g, b, tau } = params;
+  const { width, height, seed, g, b, tau, generator, mask, customMask } = params;
   useEffect(() => {
     setSearching(false);
     setError(null);
     return () => { workerRef.current?.terminate(); workerRef.current = null; };
-  }, [width, height, seed, g, b, tau]);
+  }, [width,height,seed,g,b,tau,generator,mask,customMask]);
 
   function search() {
     workerRef.current?.terminate();

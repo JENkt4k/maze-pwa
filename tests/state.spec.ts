@@ -33,6 +33,11 @@ test('non-default generators survive shared links', () => {
   const url=buildShareURL('https://example.test/',{...params,generator:'kruskal',mask:'heart',startIcon:null,goalIcon:null});
   expect(parseFromURL(new URL(url).search)).toMatchObject({generator:'kruskal',mask:'heart'});
 });
+test('custom silhouette data survives validated share links',()=>{
+  const customMask={pixels:btoa(String.fromCharCode(...new Array(41**2).fill(127))),threshold:140,invert:true,name:'sample.png'};
+  const url=buildShareURL('https://example.test/',{...params,mask:'custom',customMask,startIcon:null,goalIcon:null});
+  expect(parseFromURL(new URL(url).search)).toMatchObject({mask:'custom',customMask});
+});
 test('saved records preserve markers and accept legacy records while dropping corrupt entries', () => {
   const old = {id:'old',name:'Old maze',params,createdAt:1};
   const current = {id:'new',name:'New maze',params:{...params,startIcon:null,goalIcon:'🏁'},createdAt:2};

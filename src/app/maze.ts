@@ -1,7 +1,7 @@
 export type Cell = { x:number; y:number; n:1|0; s:1|0; e:1|0; w:1|0 };
 export type CarveStep = { x:number; y:number; nx:number; ny:number };
 export type GeneratorId = 'dfs' | 'prim' | 'kruskal';
-export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number;generator?:GeneratorId;mask?:MaskId };
+export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number;generator?:GeneratorId;mask?:MaskId;customMask?:CustomMask };
 export type Stats = { L:number; T:number; J:number; E:number; D:number };
 
 export const GENERATORS: Readonly<Record<GeneratorId, { id:GeneratorId; name:string; description:string }>> = {
@@ -40,7 +40,7 @@ export function createMaze(params: MazeParams): MazeResult {
   const generator = params.generator ?? 'dfs';
   if (!(generator in GENERATORS)) throw new RangeError('Unknown maze generator');
   const { width: W, height: H, seed, g, b, tau } = params;
-  const mask=createMask(W,H,params.mask??'rectangle');
+  const mask=createMask(W,H,params.mask??'rectangle',params.customMask);
   const rnd = mulberry32(seed);
 
   // 1) build tree grid + treeSteps
@@ -334,4 +334,4 @@ export function toSVG(
   svg += `</svg>`;
   return svg;
 }
-import { createMask, type MaskId } from '../maze/masks';
+import { createMask, type CustomMask, type MaskId } from '../maze/masks';
