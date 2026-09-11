@@ -30,8 +30,8 @@ test('settings validate types, solver preferences, and numeric bounds', () => {
 });
 
 test('non-default generators survive shared links', () => {
-  const url=buildShareURL('https://example.test/',{...params,generator:'kruskal',startIcon:null,goalIcon:null});
-  expect(parseFromURL(new URL(url).search)).toMatchObject({generator:'kruskal'});
+  const url=buildShareURL('https://example.test/',{...params,generator:'kruskal',mask:'heart',startIcon:null,goalIcon:null});
+  expect(parseFromURL(new URL(url).search)).toMatchObject({generator:'kruskal',mask:'heart'});
 });
 test('saved records preserve markers and accept legacy records while dropping corrupt entries', () => {
   const old = {id:'old',name:'Old maze',params,createdAt:1};

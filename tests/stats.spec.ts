@@ -1,5 +1,6 @@
 ﻿import { createHash } from 'node:crypto';
 import { createMaze, findMaxDifficulty, normalizeMarker, toSVG, type MazeParams } from '@src/app/maze';
+import { mazeToGraph } from '@src/maze/graph';
 
 const baseline: MazeParams = { width:19, height:19, seed:42, g:.3, b:.15, tau:.4 };
 
@@ -38,6 +39,26 @@ test.each(['dfs','prim','kruskal'] as const)('%s generation is deterministic, co
   expect(first).toEqual(second);
   expect(first.treeSteps).toHaveLength(baseline.width*baseline.height-1);
   expect(first.stats.L).toBeGreaterThan(0);
+});
+
+test.each((['ellipse','diamond','heart'] as const).flatMap(mask=>(['dfs','prim','kruskal'] as const).map(generator=>({mask,generator}))))('$mask mask works with $generator generation',({mask,generator})=>{
+    const result=createMaze({...baseline,mask,generator,b:.2});
+    const active=result.mask.flat().filter(Boolean).length;
+    expect(result.treeSteps).toHaveLength(active-1);
+    expect(mazeToGraph(result).nodes.size).toBe(active);
+    expect(result.mask[result.start.y][result.start.x]).toBe(true);
+    expect(result.mask[result.goal.y][result.goal.x]).toBe(true);
+});
+
+test.each(['ellipse','diamond','heart'] as const)('%s SVG closes every active-cell mask boundary',mask=>{
+  const result=createMaze({...baseline,mask,b:0});
+  const svg=toSVG(result,{cell:10,margin:0,showStartGoal:false});
+  const lines=[...svg.matchAll(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"/g)]
+    .map(match=>match.slice(1).map(Number).join(','));
+  for(let y=0;y<result.mask.length;y++) for(let x=0;x<result.mask[y].length;x++) if(result.mask[y][x]){
+    if(y===result.mask.length-1||!result.mask[y+1][x]) expect(lines).toContain(`${x*10},${(y+1)*10},${(x+1)*10},${(y+1)*10}`);
+    if(x===result.mask[y].length-1||!result.mask[y][x+1]) expect(lines).toContain(`${(x+1)*10},${y*10},${(x+1)*10},${(y+1)*10}`);
+  }
 });
 
 test('solution length is the shortest route through tree and braid edges', () => {

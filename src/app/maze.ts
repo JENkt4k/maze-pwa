@@ -1,7 +1,7 @@
 export type Cell = { x:number; y:number; n:1|0; s:1|0; e:1|0; w:1|0 };
 export type CarveStep = { x:number; y:number; nx:number; ny:number };
 export type GeneratorId = 'dfs' | 'prim' | 'kruskal';
-export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number;generator?:GeneratorId };
+export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number;generator?:GeneratorId;mask?:MaskId };
 export type Stats = { L:number; T:number; J:number; E:number; D:number };
 
 export const GENERATORS: Readonly<Record<GeneratorId, { id:GeneratorId; name:string; description:string }>> = {
@@ -22,6 +22,7 @@ export type MazeResult = {
   // start/goal for markers
   start: {x:number;y:number};
   goal:  {x:number;y:number};
+  mask: boolean[][];
 };
 
 function isMazeResult(x: Cell[][] | MazeResult): x is MazeResult {
@@ -39,16 +40,19 @@ export function createMaze(params: MazeParams): MazeResult {
   const generator = params.generator ?? 'dfs';
   if (!(generator in GENERATORS)) throw new RangeError('Unknown maze generator');
   const { width: W, height: H, seed, g, b, tau } = params;
+  const mask=createMask(W,H,params.mask??'rectangle');
   const rnd = mulberry32(seed);
 
   // 1) build tree grid + treeSteps
   const tree: Cell[][] = Array.from({ length: H }, (_, y) =>
     Array.from({ length: W }, (_, x) => ({ x, y, n:1 as 1|0, s:1 as 1|0, e:1 as 1|0, w:1 as 1|0 }))
   );
-  const start = { x: 0,    y: Math.floor(H/2) };
-  const goal  = { x: W - 1, y: Math.floor(H/2) };
+  const active=mask.flatMap((row,y)=>row.flatMap((on,x)=>on?[{x,y}]:[]));
+  const middle=(H-1)/2;
+  const start=active.reduce((a,p)=>p.x<a.x||p.x===a.x&&Math.abs(p.y-middle)<Math.abs(a.y-middle)?p:a,active[0]);
+  let goal=active.reduce((a,p)=>p.x>a.x||p.x===a.x&&Math.abs(p.y-middle)<Math.abs(a.y-middle)?p:a,active[0]);
 
-  const inb = (x:number,y:number)=> x>=0 && x<W && y>=0 && y<H;
+  const inb = (x:number,y:number)=> x>=0 && x<W && y>=0 && y<H && mask[y][x];
   const key = (x:number,y:number)=> `${x},${y}`;
   const seen = new Set<string>();
 
@@ -77,9 +81,9 @@ export function createMaze(params: MazeParams): MazeResult {
     }
   } else if (generator === 'kruskal') {
     const edges:{x:number;y:number;d:typeof DIRS[number]}[]=[];
-    for(let y=0;y<H;y++) for(let x=0;x<W;x++){
-      if(x+1<W) edges.push({x,y,d:DIRS[0]});
-      if(y+1<H) edges.push({x,y,d:DIRS[2]});
+    for(let y=0;y<H;y++) for(let x=0;x<W;x++) if(mask[y][x]){
+      if(inb(x+1,y)) edges.push({x,y,d:DIRS[0]});
+      if(inb(x,y+1)) edges.push({x,y,d:DIRS[2]});
     }
     for(let i=edges.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[edges[i],edges[j]]=[edges[j],edges[i]];}
     const parent=Array.from({length:W*H},(_,i)=>i);
@@ -131,7 +135,7 @@ export function createMaze(params: MazeParams): MazeResult {
   const maze: Cell[][] = tree.map(row => row.map(c => ({...c})));
   const braidEdits: CarveStep[] = [];
   if (b > 0) {
-    for (let y=0;y<H;y++) for (let x=0;x<W;x++) {
+    for (let y=0;y<H;y++) for (let x=0;x<W;x++) if(mask[y][x]) {
       const c = maze[y][x];
       const deg = openDeg(c); // degree in current final graph
       if (deg === 1 && rnd() < b) {
@@ -148,8 +152,20 @@ export function createMaze(params: MazeParams): MazeResult {
     }
   }
 
-  const stats = computeStats(maze, start, goal);
-  return { maze, treeSteps, braidEdits, stats, start, goal };
+  // Select the rightmost reachable exit; irregular masks may contain narrow
+  // rasterized features that are not connected by four-way movement.
+  const reachable=[start], reachableKeys=new Set([key(start.x,start.y)]);
+  for(let i=0;i<reachable.length;i++){
+    const point=reachable[i],cell=maze[point.y][point.x];
+    for(const d of DIRS) if(!cell[d.a]&&inb(point.x+d.dx,point.y+d.dy)){
+      const next={x:point.x+d.dx,y:point.y+d.dy},k=key(next.x,next.y);
+      if(!reachableKeys.has(k)){reachableKeys.add(k);reachable.push(next);}
+    }
+  }
+  goal=reachable.reduce((a,p)=>p.x>a.x||p.x===a.x&&Math.abs(p.y-middle)<Math.abs(a.y-middle)?p:a,start);
+
+  const stats = computeStats(maze, start, goal, mask);
+  return { maze, treeSteps, braidEdits, stats, start, goal, mask };
 }
 
 /* ---------------- helpers ---------------- */
@@ -196,9 +212,9 @@ function openDeg(c:Cell){ return (c.n?0:1)+(c.s?0:1)+(c.e?0:1)+(c.w?0:1); }
 
 /** Shortest-path length/turn rate and graph counts. D is an uncalibrated
  * heuristic: logarithmic route length, route turns, junction/dead-end density. */
-function computeStats(maze: Cell[][], start: {x:number;y:number}, goal: {x:number;y:number}): Stats {
-  const W = maze[0].length, count = W * maze.length;
-  const parents = new Int32Array(count).fill(-1);
+function computeStats(maze: Cell[][], start: {x:number;y:number}, goal: {x:number;y:number}, mask=maze.map(row=>row.map(()=>true))): Stats {
+  const W = maze[0].length, count = mask.flat().filter(Boolean).length;
+  const parents = new Int32Array(W * maze.length).fill(-1);
   const first = start.y * W + start.x, last = goal.y * W + goal.x;
   const queue = [first];
   parents[first] = first;
@@ -220,7 +236,7 @@ function computeStats(maze: Cell[][], start: {x:number;y:number}, goal: {x:numbe
   for (let i = 2; i < path.length; i++) {
     if (path[i] - path[i-1] !== path[i-1] - path[i-2]) turns++;
   }
-  for (const row of maze) for (const cell of row) {
+  for (const row of maze) for (const cell of row) if(mask[cell.y][cell.x]) {
     const degree = openDeg(cell);
     if (degree === 1) E++;
     if (degree >= 3) J++;
@@ -262,6 +278,7 @@ export function toSVG(
   }
 ): string {
   const m  = isMazeResult(input) ? input.maze : input;
+  const activeMask=isMazeResult(input)?input.mask:m.map(row=>row.map(()=>true));
   const SG = isMazeResult(input) ? {start: input.start, goal: input.goal} : null;
 
   const { cell, margin, stroke = 2 } = opts;
@@ -279,11 +296,12 @@ export function toSVG(
   // Walls
   let walls = "";
   for (let y=0;y<H;y++) for(let x=0;x<W;x++){
+    if(!activeMask[y][x]) continue;
     const c = m[y][x];
     if (c.n) walls += `<line x1="${margin+x*cell}" y1="${margin+y*cell}" x2="${margin+(x+1)*cell}" y2="${margin+y*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
     if (c.w) walls += `<line x1="${margin+x*cell}" y1="${margin+y*cell}" x2="${margin+x*cell}" y2="${margin+(y+1)*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
-    if (y===H-1 && c.s) walls += `<line x1="${margin+x*cell}" y1="${margin+(y+1)*cell}" x2="${margin+(x+1)*cell}" y2="${margin+(y+1)*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
-    if (x===W-1 && c.e) walls += `<line x1="${margin+(x+1)*cell}" y1="${margin+y*cell}" x2="${margin+(x+1)*cell}" y2="${margin+(y+1)*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
+    if (c.s && (y===H-1 || !activeMask[y+1][x])) walls += `<line x1="${margin+x*cell}" y1="${margin+(y+1)*cell}" x2="${margin+(x+1)*cell}" y2="${margin+(y+1)*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
+    if (c.e && (x===W-1 || !activeMask[y][x+1])) walls += `<line x1="${margin+(x+1)*cell}" y1="${margin+y*cell}" x2="${margin+(x+1)*cell}" y2="${margin+(y+1)*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
   }
   svg += `<g class="walls">${walls}</g>`;
 
@@ -316,3 +334,4 @@ export function toSVG(
   svg += `</svg>`;
   return svg;
 }
+import { createMask, type MaskId } from '../maze/masks';

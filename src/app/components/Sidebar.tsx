@@ -4,6 +4,7 @@ import EmojiPicker from "./EmojiPicker";
 import type { SavedMaze } from "../state";
 import { normalizeMarker } from "../maze";
 import AnimationControls, { type AnimationControlsProps } from './AnimationControls';
+import { MASKS, type MaskId } from '../../maze/masks';
 
 type Props = {
   canInstall: boolean;
@@ -18,6 +19,7 @@ type Props = {
   onMinimize: () => void;
   lockSize: boolean;
   setLockSize: (v:boolean)=>void;
+  mask:MaskId; setMask:(mask:MaskId)=>void;
   onMaxDifficulty: () => void;
   searching: boolean;
   startIcon: string | null;
@@ -89,6 +91,12 @@ export default function Sidebar(props: Props){
         <details>
           <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>Adjust size</summary>
 
+          <label>Maze shape
+            <select name="maze-shape" value={props.mask} onChange={e=>props.setMask(e.target.value as MaskId)}>
+              {Object.values(MASKS).map(mask=><option key={mask.id} value={mask.id}>{mask.name}</option>)}
+            </select>
+          </label>
+
           <label>Width: {width}
             <input
               type="range" min={7} max={41} step={2}
@@ -131,7 +139,7 @@ export default function Sidebar(props: Props){
               Start (emoji or empty):
               <div className="hstack" style={{ gap:8 }}>
                 <input
-                  type="text"
+                  type="text" name="start-marker"
                   aria-label="Start marker" maxLength={64}
                   value={startIcon?.startsWith("data:") ? "" : startIcon ?? ""}
                   onChange={(e) => setStartIcon(normalizeMarker(e.target.value))}
@@ -155,7 +163,7 @@ export default function Sidebar(props: Props){
               Goal (emoji or empty):
               <div className="hstack" style={{ gap:8 }}>
                 <input
-                  type="text"
+                  type="text" name="goal-marker"
                   aria-label="Goal marker" maxLength={64}
                   value={goalIcon?.startsWith("data:") ? "" : goalIcon ?? ""}
                   onChange={(e) => setGoalIcon(normalizeMarker(e.target.value))}
@@ -257,7 +265,7 @@ export default function Sidebar(props: Props){
       <fieldset>
         <legend>Save / Load</legend>
         <div className="stack">
-          <input className="input" aria-label="Maze name" maxLength={200} placeholder="Name this maze…" value={saveName} onChange={e=>setSaveName(e.target.value)}/>
+          <input className="input" name="maze-name" aria-label="Maze name" maxLength={200} placeholder="Name this maze…" value={saveName} onChange={e=>setSaveName(e.target.value)}/>
           <button className="btn btn-primary" onClick={onSave}>Save current</button>
         </div>
 

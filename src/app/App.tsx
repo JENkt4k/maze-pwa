@@ -19,6 +19,7 @@ import { mazeToGraph } from '../maze/graph';
 import { solveMaze, type SolverId } from '../maze/solvers';
 import { useSolverPlayback } from './hooks/useSolverPlayback';
 import type { AnimationMode } from '../maze/animation';
+import type { MaskId } from '../maze/masks';
 
 const DEFAULT_START = "\u{1f680}";
 const DEFAULT_GOAL = "\u{1f3c1}";
@@ -50,6 +51,7 @@ export default function App() {
   const [b, setB]              = useState(fromURL.b      ?? persisted?.b      ?? 0.15);
   const [tau, setTau]          = useState(fromURL.tau    ?? persisted?.tau    ?? 0.4);
   const [generator, setGenerator] = useState<GeneratorId>(fromURL.generator ?? persisted.generator ?? 'dfs');
+  const [mask,setMask]=useState<MaskId>(fromURL.mask??persisted.mask??'rectangle');
   const [controlsOpen, setControlsOpen] = useState(persisted.controlsOpen ?? !window.matchMedia("(max-width: 840px)").matches);
   const [lockSize, setLockSize]         = useState((persisted.lockSize ?? false) && width === height);
 
@@ -64,7 +66,7 @@ export default function App() {
 
   const handleSave = () => {
     const name = saveName.trim().slice(0, 200) || `Maze ${saved.length + 1}`;
-    const params = { width, height, seed, g, b, tau, generator, startIcon, goalIcon };
+    const params = { width, height, seed, g, b, tau, generator, mask, startIcon, goalIcon };
     const id = crypto.randomUUID();
     const newMaze: SavedMaze = { id, name, params, createdAt: Date.now() };
     const updated = [...saved, newMaze];
@@ -88,6 +90,7 @@ export default function App() {
     setB(maze.params.b);
     setTau(maze.params.tau);
     setGenerator(maze.params.generator ?? 'dfs');
+    setMask(maze.params.mask??'rectangle');
     setSelectedId(id);
   };
 
@@ -101,7 +104,7 @@ export default function App() {
   };
 
   const handleShare = async () => {
-    const url = buildShareURL(window.location.href, { width, height, seed, g, b, tau, generator, startIcon, goalIcon });
+    const url = buildShareURL(window.location.href, { width, height, seed, g, b, tau, generator, mask, startIcon, goalIcon });
     try {
       // Native share on mobile; clipboard elsewhere
       if (navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
@@ -160,6 +163,7 @@ export default function App() {
           solverStepMs,
           animationMode,
           generator,
+          mask,
           generationColor,
           generationOpacity,
           solverColor,
@@ -169,7 +173,7 @@ export default function App() {
         }));
       setSettingsError(null);
     } catch { setSettingsError("Settings could not be stored. They will reset when this page is closed."); }
-  }, [seed,width,height,g,b,tau,generator,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
+  }, [seed,width,height,g,b,tau,generator,mask,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
 
   // compute margin/stroke once from cell
   const margin = Math.round(cell/2);
@@ -187,12 +191,12 @@ export default function App() {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  const { search: findMaxDifficulty, searching, error: searchError } = useDifficultySearch({ width, height, seed, g, b, tau, generator }, best => {
+  const { search: findMaxDifficulty, searching, error: searchError } = useDifficultySearch({ width, height, seed, g, b, tau, generator, mask }, best => {
     setG(best.g); setB(best.b); setTau(best.tau); setSeed(best.seed);
   });
   const newMaze = () => setSeed(s => (s + 1) | 0);
-  const mazeKey = `${generator}:${width}:${height}:${seed}:${g}:${b}:${tau}`;
-  const mazeData = useMemo(() => createMaze({ width, height, seed, g, b, tau, generator }), [width, height, seed, g, b, tau, generator]);
+  const mazeKey = `${generator}:${mask}:${width}:${height}:${seed}:${g}:${b}:${tau}`;
+  const mazeData = useMemo(() => createMaze({ width, height, seed, g, b, tau, generator, mask }), [width, height, seed, g, b, tau, generator, mask]);
   const mazeGraph = useMemo(() => mazeToGraph(mazeData), [mazeData]);
   const solverRun = useMemo(() => solveMaze(mazeGraph, solverAlgorithm), [mazeGraph, solverAlgorithm]);
   const buildEventCount = mazeData.treeSteps.length + mazeData.braidEdits.length;
@@ -275,6 +279,7 @@ export default function App() {
         controlsOpen={controlsOpen}
         onMinimize={() => setControlsOpen(false)}
         lockSize={lockSize}
+        mask={mask} setMask={setMask}
         setLockSize={value => { setLockSize(value); if (value) setHeightRaw(width); }}
 
         /* Markers */
