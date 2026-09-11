@@ -20,6 +20,8 @@ import { solveMaze, type SolverId } from '../maze/solvers';
 import { useSolverPlayback } from './hooks/useSolverPlayback';
 import type { AnimationMode } from '../maze/animation';
 import type { CustomMask, MaskId } from '../maze/masks';
+import { chooseEndpoints, type EndpointStrategy } from '../maze/endpoints';
+import type { MazePoint } from './maze';
 
 const DEFAULT_START = "\u{1f680}";
 const DEFAULT_GOAL = "\u{1f3c1}";
@@ -53,6 +55,9 @@ export default function App() {
   const [generator, setGenerator] = useState<GeneratorId>(fromURL.generator ?? persisted.generator ?? 'dfs');
   const [mask,setMask]=useState<MaskId>(fromURL.mask??persisted.mask??'rectangle');
   const [customMask,setCustomMask]=useState<CustomMask|undefined>(persisted.customMask);
+  const [startCell,setStartCell]=useState<MazePoint|undefined>(fromURL.startCell??persisted.startCell);
+  const [goalCell,setGoalCell]=useState<MazePoint|undefined>(fromURL.goalCell??persisted.goalCell);
+  const [endpointMode,setEndpointMode]=useState<'start'|'goal'|null>(null);
   const [controlsOpen, setControlsOpen] = useState(persisted.controlsOpen ?? !window.matchMedia("(max-width: 840px)").matches);
   const [lockSize, setLockSize]         = useState((persisted.lockSize ?? false) && width === height);
 
@@ -67,7 +72,7 @@ export default function App() {
 
   const handleSave = () => {
     const name = saveName.trim().slice(0, 200) || `Maze ${saved.length + 1}`;
-    const params = { width, height, seed, g, b, tau, generator, mask, customMask:mask==='custom'?customMask:undefined, startIcon, goalIcon };
+    const params = { width, height, seed, g, b, tau, generator, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, startIcon, goalIcon };
     const id = crypto.randomUUID();
     const newMaze: SavedMaze = { id, name, params, createdAt: Date.now() };
     const updated = [...saved, newMaze];
@@ -93,6 +98,9 @@ export default function App() {
     setGenerator(maze.params.generator ?? 'dfs');
     setMask(maze.params.mask??'rectangle');
     setCustomMask(maze.params.customMask);
+    setStartCell(maze.params.startCell);
+    setGoalCell(maze.params.goalCell);
+    setEndpointMode(null);
     setSelectedId(id);
   };
 
@@ -106,7 +114,7 @@ export default function App() {
   };
 
   const handleShare = async () => {
-    const url = buildShareURL(window.location.href, { width, height, seed, g, b, tau, generator, mask, startIcon, goalIcon });
+    const url = buildShareURL(window.location.href, { width, height, seed, g, b, tau, generator, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, startIcon, goalIcon });
     try {
       // Native share on mobile; clipboard elsewhere
       if (navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
@@ -167,6 +175,8 @@ export default function App() {
           generator,
           mask,
           customMask,
+          startCell,
+          goalCell,
           generationColor,
           generationOpacity,
           solverColor,
@@ -176,7 +186,7 @@ export default function App() {
         }));
       setSettingsError(null);
     } catch { setSettingsError("Settings could not be stored. They will reset when this page is closed."); }
-  }, [seed,width,height,g,b,tau,generator,mask,customMask,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
+  }, [seed,width,height,g,b,tau,generator,mask,customMask,startCell,goalCell,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
 
   // compute margin/stroke once from cell
   const margin = Math.round(cell/2);
@@ -194,24 +204,38 @@ export default function App() {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  const mazeParams={width,height,seed,g,b,tau,generator,mask,customMask:mask==='custom'?customMask:undefined};
+  const mazeParams={width,height,seed,g,b,tau,generator,mask,customMask:mask==='custom'?customMask:undefined,startCell,goalCell};
   const { search: findMaxDifficulty, searching, error: searchError } = useDifficultySearch(mazeParams, best => {
     setG(best.g); setB(best.b); setTau(best.tau); setSeed(best.seed);
   });
   const newMaze = () => setSeed(s => (s + 1) | 0);
   const mazeKey = `${generator}:${mask}:${customMask?.pixels??''}:${customMask?.threshold??''}:${customMask?.invert??''}:${width}:${height}:${seed}:${g}:${b}:${tau}`;
-  const mazeData = useMemo(() => createMaze(mazeParams), [width,height,seed,g,b,tau,generator,mask,customMask]);
+  const mazeData = useMemo(() => createMaze(mazeParams), [width,height,seed,g,b,tau,generator,mask,customMask,startCell,goalCell]);
   const mazeGraph = useMemo(() => mazeToGraph(mazeData), [mazeData]);
   const solverRun = useMemo(() => solveMaze(mazeGraph, solverAlgorithm), [mazeGraph, solverAlgorithm]);
   const buildEventCount = mazeData.treeSteps.length + mazeData.braidEdits.length;
   const includesBuild = animationMode !== 'solve';
   const includesSolve = animationMode !== 'build';
   const animationEventCount = (includesBuild ? buildEventCount : 0) + (includesSolve ? solverRun.events.length : 0);
-  const animationRunKey = `${mazeKey}:${solverAlgorithm}:${animationMode}`;
+  const animationRunKey = `${mazeKey}:${mazeData.start.x},${mazeData.start.y}:${mazeData.goal.x},${mazeData.goal.y}:${solverAlgorithm}:${animationMode}`;
   const playback = useSolverPlayback(animationEventCount, animationRunKey, solverEnabled, solverStepMs);
   const generationEventIndex = includesBuild ? Math.min(playback.state.index, buildEventCount) : 0;
   const solverEventIndex = includesSolve ? Math.max(0, playback.state.index - (includesBuild ? buildEventCount : 0)) : 0;
   const animationPhase = playback.state.finished ? 'Complete' : includesBuild && playback.state.index < buildEventCount ? 'Building' : 'Solving';
+  const placeEndpoints=(strategy:EndpointStrategy)=>{
+    const selected=chooseEndpoints(mazeData,strategy,seed);
+    setStartCell(selected.startCell);setGoalCell(selected.goalCell);setEndpointMode(null);
+  };
+  const selectEndpoint=(point:MazePoint)=>{
+    if(endpointMode==='start'){
+      if(point.x===mazeData.goal.x&&point.y===mazeData.goal.y)setGoalCell(mazeData.start);
+      setStartCell(point);
+    }else if(endpointMode==='goal'){
+      if(point.x===mazeData.start.x&&point.y===mazeData.start.y)setStartCell(mazeData.goal);
+      setGoalCell(point);
+    }
+    setEndpointMode(null);
+  };
 
   return (
     <div className={`shell${controlsOpen ? "" : " controls-closed"}`}>
@@ -247,8 +271,10 @@ export default function App() {
               solverOpacity={solverOpacity}
               render={{ cell, margin, stroke, startIcon, goalIcon, iconScale: 0.7 }}
               onSVGChange={setCurrentSVG}
+              endpointMode={endpointMode}
+              onEndpointSelect={selectEndpoint}
             />
-            <DrawingCanvas hostRef={svgHostRef} mazeKey={mazeKey} />
+            <DrawingCanvas hostRef={svgHostRef} mazeKey={mazeKey} disabled={endpointMode!==null} />
           </div>
 
           <StatsCard stats={mazeData.stats} />
@@ -291,6 +317,8 @@ export default function App() {
         goalIcon={goalIcon}
         setStartIcon={setStartIcon}
         setGoalIcon={setGoalIcon}
+        startCell={mazeData.start} goalCell={mazeData.goal} endpointMode={endpointMode}
+        setEndpointMode={setEndpointMode} onPlaceEndpoints={placeEndpoints}
 
         animation={{
           mode: animationMode,

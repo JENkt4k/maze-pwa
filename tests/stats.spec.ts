@@ -1,6 +1,7 @@
 ﻿import { createHash } from 'node:crypto';
 import { createMaze, findMaxDifficulty, normalizeMarker, toSVG, type MazeParams } from '@src/app/maze';
 import { mazeToGraph } from '@src/maze/graph';
+import { chooseEndpoints } from '@src/maze/endpoints';
 
 const baseline: MazeParams = { width:19, height:19, seed:42, g:.3, b:.15, tau:.4 };
 
@@ -39,6 +40,28 @@ test.each(['dfs','prim','kruskal'] as const)('%s generation is deterministic, co
   expect(first).toEqual(second);
   expect(first.treeSteps).toHaveLength(baseline.width*baseline.height-1);
   expect(first.stats.L).toBeGreaterThan(0);
+});
+
+test('moving endpoints preserves topology and recalculates route statistics',()=>{
+  const original=createMaze(baseline);
+  const moved=createMaze({...baseline,startCell:{x:1,y:1},goalCell:{x:17,y:17}});
+  expect(moved.maze).toEqual(original.maze);
+  expect(moved.start).toEqual({x:1,y:1});
+  expect(moved.goal).toEqual({x:17,y:17});
+  expect(moved.stats).not.toEqual(original.stats);
+});
+
+test('endpoint strategies return distinct active cells and invalid positions remap safely',()=>{
+  const shaped=createMaze({...baseline,mask:'heart'});
+  for(const strategy of ['farthest','random'] as const){
+    const selected=chooseEndpoints(shaped,strategy,42);
+    const result=createMaze({...baseline,mask:'heart',...selected});
+    expect(result.start).not.toEqual(result.goal);
+    expect(result.mask[result.start.y][result.start.x]).toBe(true);
+    expect(result.mask[result.goal.y][result.goal.x]).toBe(true);
+  }
+  const remapped=createMaze({...baseline,mask:'heart',startCell:{x:99,y:99},goalCell:{x:99,y:99}});
+  expect(remapped.start).not.toEqual(remapped.goal);
 });
 
 test.each((['ellipse','diamond','heart','star','cup','brain','moose'] as const).flatMap(mask=>(['dfs','prim','kruskal'] as const).map(generator=>({mask,generator}))))('$mask mask works with $generator generation',({mask,generator})=>{

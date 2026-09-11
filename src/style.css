@@ -35,6 +35,9 @@ fieldset { min-width: 0; border: 1px solid var(--panel-border); border-radius: 1
 .custom-mask-controls { display:grid; gap:10px; margin-top:10px; }
 .mask-preview { display:flex; align-items:center; gap:12px; color:#586174; font-size:12px; }
 .mask-preview canvas { width:96px; height:96px; border:1px solid #d1d7e0; border-radius:8px; background:#fff; image-rendering:pixelated; }
+.endpoint-controls { display:grid; gap:8px; padding-bottom:12px; border-bottom:1px solid var(--panel-border); }
+.endpoint-controls > span { min-height:1.5em; color:#586174; font-size:12px; }
+.endpoint-controls select { width:100%; min-height:44px; border:1px solid #d1d7e0; border-radius:10px; padding:8px 10px; background:#fff; color:inherit; }
 legend { font-size: 12px; color: #3c4557; padding: 0 6px; }
 label { display: grid; gap: 6px; font-size: 12px; color: #3c4557; }
 .controls .hstack { flex-wrap: wrap; }
@@ -45,6 +48,10 @@ label { display: grid; gap: 6px; font-size: 12px; color: #3c4557; }
 .maze-frame svg { display: block; width: 100%; height: auto; }
 .draw-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 3; }
 .generation-overlay-svg, .solver-overlay-svg { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.endpoint-overlay { position:absolute; inset:0; z-index:4; }
+.endpoint-overlay button { position:absolute; min-height:0; padding:0; border:0; border-radius:4px; background:rgba(37,99,235,.08); }
+.endpoint-overlay button:hover { background:rgba(37,99,235,.3); }
+.endpoint-overlay button:focus-visible { outline:3px solid #f59e0b; outline-offset:-2px; background:rgba(245,158,11,.3); }
 .color-control { grid-template-columns: minmax(0,1fr) 52px; align-items: center; }
 .color-control input[type="color"] { width: 52px; height: 38px; padding: 2px; border: 1px solid #d1d7e0; border-radius: 8px; background: #fff; }
 .solver-current { stroke: #111827; stroke-width: 2; vector-effect: non-scaling-stroke; }

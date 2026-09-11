@@ -1,7 +1,8 @@
 export type Cell = { x:number; y:number; n:1|0; s:1|0; e:1|0; w:1|0 };
 export type CarveStep = { x:number; y:number; nx:number; ny:number };
 export type GeneratorId = 'dfs' | 'prim' | 'kruskal';
-export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number;generator?:GeneratorId;mask?:MaskId;customMask?:CustomMask };
+export type MazePoint={x:number;y:number};
+export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number;generator?:GeneratorId;mask?:MaskId;customMask?:CustomMask;startCell?:MazePoint;goalCell?:MazePoint };
 export type Stats = { L:number; T:number; J:number; E:number; D:number };
 
 export const GENERATORS: Readonly<Record<GeneratorId, { id:GeneratorId; name:string; description:string }>> = {
@@ -49,8 +50,8 @@ export function createMaze(params: MazeParams): MazeResult {
   );
   const active=mask.flatMap((row,y)=>row.flatMap((on,x)=>on?[{x,y}]:[]));
   const middle=(H-1)/2;
-  const start=active.reduce((a,p)=>p.x<a.x||p.x===a.x&&Math.abs(p.y-middle)<Math.abs(a.y-middle)?p:a,active[0]);
-  let goal=active.reduce((a,p)=>p.x>a.x||p.x===a.x&&Math.abs(p.y-middle)<Math.abs(a.y-middle)?p:a,active[0]);
+  const buildStart=active.reduce((a,p)=>p.x<a.x||p.x===a.x&&Math.abs(p.y-middle)<Math.abs(a.y-middle)?p:a,active[0]);
+  let buildGoal=active.reduce((a,p)=>p.x>a.x||p.x===a.x&&Math.abs(p.y-middle)<Math.abs(a.y-middle)?p:a,active[0]);
 
   const inb = (x:number,y:number)=> x>=0 && x<W && y>=0 && y<H && mask[y][x];
   const key = (x:number,y:number)=> `${x},${y}`;
@@ -71,7 +72,7 @@ export function createMaze(params: MazeParams): MazeResult {
     const addFrontier=(x:number,y:number) => {
       for (const d of DIRS) if (inb(x+d.dx,y+d.dy) && !seen.has(key(x+d.dx,y+d.dy))) frontier.push({x,y,d});
     };
-    seen.add(key(start.x,start.y)); addFrontier(start.x,start.y);
+    seen.add(key(buildStart.x,buildStart.y)); addFrontier(buildStart.x,buildStart.y);
     while(frontier.length){
       const index=Math.floor(rnd()*frontier.length), edge=frontier[index];
       frontier[index]=frontier[frontier.length-1]; frontier.pop();
@@ -97,8 +98,8 @@ export function createMaze(params: MazeParams): MazeResult {
   }
 
   if (generator === 'dfs') {
-  stack.push(start);
-  seen.add(key(start.x,start.y));
+  stack.push(buildStart);
+  seen.add(key(buildStart.x,buildStart.y));
 
   while (stack.length) {
     const cur = stack[stack.length - 1];
@@ -118,7 +119,7 @@ export function createMaze(params: MazeParams): MazeResult {
     // ⬅️ choose using goal bias g and straight bonus τ
     // Preserve the v1 random sequence so existing saved/shared mazes retain
     // their layouts. Invalid weighted directions fall back to a valid choice.
-    let d = chooseDirWeighted(DIRS, cur.x, cur.y, prev, goal, g, tau, rnd);
+    let d = chooseDirWeighted(DIRS, cur.x, cur.y, prev, buildGoal, g, tau, rnd);
     if (!inb(cur.x + d.dx, cur.y + d.dy) || seen.has(key(cur.x + d.dx, cur.y + d.dy))) {
       d = candidates[Math.floor(rnd() * candidates.length)];
     }
@@ -154,7 +155,7 @@ export function createMaze(params: MazeParams): MazeResult {
 
   // Select the rightmost reachable exit; irregular masks may contain narrow
   // rasterized features that are not connected by four-way movement.
-  const reachable=[start], reachableKeys=new Set([key(start.x,start.y)]);
+  const reachable=[buildStart], reachableKeys=new Set([key(buildStart.x,buildStart.y)]);
   for(let i=0;i<reachable.length;i++){
     const point=reachable[i],cell=maze[point.y][point.x];
     for(const d of DIRS) if(!cell[d.a]&&inb(point.x+d.dx,point.y+d.dy)){
@@ -162,7 +163,15 @@ export function createMaze(params: MazeParams): MazeResult {
       if(!reachableKeys.has(k)){reachableKeys.add(k);reachable.push(next);}
     }
   }
-  goal=reachable.reduce((a,p)=>p.x>a.x||p.x===a.x&&Math.abs(p.y-middle)<Math.abs(a.y-middle)?p:a,start);
+  buildGoal=reachable.reduce((a,p)=>p.x>a.x||p.x===a.x&&Math.abs(p.y-middle)<Math.abs(a.y-middle)?p:a,buildStart);
+
+  const nearest=(requested:MazePoint|undefined,fallback:MazePoint,exclude?:MazePoint)=>{
+    const candidates=exclude&&reachable.length>1?reachable.filter(point=>point.x!==exclude.x||point.y!==exclude.y):reachable;
+    if(!requested)return candidates.find(point=>point.x===fallback.x&&point.y===fallback.y)??candidates[0];
+    return candidates.reduce((best,point)=>Math.abs(point.x-requested.x)+Math.abs(point.y-requested.y)<Math.abs(best.x-requested.x)+Math.abs(best.y-requested.y)?point:best,candidates[0]);
+  };
+  const start=nearest(params.startCell,buildStart);
+  const goal=nearest(params.goalCell,buildGoal,start);
 
   const stats = computeStats(maze, start, goal, mask);
   return { maze, treeSteps, braidEdits, stats, start, goal, mask };
@@ -291,7 +300,7 @@ export function toSVG(
   const cx  = (x:number)=> margin + x*cell + cell/2;
   const cy  = (y:number)=> margin + y*cell + cell/2;
 
-  let svg = `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Maze with start at the left and goal at the right" viewBox="0 0 ${widthPx} ${heightPx}">`;
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Maze with start and goal markers" viewBox="0 0 ${widthPx} ${heightPx}">`;
 
   // Walls
   let walls = "";

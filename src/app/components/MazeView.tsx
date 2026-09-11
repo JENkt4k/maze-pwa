@@ -4,6 +4,8 @@ import type { MazeGraph } from '../../maze/graph';
 import type { SolverRun } from '../../maze/solvers';
 import SolverOverlay from './SolverOverlay';
 import GenerationOverlay from './GenerationOverlay';
+import EndpointOverlay from './EndpointOverlay';
+import type { MazePoint } from '../maze';
 
 type RenderOpts = { cell:number; margin:number; stroke?:number; startIcon?:string|null; goalIcon?:string|null; iconScale?:number };
 type Props = {
@@ -21,9 +23,11 @@ type Props = {
   solverOpacity: number;
   render: RenderOpts;
   onSVGChange?: (svg:string) => void;
+  endpointMode?:'start'|'goal'|null;
+  onEndpointSelect?:(point:MazePoint)=>void;
 };
 
-export default function MazeView({ hostRef, data, graph, solverRun, solverEnabled, solverEventIndex, generationEventIndex, generationComplete, generationColor, generationOpacity, solverColor, solverOpacity, render, onSVGChange }: Props) {
+export default function MazeView({ hostRef, data, graph, solverRun, solverEnabled, solverEventIndex, generationEventIndex, generationComplete, generationColor, generationOpacity, solverColor, solverOpacity, render, onSVGChange, endpointMode, onEndpointSelect }: Props) {
   const width = data.maze[0]?.length ?? 0;
   const height = data.maze.length;
   const { cell, margin, startIcon, goalIcon, iconScale = 0.7 } = render;
@@ -42,6 +46,7 @@ export default function MazeView({ hostRef, data, graph, solverRun, solverEnable
         cell={cell} margin={margin} stroke={stroke} widthCells={width} heightCells={height} />}
       {solverEnabled && <SolverOverlay graph={graph} events={solverRun.events} eventIndex={solverEventIndex}
         color={solverColor} opacity={solverOpacity} cell={cell} margin={margin} widthCells={width} heightCells={height} />}
+      {endpointMode&&onEndpointSelect&&<EndpointOverlay data={data} mode={endpointMode} cell={cell} margin={margin} onSelect={onEndpointSelect}/>}
     </div>
   );
 }

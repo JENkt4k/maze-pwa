@@ -38,6 +38,12 @@ test('custom silhouette data survives validated share links',()=>{
   const url=buildShareURL('https://example.test/',{...params,mask:'custom',customMask,startIcon:null,goalIcon:null});
   expect(parseFromURL(new URL(url).search)).toMatchObject({mask:'custom',customMask});
 });
+test('custom endpoints survive settings, saves, and shared links',()=>{
+  const endpoints={startCell:{x:3,y:4},goalCell:{x:15,y:8}};
+  const url=buildShareURL('https://example.test/',{...params,...endpoints,startIcon:null,goalIcon:null});
+  expect(parseFromURL(new URL(url).search)).toMatchObject(endpoints);
+  expect(validateSettings(endpoints)).toEqual(endpoints);
+});
 test('saved records preserve markers and accept legacy records while dropping corrupt entries', () => {
   const old = {id:'old',name:'Old maze',params,createdAt:1};
   const current = {id:'new',name:'New maze',params:{...params,startIcon:null,goalIcon:'🏁'},createdAt:2};

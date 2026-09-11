@@ -3,9 +3,9 @@ import { createPortal } from "react-dom";
 
 type Point = { x: number; y: number };
 type Stroke = { mode: "draw" | "erase"; width: number; points: Point[] };
-type Props = { hostRef: RefObject<HTMLDivElement>; mazeKey: string };
+type Props = { hostRef: RefObject<HTMLDivElement>; mazeKey: string; disabled?:boolean };
 
-export default function DrawingCanvas({ hostRef, mazeKey }: Props) {
+export default function DrawingCanvas({ hostRef, mazeKey, disabled=false }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [host, setHost] = useState<HTMLDivElement | null>(null);
   const [mode, setMode] = useState<"draw" | "erase" | "scroll">("draw");
@@ -87,7 +87,7 @@ export default function DrawingCanvas({ hostRef, mazeKey }: Props) {
 
   return <>
     {host && createPortal(<canvas ref={canvasRef} className="draw-canvas" aria-label="Draw a path on the maze"
-      style={{ pointerEvents: mode === "scroll" ? "none" : "auto" }}
+      style={{ pointerEvents: disabled||mode === "scroll" ? "none" : "auto" }}
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onLostPointerCapture={up} />, host)}
     <div className="draw-toolbar" role="group" aria-label="Drawing tools">
       {(["draw", "erase", "scroll"] as const).map(value => <button key={value} type="button"
