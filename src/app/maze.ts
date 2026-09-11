@@ -300,8 +300,8 @@ export function toSVG(
     const c = m[y][x];
     if (c.n) walls += `<line x1="${margin+x*cell}" y1="${margin+y*cell}" x2="${margin+(x+1)*cell}" y2="${margin+y*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
     if (c.w) walls += `<line x1="${margin+x*cell}" y1="${margin+y*cell}" x2="${margin+x*cell}" y2="${margin+(y+1)*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
-    if (y===H-1 && c.s) walls += `<line x1="${margin+x*cell}" y1="${margin+(y+1)*cell}" x2="${margin+(x+1)*cell}" y2="${margin+(y+1)*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
-    if (x===W-1 && c.e) walls += `<line x1="${margin+(x+1)*cell}" y1="${margin+y*cell}" x2="${margin+(x+1)*cell}" y2="${margin+(y+1)*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
+    if (c.s && (y===H-1 || !activeMask[y+1][x])) walls += `<line x1="${margin+x*cell}" y1="${margin+(y+1)*cell}" x2="${margin+(x+1)*cell}" y2="${margin+(y+1)*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
+    if (c.e && (x===W-1 || !activeMask[y][x+1])) walls += `<line x1="${margin+(x+1)*cell}" y1="${margin+y*cell}" x2="${margin+(x+1)*cell}" y2="${margin+(y+1)*cell}" stroke="#111" stroke-width="${stroke}" stroke-linecap="square"/>`;
   }
   svg += `<g class="walls">${walls}</g>`;
 

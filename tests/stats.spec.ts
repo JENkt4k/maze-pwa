@@ -50,6 +50,17 @@ test.each((['ellipse','diamond','heart'] as const).flatMap(mask=>(['dfs','prim',
     expect(result.mask[result.goal.y][result.goal.x]).toBe(true);
 });
 
+test.each(['ellipse','diamond','heart'] as const)('%s SVG closes every active-cell mask boundary',mask=>{
+  const result=createMaze({...baseline,mask,b:0});
+  const svg=toSVG(result,{cell:10,margin:0,showStartGoal:false});
+  const lines=[...svg.matchAll(/<line x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"/g)]
+    .map(match=>match.slice(1).map(Number).join(','));
+  for(let y=0;y<result.mask.length;y++) for(let x=0;x<result.mask[y].length;x++) if(result.mask[y][x]){
+    if(y===result.mask.length-1||!result.mask[y+1][x]) expect(lines).toContain(`${x*10},${(y+1)*10},${(x+1)*10},${(y+1)*10}`);
+    if(x===result.mask[y].length-1||!result.mask[y][x+1]) expect(lines).toContain(`${(x+1)*10},${y*10},${(x+1)*10},${(y+1)*10}`);
+  }
+});
+
 test('solution length is the shortest route through tree and braid edges', () => {
   for (const b of [0, .5]) {
     const m = createMaze({ ...baseline, b });
