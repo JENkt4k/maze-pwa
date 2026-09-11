@@ -1,6 +1,6 @@
 ﻿import { test, expect, type Page } from '@playwright/test';
 
-const settings = {width:7,height:7,seed:42,g:.3,b:.15,tau:.4,controlsOpen:true,lockSize:false,solverEnabled:true,solverAlgorithm:'dfs',solverStepMs:250};
+const settings = {width:7,height:7,seed:42,g:.3,b:.15,tau:.4,generator:'dfs',controlsOpen:true,lockSize:false,solverEnabled:true,solverAlgorithm:'dfs',animationMode:'build-solve',solverStepMs:250,generationColor:'#14b8a6',generationOpacity:.35,solverColor:'#2563eb',solverOpacity:.65};
 test.beforeEach(async ({page}) => {
   await page.addInitScript(value => {
     if (!localStorage.getItem('maze:settings:v1')) localStorage.setItem('maze:settings:v1', JSON.stringify(value));
@@ -121,27 +121,47 @@ test('emoji picker stays in viewport and returns focus after Escape', async ({pa
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('build animation switches algorithms and supports shared playback controls', async ({page}) => {
+test('animation independently switches generation and solving algorithms', async ({page}) => {
   await page.goto('./');
-  await expect(page.getByText('Build Animation',{exact:true})).toBeVisible();
-  const algorithm = page.getByLabel('Algorithm');
-  await expect(algorithm).toHaveValue('dfs');
-  await expect(algorithm.locator('option')).toHaveText(['DFS','BFS','Dijkstra','A*']);
-  await expect(page.locator('.solver-overlay-svg')).toBeVisible();
+  await expect(page.getByText('Animation Algorithms',{exact:true})).toBeVisible();
+  await expect(page.getByLabel('Animation mode')).toHaveValue('build-solve');
+  const generator=page.getByLabel('Generation algorithm');
+  const solver=page.getByLabel('Solving algorithm');
+  await expect(generator).toHaveValue('dfs');
+  await expect(generator.locator('option')).toHaveText(['Randomized DFS','Randomized Prim','Randomized Kruskal']);
+  await expect(solver).toHaveValue('dfs');
+  await expect(solver.locator('option')).toHaveText(['DFS','BFS','Dijkstra','A*']);
+  await expect(page.locator('.generation-overlay-svg')).toBeVisible();
   await page.getByRole('button',{name:'Pause',exact:true}).click();
   await page.getByRole('button',{name:'Step',exact:true}).click();
-  await expect(page.getByText(/^Progress: [1-9]/)).toBeVisible();
-  await algorithm.selectOption('astar');
+  await expect(page.getByText(/^Building — [1-9]/)).toBeVisible();
+  await page.getByLabel('Build animation color').fill('#7c3aed');
+  await page.getByLabel('Build animation opacity').fill('70');
+  await expect(page.locator('.generation-overlay-svg path').first()).toHaveAttribute('stroke','#7c3aed');
+  await expect(page.locator('.generation-overlay-svg path').first()).toHaveAttribute('opacity','0.7');
+  const originalMaze=await page.locator('#print-maze-only .walls').innerHTML();
+  await generator.selectOption('prim');
+  await expect.poll(()=>page.locator('#print-maze-only .walls').innerHTML()).not.toBe(originalMaze);
+  await solver.selectOption('astar');
   await expect(page.getByText(/Manhattan distance/)).toBeVisible();
   await expect(page.getByText(/^Path$/).locator('..')).toContainText('steps');
   await page.getByRole('button',{name:'Restart',exact:true}).click();
   await expect(page.getByRole('button',{name:'Pause',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Generate new maze',exact:true}).click();
+  await expect(page.locator('.generation-overlay-svg')).toBeVisible();
+  await page.getByLabel('Show animation overlay').uncheck();
+  await expect(page.locator('.generation-overlay-svg')).toHaveCount(0);
+  await page.getByLabel('Show animation overlay').check();
+  await expect(page.locator('.generation-overlay-svg')).toBeVisible();
+  await page.getByLabel('Animation mode').selectOption('solve');
+  await expect(generator).toBeDisabled();
+  await expect(solver).toBeEnabled();
+  await expect(page.locator('.generation-overlay-svg')).toHaveCount(0);
   await expect(page.locator('.solver-overlay-svg')).toBeVisible();
-  await page.getByLabel('Show solver overlay').uncheck();
-  await expect(page.locator('.solver-overlay-svg')).toHaveCount(0);
-  await page.getByLabel('Show solver overlay').check();
-  await expect(page.locator('.solver-overlay-svg')).toBeVisible();
+  await page.getByLabel('Solver animation color').fill('#c026d3');
+  await page.getByLabel('Solver animation opacity').fill('80');
+  await expect(page.locator('.solver-expanded circle').first()).toHaveAttribute('fill','#c026d3');
+  await expect(page.locator('.solver-expanded circle').first()).toHaveAttribute('opacity','0.8');
 });
 
 test('difficulty search preserves the seed', async ({page}) => {

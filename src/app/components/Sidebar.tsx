@@ -3,7 +3,7 @@ import EmojiPicker from "./EmojiPicker";
 
 import type { SavedMaze } from "../state";
 import { normalizeMarker } from "../maze";
-import SolverControls, { type SolverControlsProps } from './SolverControls';
+import AnimationControls, { type AnimationControlsProps } from './AnimationControls';
 
 type Props = {
   canInstall: boolean;
@@ -24,7 +24,7 @@ type Props = {
   goalIcon: string | null;
   setStartIcon: (v: string | null) => void;
   setGoalIcon: (v: string | null) => void;
-  solver: SolverControlsProps;
+  animation: AnimationControlsProps;
   onShare: () => void;
 };
 
@@ -216,9 +216,9 @@ export default function Sidebar(props: Props){
         <legend>Animation</legend>
         <details open>
           <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>
-            Build Animation
+            Animation Algorithms
           </summary>
-          <SolverControls {...props.solver} />
+          <AnimationControls {...props.animation} />
         </details>
       </fieldset>
 
