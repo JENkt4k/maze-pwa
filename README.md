@@ -129,3 +129,6 @@ The completed stabilization checklist and verification evidence are recorded in
 and verification are recorded in [SOLVER_PLAYBACK_PLAN.md](SOLVER_PLAYBACK_PLAN.md).
 Hints, route validation, win detection, Micromouse simulation, shaped maze
 generation, and drawing persistence remain optional future features.
+The next animation milestone is a unified two-phase timeline: replay maze
+construction first, then continue into solver exploration using separate colors,
+generator/solver selectors, and shared playback controls.

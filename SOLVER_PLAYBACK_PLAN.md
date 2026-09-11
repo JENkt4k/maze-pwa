@@ -34,6 +34,33 @@ one coherent change.
 The graph and event interfaces should support those later features without adding
 their assumptions to this pull request.
 
+## Follow-up: generation and solution animation
+
+The current overlay animates a solver searching an already completed maze. The
+former blue fill animated the maze generator's carve order. Preserve both ideas
+as two phases of one optional timeline:
+
+1. **Build phase** — replay generation events in a construction color until the
+   completed maze is visible.
+2. **Solve phase** — continue automatically with the selected solver's neutral
+   search events in distinct explore/path colors.
+
+Provide separate **Generator algorithm** and **Solver algorithm** selectors because
+they solve different problems. The current generator is an iterative randomized
+DFS backtracker. DFS, BFS, Dijkstra, and A* in this PR are maze solvers; selecting
+A* should not imply that A* constructs the maze. Future generators can include
+randomized Prim, randomized Kruskal, Wilson, and recursive division. A randomized
+BFS spanning tree is possible, but it tends to create a visibly different branching
+texture and should be presented as a generator rather than reusing the BFS solver.
+
+Playback should offer `Build + solve`, `Build only`, and `Solve only`, with
+`Build + solve` as the recommended default. Both phases should share play/pause,
+step, speed, seek, and restart controls while retaining phase-specific colors and
+metrics. The event envelope can add a `phase: 'generation' | 'solution'` field;
+generation events remain separate from the immutable final graph consumed by
+solvers. This also leaves room for a later side-by-side comparison mode without
+making two independent animations the primary interface.
+
 ## Completion checks
 
 - [x] Every solver returns a valid start-to-goal path.
