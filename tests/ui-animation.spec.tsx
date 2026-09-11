@@ -1,40 +1,63 @@
-﻿/** @jest-environment jsdom */
+/** @jest-environment jsdom */
 import { createRef } from 'react';
-import { act, render } from '@testing-library/react';
+import { act, render, renderHook } from '@testing-library/react';
 import MazeView from '@src/app/components/MazeView';
+import { useSolverPlayback } from '@src/app/hooks/useSolverPlayback';
+import { createMaze } from '@src/app/maze';
+import { mazeToGraph } from '@src/maze/graph';
+import { solveMaze } from '@src/maze/solvers';
 
-const params = {width:7,height:7,seed:42,g:.3,b:.15,tau:.4};
-const renderOpts = {cell:24,margin:12,startIcon:'🚀',goalIcon:'🏁'};
+const data = createMaze({ width: 7, height: 7, seed: 42, g: .3, b: .15, tau: .4 });
+const graph = mazeToGraph(data);
+const solverRun = solveMaze(graph, 'dfs');
+const renderOpts = { cell: 24, margin: 12, startIcon: '🚀', goalIcon: '🏁' };
+
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());
 
-test('same-size maze changes restart animation during and after a run', () => {
-  const hostRef = createRef<HTMLDivElement>();
-  const view = (seed:number, enabled=true) => <MazeView hostRef={hostRef} params={{...params,seed}} render={renderOpts}
-    animation={{enabled,segMs:10,lingerMs:0}} />;
-  const {container,rerender,unmount} = render(view(42));
-  const original = container.querySelector('.dfs-overlay-svg');
-  expect(original).not.toBeNull();
-  act(() => { jest.advanceTimersByTime(200); });
-  rerender(view(43));
-  expect(container.querySelector('.dfs-overlay-svg')).not.toBe(original);
-  act(() => { jest.advanceTimersByTime(450); });
-  expect(container.querySelector('.dfs-overlay-svg')).not.toBeNull();
-  act(() => { jest.advanceTimersByTime(200); });
-  expect(container.querySelector('.dfs-overlay-svg')).toBeNull();
-  rerender(view(44));
-  expect(container.querySelector('.dfs-overlay-svg')).not.toBeNull();
-  rerender(view(44,false));
-  expect(container.querySelector('.dfs-overlay-svg')).toBeNull();
-  rerender(view(44,true));
-  expect(container.querySelector('.dfs-overlay-svg')).not.toBeNull();
-  unmount();
-  expect(jest.getTimerCount()).toBe(0);
+test('playback can pause, step, seek, restart, and reset for a new run', () => {
+  const { result, rerender } = renderHook(
+    ({ runKey, enabled }) => useSolverPlayback(4, runKey, enabled, 10),
+    { initialProps: { runKey: 'first', enabled: true } },
+  );
+
+  act(() => { jest.advanceTimersToNextTimer(); });
+  act(() => { jest.advanceTimersToNextTimer(); });
+  expect(result.current.state.index).toBe(2);
+  act(() => result.current.pause());
+  act(() => { jest.advanceTimersByTime(50); });
+  expect(result.current.state.index).toBe(2);
+  act(() => result.current.step());
+  expect(result.current.state.index).toBe(3);
+  act(() => result.current.seek(4));
+  expect(result.current.state.finished).toBe(true);
+  act(() => result.current.play());
+  expect(result.current.state.index).toBe(0);
+  act(() => result.current.restart());
+  expect(result.current.state.index).toBe(0);
+
+  rerender({ runKey: 'second', enabled: true });
+  expect(result.current.state.index).toBe(0);
+  rerender({ runKey: 'second', enabled: false });
+  expect(result.current.state.playing).toBe(false);
+});
+
+test('the maze view renders any solver event stream through one overlay', () => {
+  const { container, rerender } = render(<MazeView hostRef={createRef<HTMLDivElement>()}
+    data={data} graph={graph} solverRun={solverRun} solverEnabled solverEventIndex={solverRun.events.length}
+    render={renderOpts} />);
+
+  expect(container.querySelector('.solver-overlay-svg')).not.toBeNull();
+  expect(container.querySelector('.solver-solution')).not.toBeNull();
+  rerender(<MazeView hostRef={createRef<HTMLDivElement>()} data={data} graph={graph}
+    solverRun={solveMaze(graph, 'astar')} solverEnabled={false} solverEventIndex={0} render={renderOpts} />);
+  expect(container.querySelector('.solver-overlay-svg')).toBeNull();
 });
 
 test('untrusted marker content stays text in the actual SVG DOM', () => {
-  const {container} = render(<MazeView hostRef={createRef<HTMLDivElement>()} params={params}
-    render={{...renderOpts,startIcon:'</text><image onload="alert(1)"/><text>'}} />);
+  const { container } = render(<MazeView hostRef={createRef<HTMLDivElement>()} data={data} graph={graph}
+    solverRun={solverRun} solverEnabled={false} solverEventIndex={0}
+    render={{ ...renderOpts, startIcon: '</text><image onload="alert(1)"/><text>' }} />);
   expect(container.querySelector('image')).toBeNull();
   expect(container.querySelector('text')?.textContent).toBe('</text><image onload="alert(1)"/><text>');
 });
