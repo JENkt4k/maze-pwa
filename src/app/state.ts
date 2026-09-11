@@ -2,6 +2,7 @@ import { normalizeMarker, type GeneratorId, type MazeParams } from './maze';
 import type { SolverId } from '../maze/solvers';
 import type { AnimationMode } from '../maze/animation';
 import { CUSTOM_MASK_SIZE, type CustomMask, type MaskId } from '../maze/masks';
+import type { WallStyle } from '../maze/walls';
 
 export const SETTINGS_KEY = 'maze:settings:v1';
 export const STORAGE_KEY = 'savedMazes:v1';
@@ -25,7 +26,7 @@ export type Settings = MazeParams & Markers & {
 };
 export type SavedMaze = { id: string; name: string; params: MazeParams & Partial<Markers>; createdAt: number };
 const record = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
-const ranges = { width: [7, 41], height: [7, 41], seed: [-2147483648, 2147483647], g: [0, 1], b: [0, .5], tau: [0, 1], dfsSegMs: [10, 250], lingerMs: [0, 5000], solverStepMs: [10, 250], generationOpacity: [.1, 1], solverOpacity: [.1, 1] } as const;
+const ranges = { width: [7, 41], height: [7, 41], seed: [-2147483648, 2147483647], g: [0, 1], b: [0, .5], tau: [0, 1], dfsSegMs: [10, 250], lingerMs: [0, 5000], solverStepMs: [10, 250], generationOpacity: [.1, 1], solverOpacity: [.1, 1],wallThickness:[1,8],cornerRadius:[0,.5] } as const;
 
 export function validateSettings(value: unknown): Partial<Settings> {
   if (!record(value)) return {};
@@ -43,6 +44,7 @@ export function validateSettings(value: unknown): Partial<Settings> {
   if (['dfs', 'bfs', 'dijkstra', 'astar'].includes(String(value.solverAlgorithm))) out.solverAlgorithm = value.solverAlgorithm;
   if (['dfs', 'prim', 'kruskal'].includes(String(value.generator))) out.generator = value.generator as GeneratorId;
   if (['rectangle','ellipse','diamond','heart','star','cup','brain','moose','custom'].includes(String(value.mask))) out.mask=value.mask as MaskId;
+  if(['classic','rounded','organic'].includes(String(value.wallStyle)))out.wallStyle=value.wallStyle as WallStyle;
   if(record(value.customMask)&&typeof value.customMask.pixels==='string'&&value.customMask.pixels.length<=Math.ceil(CUSTOM_MASK_SIZE**2/3)*4&&typeof value.customMask.threshold==='number'){
     const threshold=Math.max(1,Math.min(254,Math.trunc(value.customMask.threshold)));
     out.customMask={pixels:value.customMask.pixels,threshold,invert:value.customMask.invert===true,name:typeof value.customMask.name==='string'?value.customMask.name.slice(0,100):undefined} satisfies CustomMask;
@@ -87,6 +89,9 @@ export function parseFromURL(search: string): Partial<Settings> {
   if(q.has('cm')) values.customMask={pixels:q.get('cm'),threshold:Number(q.get('ct')??160),invert:q.get('ci')==='1',name:q.get('cn')??undefined};
   if(q.has('sx')&&q.has('sy'))values.startCell={x:Number(q.get('sx')),y:Number(q.get('sy'))};
   if(q.has('gx')&&q.has('gy'))values.goalCell={x:Number(q.get('gx')),y:Number(q.get('gy'))};
+  if(q.has('ws'))values.wallStyle=q.get('ws');
+  if(q.has('wt'))values.wallThickness=Number(q.get('wt'));
+  if(q.has('cr'))values.cornerRadius=Number(q.get('cr'));
   for (const [query, key] of [['start', 'startIcon'], ['goal', 'goalIcon']]) {
     if (!q.has(query)) continue;
     let marker = q.get(query) ?? '';
@@ -108,6 +113,9 @@ export function buildShareURL(base: string, p: MazeParams & Markers): string {
     if(point){u.searchParams.set(`${prefix}x`,String(point.x));u.searchParams.set(`${prefix}y`,String(point.y));}
     else{u.searchParams.delete(`${prefix}x`);u.searchParams.delete(`${prefix}y`);}
   }
+  if(p.wallStyle&&p.wallStyle!=='classic')u.searchParams.set('ws',p.wallStyle);else u.searchParams.delete('ws');
+  if(p.wallThickness!==undefined&&p.wallThickness!==3)u.searchParams.set('wt',String(p.wallThickness));else u.searchParams.delete('wt');
+  if(p.cornerRadius!==undefined&&p.cornerRadius!==.3)u.searchParams.set('cr',String(p.cornerRadius));else u.searchParams.delete('cr');
   // Raster uploads are kept locally; explicit empty values prevent recipient defaults.
   for (const [query, marker] of [['start', p.startIcon], ['goal', p.goalIcon]] as const) u.searchParams.set(query, /^data:/i.test(marker ?? '') ? '' : marker ?? '');
   return u.toString();

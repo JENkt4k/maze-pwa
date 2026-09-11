@@ -44,6 +44,12 @@ test('custom endpoints survive settings, saves, and shared links',()=>{
   expect(parseFromURL(new URL(url).search)).toMatchObject(endpoints);
   expect(validateSettings(endpoints)).toEqual(endpoints);
 });
+test('wall appearance survives validated settings and sharing',()=>{
+  const appearance={wallStyle:'organic' as const,wallThickness:6,cornerRadius:.45};
+  expect(validateSettings(appearance)).toEqual(appearance);
+  const url=buildShareURL('https://example.test/',{...params,...appearance,startIcon:null,goalIcon:null});
+  expect(parseFromURL(new URL(url).search)).toMatchObject(appearance);
+});
 test('saved records preserve markers and accept legacy records while dropping corrupt entries', () => {
   const old = {id:'old',name:'Old maze',params,createdAt:1};
   const current = {id:'new',name:'New maze',params:{...params,startIcon:null,goalIcon:'🏁'},createdAt:2};

@@ -35,6 +35,8 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
   Animated uploads become a still image. Clearing a marker restores its colored dot.
 - Place start and goal on any active maze cell by mouse, touch, or keyboard. Automatic
   strategies restore opposite edges, approximate the farthest route, or choose seeded random cells.
+- Render walls in classic, rounded, or subtly organic styles with adjustable thickness
+  and corner radius. Appearance is preserved in settings, saved mazes, shared links, and printing.
 - Draw, erase, and clear a freehand path. Drawing stays aligned when the viewport
   changes and clears when the maze changes. Select **Scroll** to scroll by touch
   over the maze. Drawing is session-only and is not a validated solution.

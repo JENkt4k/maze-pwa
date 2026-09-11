@@ -22,6 +22,7 @@ import type { AnimationMode } from '../maze/animation';
 import type { CustomMask, MaskId } from '../maze/masks';
 import { chooseEndpoints, type EndpointStrategy } from '../maze/endpoints';
 import type { MazePoint } from './maze';
+import type { WallStyle } from '../maze/walls';
 
 const DEFAULT_START = "\u{1f680}";
 const DEFAULT_GOAL = "\u{1f3c1}";
@@ -58,6 +59,9 @@ export default function App() {
   const [startCell,setStartCell]=useState<MazePoint|undefined>(fromURL.startCell??persisted.startCell);
   const [goalCell,setGoalCell]=useState<MazePoint|undefined>(fromURL.goalCell??persisted.goalCell);
   const [endpointMode,setEndpointMode]=useState<'start'|'goal'|null>(null);
+  const [wallStyle,setWallStyle]=useState<WallStyle>(persisted.wallStyle??'classic');
+  const [wallThickness,setWallThickness]=useState(persisted.wallThickness??3);
+  const [cornerRadius,setCornerRadius]=useState(persisted.cornerRadius??.3);
   const [controlsOpen, setControlsOpen] = useState(persisted.controlsOpen ?? !window.matchMedia("(max-width: 840px)").matches);
   const [lockSize, setLockSize]         = useState((persisted.lockSize ?? false) && width === height);
 
@@ -72,7 +76,7 @@ export default function App() {
 
   const handleSave = () => {
     const name = saveName.trim().slice(0, 200) || `Maze ${saved.length + 1}`;
-    const params = { width, height, seed, g, b, tau, generator, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, startIcon, goalIcon };
+    const params = { width, height, seed, g, b, tau, generator, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, wallStyle, wallThickness, cornerRadius, startIcon, goalIcon };
     const id = crypto.randomUUID();
     const newMaze: SavedMaze = { id, name, params, createdAt: Date.now() };
     const updated = [...saved, newMaze];
@@ -100,6 +104,9 @@ export default function App() {
     setCustomMask(maze.params.customMask);
     setStartCell(maze.params.startCell);
     setGoalCell(maze.params.goalCell);
+    setWallStyle(maze.params.wallStyle??'classic');
+    setWallThickness(maze.params.wallThickness??3);
+    setCornerRadius(maze.params.cornerRadius??.3);
     setEndpointMode(null);
     setSelectedId(id);
   };
@@ -114,7 +121,7 @@ export default function App() {
   };
 
   const handleShare = async () => {
-    const url = buildShareURL(window.location.href, { width, height, seed, g, b, tau, generator, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, startIcon, goalIcon });
+    const url = buildShareURL(window.location.href, { width, height, seed, g, b, tau, generator, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, wallStyle, wallThickness, cornerRadius, startIcon, goalIcon });
     try {
       // Native share on mobile; clipboard elsewhere
       if (navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
@@ -177,6 +184,9 @@ export default function App() {
           customMask,
           startCell,
           goalCell,
+          wallStyle,
+          wallThickness,
+          cornerRadius,
           generationColor,
           generationOpacity,
           solverColor,
@@ -186,11 +196,11 @@ export default function App() {
         }));
       setSettingsError(null);
     } catch { setSettingsError("Settings could not be stored. They will reset when this page is closed."); }
-  }, [seed,width,height,g,b,tau,generator,mask,customMask,startCell,goalCell,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
+  }, [seed,width,height,g,b,tau,generator,mask,customMask,startCell,goalCell,wallStyle,wallThickness,cornerRadius,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
 
   // compute margin/stroke once from cell
   const margin = Math.round(cell/2);
-  const stroke = Math.max(2, Math.round(cell/8));
+  const stroke = wallThickness;
 
   // print: keep the latest svg string from MazeView
   const [currentSVG, setCurrentSVG] = useState<string>("");
@@ -269,7 +279,7 @@ export default function App() {
               generationOpacity={generationOpacity}
               solverColor={solverColor}
               solverOpacity={solverOpacity}
-              render={{ cell, margin, stroke, startIcon, goalIcon, iconScale: 0.7 }}
+              render={{ cell, margin, stroke, wallStyle, cornerRadius, startIcon, goalIcon, iconScale: 0.7 }}
               onSVGChange={setCurrentSVG}
               endpointMode={endpointMode}
               onEndpointSelect={selectEndpoint}
@@ -311,6 +321,7 @@ export default function App() {
         lockSize={lockSize}
         mask={mask} setMask={setMask} customMask={customMask} setCustomMask={setCustomMask}
         setLockSize={value => { setLockSize(value); if (value) setHeightRaw(width); }}
+        wallStyle={wallStyle} setWallStyle={setWallStyle} wallThickness={wallThickness} setWallThickness={setWallThickness} cornerRadius={cornerRadius} setCornerRadius={setCornerRadius}
 
         /* Markers */
         startIcon={startIcon}
