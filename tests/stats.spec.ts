@@ -32,6 +32,14 @@ test.each([7, 19, 41])('connected, symmetric mazes with closed boundaries at siz
   }
 });
 
+test.each(['dfs','prim','kruskal'] as const)('%s generation is deterministic, connected, and records a spanning tree', generator => {
+  const first=createMaze({...baseline,generator,b:0});
+  const second=createMaze({...baseline,generator,b:0});
+  expect(first).toEqual(second);
+  expect(first.treeSteps).toHaveLength(baseline.width*baseline.height-1);
+  expect(first.stats.L).toBeGreaterThan(0);
+});
+
 test('solution length is the shortest route through tree and braid edges', () => {
   for (const b of [0, .5]) {
     const m = createMaze({ ...baseline, b });

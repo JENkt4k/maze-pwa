@@ -1,7 +1,14 @@
 export type Cell = { x:number; y:number; n:1|0; s:1|0; e:1|0; w:1|0 };
 export type CarveStep = { x:number; y:number; nx:number; ny:number };
-export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number };
+export type GeneratorId = 'dfs' | 'prim' | 'kruskal';
+export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number;generator?:GeneratorId };
 export type Stats = { L:number; T:number; J:number; E:number; D:number };
+
+export const GENERATORS: Readonly<Record<GeneratorId, { id:GeneratorId; name:string; description:string }>> = {
+  dfs: { id:'dfs', name:'Randomized DFS', description:'Carves long passages with an iterative depth-first backtracker.' },
+  prim: { id:'prim', name:'Randomized Prim', description:'Grows outward from the start with a randomized frontier.' },
+  kruskal: { id:'kruskal', name:'Randomized Kruskal', description:'Joins random cell regions until the entire maze is connected.' },
+};
 
 export type MazeResult = {
   // final rendered grid (tree + braids)
@@ -29,6 +36,8 @@ export function createMaze(params: MazeParams): MazeResult {
   for (const value of [params.g, params.b, params.tau]) {
     if (!Number.isFinite(value) || value < 0 || value > 1) throw new RangeError("Maze biases must be between 0 and 1");
   }
+  const generator = params.generator ?? 'dfs';
+  if (!(generator in GENERATORS)) throw new RangeError('Unknown maze generator');
   const { width: W, height: H, seed, g, b, tau } = params;
   const rnd = mulberry32(seed);
 
@@ -46,6 +55,44 @@ export function createMaze(params: MazeParams): MazeResult {
   const stack: {x:number;y:number}[] = [];
   const treeSteps: CarveStep[] = [];
 
+  const carve = (x:number, y:number, d: typeof DIRS[number]) => {
+    const nx=x+d.dx, ny=y+d.dy;
+    tree[y][x][d.a]=0; tree[ny][nx][d.b]=0;
+    treeSteps.push({x,y,nx,ny});
+  };
+
+  if (generator === 'prim') {
+    type Frontier = {x:number;y:number;d:typeof DIRS[number]};
+    const frontier: Frontier[]=[];
+    const addFrontier=(x:number,y:number) => {
+      for (const d of DIRS) if (inb(x+d.dx,y+d.dy) && !seen.has(key(x+d.dx,y+d.dy))) frontier.push({x,y,d});
+    };
+    seen.add(key(start.x,start.y)); addFrontier(start.x,start.y);
+    while(frontier.length){
+      const index=Math.floor(rnd()*frontier.length), edge=frontier[index];
+      frontier[index]=frontier[frontier.length-1]; frontier.pop();
+      const nx=edge.x+edge.d.dx, ny=edge.y+edge.d.dy;
+      if(seen.has(key(nx,ny))) continue;
+      carve(edge.x,edge.y,edge.d); seen.add(key(nx,ny)); addFrontier(nx,ny);
+    }
+  } else if (generator === 'kruskal') {
+    const edges:{x:number;y:number;d:typeof DIRS[number]}[]=[];
+    for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+      if(x+1<W) edges.push({x,y,d:DIRS[0]});
+      if(y+1<H) edges.push({x,y,d:DIRS[2]});
+    }
+    for(let i=edges.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[edges[i],edges[j]]=[edges[j],edges[i]];}
+    const parent=Array.from({length:W*H},(_,i)=>i);
+    const root=(id:number):number => parent[id]===id?id:(parent[id]=root(parent[id]));
+    for(const edge of edges){
+      const nx=edge.x+edge.d.dx, ny=edge.y+edge.d.dy;
+      const a=root(edge.y*W+edge.x), z=root(ny*W+nx);
+      if(a===z) continue;
+      parent[a]=z; carve(edge.x,edge.y,edge.d);
+    }
+  }
+
+  if (generator === 'dfs') {
   stack.push(start);
   seen.add(key(start.x,start.y));
 
@@ -77,6 +124,7 @@ export function createMaze(params: MazeParams): MazeResult {
     a[d.a] = 0; bcell[d.b] = 0;
     treeSteps.push({ x:cur.x, y:cur.y, nx, ny });
     stack.push({ x:nx, y:ny }); seen.add(key(nx,ny));
+  }
   }
 
   // 2) clone tree into final grid and apply braids (recorded separately)

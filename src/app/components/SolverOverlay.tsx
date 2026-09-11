@@ -10,9 +10,11 @@ type Props = {
   margin: number;
   widthCells: number;
   heightCells: number;
+  color: string;
+  opacity: number;
 };
 
-export default function SolverOverlay({ graph, events, eventIndex, cell, margin, widthCells, heightCells }: Props) {
+export default function SolverOverlay({ graph, events, eventIndex, cell, margin, widthCells, heightCells, color, opacity }: Props) {
   const playback = useMemo(() => {
     const discovered = new Set<NodeId>(), expanded = new Set<NodeId>(), path: NodeId[] = [];
     let current: NodeId | null = null;
@@ -32,12 +34,12 @@ export default function SolverOverlay({ graph, events, eventIndex, cell, margin,
   const pathPoints = playback.path.filter(Boolean).map(center);
   return <svg className="solver-overlay-svg" viewBox={`0 0 ${widthCells * cell + margin * 2} ${heightCells * cell + margin * 2}`} aria-hidden="true">
     <g className="solver-discovered">
-      {[...playback.discovered].map(id => { const point = center(id); return <circle key={id} cx={point.x} cy={point.y} r={cell * .24} />; })}
+      {[...playback.discovered].map(id => { const point = center(id); return <circle key={id} cx={point.x} cy={point.y} r={cell * .24} fill={color} opacity={opacity*.55} />; })}
     </g>
     <g className="solver-expanded">
-      {[...playback.expanded].map(id => { const point = center(id); return <circle key={id} cx={point.x} cy={point.y} r={cell * .15} />; })}
+      {[...playback.expanded].map(id => { const point = center(id); return <circle key={id} cx={point.x} cy={point.y} r={cell * .15} fill={color} opacity={opacity} />; })}
     </g>
     {pathPoints.length > 1 && <polyline className="solver-solution" points={pathPoints.map(point => `${point.x},${point.y}`).join(' ')} />}
-    {playback.current && (() => { const point = center(playback.current); return <circle className="solver-current" cx={point.x} cy={point.y} r={cell * .3} />; })()}
+    {playback.current && (() => { const point = center(playback.current); return <circle className="solver-current" cx={point.x} cy={point.y} r={cell * .3} fill={color} opacity={opacity} />; })()}
   </svg>;
 }
