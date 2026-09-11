@@ -13,11 +13,12 @@ import MazeView from "./components/MazeView";
 
 import { buildShareURL, parseFromURL, parseSettings, parseSaved, SETTINGS_KEY, STORAGE_KEY, type SavedMaze } from "./state";
 import { handlePrint } from "./print";
-import { createMaze } from "./maze";
+import { createMaze, type GeneratorId } from "./maze";
 import { useDifficultySearch } from "./hooks/useDifficultySearch";
 import { mazeToGraph } from '../maze/graph';
 import { solveMaze, type SolverId } from '../maze/solvers';
 import { useSolverPlayback } from './hooks/useSolverPlayback';
+import type { AnimationMode } from '../maze/animation';
 
 const DEFAULT_START = "\u{1f680}";
 const DEFAULT_GOAL = "\u{1f3c1}";
@@ -48,6 +49,7 @@ export default function App() {
   const [g, setG]              = useState(fromURL.g      ?? persisted?.g      ?? 0.3);
   const [b, setB]              = useState(fromURL.b      ?? persisted?.b      ?? 0.15);
   const [tau, setTau]          = useState(fromURL.tau    ?? persisted?.tau    ?? 0.4);
+  const [generator, setGenerator] = useState<GeneratorId>(fromURL.generator ?? persisted.generator ?? 'dfs');
   const [controlsOpen, setControlsOpen] = useState(persisted.controlsOpen ?? !window.matchMedia("(max-width: 840px)").matches);
   const [lockSize, setLockSize]         = useState((persisted.lockSize ?? false) && width === height);
 
@@ -62,7 +64,7 @@ export default function App() {
 
   const handleSave = () => {
     const name = saveName.trim().slice(0, 200) || `Maze ${saved.length + 1}`;
-    const params = { width, height, seed, g, b, tau, startIcon, goalIcon };
+    const params = { width, height, seed, g, b, tau, generator, startIcon, goalIcon };
     const id = crypto.randomUUID();
     const newMaze: SavedMaze = { id, name, params, createdAt: Date.now() };
     const updated = [...saved, newMaze];
@@ -85,6 +87,7 @@ export default function App() {
     setG(maze.params.g);
     setB(maze.params.b);
     setTau(maze.params.tau);
+    setGenerator(maze.params.generator ?? 'dfs');
     setSelectedId(id);
   };
 
@@ -98,7 +101,7 @@ export default function App() {
   };
 
   const handleShare = async () => {
-    const url = buildShareURL(window.location.href, { width, height, seed, g, b, tau, startIcon, goalIcon });
+    const url = buildShareURL(window.location.href, { width, height, seed, g, b, tau, generator, startIcon, goalIcon });
     try {
       // Native share on mobile; clipboard elsewhere
       if (navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
@@ -133,6 +136,11 @@ export default function App() {
   const [solverEnabled, setSolverEnabled] = useState(persisted.solverEnabled ?? persisted.animateDFS ?? true);
   const [solverAlgorithm, setSolverAlgorithm] = useState<SolverId>(persisted.solverAlgorithm ?? 'dfs');
   const [solverStepMs, setSolverStepMs] = useState(persisted.solverStepMs ?? persisted.dfsSegMs ?? 35);
+  const [animationMode, setAnimationMode] = useState<AnimationMode>(persisted.animationMode ?? 'build-solve');
+  const [generationColor, setGenerationColor] = useState(persisted.generationColor ?? '#14b8a6');
+  const [generationOpacity, setGenerationOpacity] = useState(persisted.generationOpacity ?? .35);
+  const [solverColor, setSolverColor] = useState(persisted.solverColor ?? '#2563eb');
+  const [solverOpacity, setSolverOpacity] = useState(persisted.solverOpacity ?? .65);
 
   // persist settings
   useEffect(() => {
@@ -150,12 +158,18 @@ export default function App() {
           solverEnabled,
           solverAlgorithm,
           solverStepMs,
+          animationMode,
+          generator,
+          generationColor,
+          generationOpacity,
+          solverColor,
+          solverOpacity,
           startIcon,
           goalIcon,
         }));
       setSettingsError(null);
     } catch { setSettingsError("Settings could not be stored. They will reset when this page is closed."); }
-  }, [seed,width,height,g,b,tau,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,startIcon,goalIcon]);
+  }, [seed,width,height,g,b,tau,generator,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
 
   // compute margin/stroke once from cell
   const margin = Math.round(cell/2);
@@ -173,16 +187,23 @@ export default function App() {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  const { search: findMaxDifficulty, searching, error: searchError } = useDifficultySearch({ width, height, seed, g, b, tau }, best => {
+  const { search: findMaxDifficulty, searching, error: searchError } = useDifficultySearch({ width, height, seed, g, b, tau, generator }, best => {
     setG(best.g); setB(best.b); setTau(best.tau); setSeed(best.seed);
   });
   const newMaze = () => setSeed(s => (s + 1) | 0);
-  const mazeKey = `${width}:${height}:${seed}:${g}:${b}:${tau}`;
-  const mazeData = useMemo(() => createMaze({ width, height, seed, g, b, tau }), [width, height, seed, g, b, tau]);
+  const mazeKey = `${generator}:${width}:${height}:${seed}:${g}:${b}:${tau}`;
+  const mazeData = useMemo(() => createMaze({ width, height, seed, g, b, tau, generator }), [width, height, seed, g, b, tau, generator]);
   const mazeGraph = useMemo(() => mazeToGraph(mazeData), [mazeData]);
   const solverRun = useMemo(() => solveMaze(mazeGraph, solverAlgorithm), [mazeGraph, solverAlgorithm]);
-  const solverRunKey = `${mazeKey}:${solverAlgorithm}`;
-  const playback = useSolverPlayback(solverRun.events.length, solverRunKey, solverEnabled, solverStepMs);
+  const buildEventCount = mazeData.treeSteps.length + mazeData.braidEdits.length;
+  const includesBuild = animationMode !== 'solve';
+  const includesSolve = animationMode !== 'build';
+  const animationEventCount = (includesBuild ? buildEventCount : 0) + (includesSolve ? solverRun.events.length : 0);
+  const animationRunKey = `${mazeKey}:${solverAlgorithm}:${animationMode}`;
+  const playback = useSolverPlayback(animationEventCount, animationRunKey, solverEnabled, solverStepMs);
+  const generationEventIndex = includesBuild ? Math.min(playback.state.index, buildEventCount) : 0;
+  const solverEventIndex = includesSolve ? Math.max(0, playback.state.index - (includesBuild ? buildEventCount : 0)) : 0;
+  const animationPhase = playback.state.finished ? 'Complete' : includesBuild && playback.state.index < buildEventCount ? 'Building' : 'Solving';
 
   return (
     <div className={`shell${controlsOpen ? "" : " controls-closed"}`}>
@@ -209,7 +230,13 @@ export default function App() {
               graph={mazeGraph}
               solverRun={solverRun}
               solverEnabled={solverEnabled}
-              solverEventIndex={playback.state.index}
+              solverEventIndex={solverEventIndex}
+              generationEventIndex={generationEventIndex}
+              generationComplete={generationEventIndex >= buildEventCount}
+              generationColor={generationColor}
+              generationOpacity={generationOpacity}
+              solverColor={solverColor}
+              solverOpacity={solverOpacity}
               render={{ cell, margin, stroke, startIcon, goalIcon, iconScale: 0.7 }}
               onSVGChange={setCurrentSVG}
             />
@@ -256,15 +283,28 @@ export default function App() {
         setStartIcon={setStartIcon}
         setGoalIcon={setGoalIcon}
 
-        solver={{
-          algorithm: solverAlgorithm,
-          setAlgorithm: setSolverAlgorithm,
+        animation={{
+          mode: animationMode,
+          setMode: setAnimationMode,
+          generator,
+          setGenerator,
+          solver: solverAlgorithm,
+          setSolver: setSolverAlgorithm,
           enabled: solverEnabled,
           setEnabled: setSolverEnabled,
           speed: solverStepMs,
           setSpeed: setSolverStepMs,
+          generationColor,
+          setGenerationColor,
+          generationOpacity,
+          setGenerationOpacity,
+          solverColor,
+          setSolverColor,
+          solverOpacity,
+          setSolverOpacity,
           state: playback.state,
-          eventCount: solverRun.events.length,
+          phase: animationPhase,
+          eventCount: animationEventCount,
           metrics: solverRun.metrics,
           play: playback.play,
           pause: playback.pause,

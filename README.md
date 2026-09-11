@@ -35,10 +35,12 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
 - Share links preserve generation parameters and text/emoji markers, including
   compound emojis and empty markers. Uploaded images and drawings stay local;
   image markers become colored dots in shared links. Legacy links remain supported.
-- Open **Build Animation** to compare DFS, breadth-first search, Dijkstra, and A*.
-  One playback system provides pause/play, restart, single-step, progress seeking,
-  speed control, explored-cell overlays, final routes, and comparable metrics.
-  DFS is the default. A new maze or algorithm selection restarts playback;
+- Open **Animation Algorithms** to replay construction, solving, or both as one
+  timeline. Choose randomized DFS, Prim, or Kruskal generation independently from
+  DFS, breadth-first search, Dijkstra, or A* solving. One playback system provides
+  pause/play, restart, single-step, progress seeking, speed control, phase colors,
+  construction and solver color/opacity pickers, final routes, and comparable solver metrics. Randomized DFS generation and DFS
+  solving remain the defaults. A new maze or algorithm selection restarts playback;
   reduced-motion preferences suppress the visual overlay.
 - Print the blank maze without controls, animation, or drawing overlays.
 - After the production service worker is ready, the app, emoji picker, and
@@ -129,6 +131,6 @@ The completed stabilization checklist and verification evidence are recorded in
 and verification are recorded in [SOLVER_PLAYBACK_PLAN.md](SOLVER_PLAYBACK_PLAN.md).
 Hints, route validation, win detection, Micromouse simulation, shaped maze
 generation, and drawing persistence remain optional future features.
-The next animation milestone is a unified two-phase timeline: replay maze
-construction first, then continue into solver exploration using separate colors,
-generator/solver selectors, and shared playback controls.
+The unified animation replays maze construction first and then continues into
+solver exploration using separate colors, independent algorithm selectors, and
+shared playback controls.
