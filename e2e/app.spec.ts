@@ -37,10 +37,6 @@ test('markers are escaped; malformed URLs do not crash; desktop/mobile controls 
 
 test('saved rectangular maze and markers restore despite square lock; empty markers persist', async ({page}) => {
   await page.goto('./');
-  const shape=page.getByLabel('Maze shape');
-  await expect(shape).toHaveValue('rectangle');
-  await shape.selectOption('heart');
-  await expect(shape).toHaveValue('heart');
   await page.getByText('Adjust size',{exact:true}).click();
   await page.getByLabel(/^Height:/).fill('9');
   await page.getByLabel('Start marker',{exact:true}).fill('👨‍👩‍👧‍👦');
@@ -59,6 +55,17 @@ test('saved rectangular maze and markers restore despite square lock; empty mark
   await expect(page.getByLabel('Start marker',{exact:true})).toHaveValue('👨‍👩‍👧‍👦');
   await expect(page.getByLabel('Goal marker',{exact:true})).toHaveValue('');
   await expect(page.getByRole('button',{name:'Load',exact:true})).toBeVisible();
+});
+
+test('shape selector changes the maze mask', async ({page}) => {
+  await page.goto('./');
+  await page.getByText('Adjust size',{exact:true}).click();
+  const shape=page.getByLabel('Maze shape');
+  await expect(shape).toHaveValue('rectangle');
+  const rectangularWalls=await page.locator('#print-maze-only .walls').innerHTML();
+  await shape.selectOption('heart');
+  await expect(shape).toHaveValue('heart');
+  await expect.poll(()=>page.locator('#print-maze-only .walls').innerHTML()).not.toBe(rectangularWalls);
 });
 
 test('storage failure does not pretend to save a maze', async ({page}) => {
