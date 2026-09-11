@@ -35,8 +35,11 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
 - Share links preserve generation parameters and text/emoji markers, including
   compound emojis and empty markers. Uploaded images and drawings stay local;
   image markers become colored dots in shared links. Legacy links remain supported.
-- Animate DFS carving with adjustable speed and linger time. A new maze restarts
-  the animation; reduced-motion preferences suppress the visual animation.
+- Open **Build Animation** to compare DFS, breadth-first search, Dijkstra, and A*.
+  One playback system provides pause/play, restart, single-step, progress seeking,
+  speed control, explored-cell overlays, final routes, and comparable metrics.
+  DFS is the default. A new maze or algorithm selection restarts playback;
+  reduced-motion preferences suppress the visual overlay.
 - Print the blank maze without controls, animation, or drawing overlays.
 - After the production service worker is ready, the app, emoji picker, and
   difficulty search work offline. Install when the browser offers installation.
@@ -93,7 +96,7 @@ installed Microsoft Edge browser; Linux/macOS use Playwright Chromium. On CI,
 `npx playwright install --with-deps chromium` installs the browser and OS packages.
 
 Regression coverage includes seed compatibility, connectivity/walls, solution
-statistics, marker injection, malformed/legacy links, persistence, animation,
+statistics, all four solver paths, marker injection, malformed/legacy links, persistence, animation,
 drawing, uploads, picker layout/focus, printing, manifest assets, and offline reload.
 Desktop and mobile emulation are covered. Physical iOS/Android installation and
 actual printer dialogs still need device checks when preparing a release.
@@ -122,5 +125,10 @@ The workflow checks pull requests to main and validates main builds before
 publishing to GitHub Pages. No deployment occurs for pull requests.
 
 The completed stabilization checklist and verification evidence are recorded in
-[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). Solver UI, hints, route validation,
-win detection, and drawing persistence remain optional future features.
+[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The solver playback architecture
+and verification are recorded in [SOLVER_PLAYBACK_PLAN.md](SOLVER_PLAYBACK_PLAN.md).
+Hints, route validation, win detection, Micromouse simulation, shaped maze
+generation, and drawing persistence remain optional future features.
+The next animation milestone is a unified two-phase timeline: replay maze
+construction first, then continue into solver exploration using separate colors,
+generator/solver selectors, and shared playback controls.

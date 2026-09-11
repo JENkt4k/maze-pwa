@@ -1,6 +1,6 @@
 ﻿import { test, expect, type Page } from '@playwright/test';
 
-const settings = {width:7,height:7,seed:42,g:.3,b:.15,tau:.4,controlsOpen:true,lockSize:false,animateDFS:false,dfsSegMs:10,lingerMs:0};
+const settings = {width:7,height:7,seed:42,g:.3,b:.15,tau:.4,controlsOpen:true,lockSize:false,solverEnabled:true,solverAlgorithm:'dfs',solverStepMs:250};
 test.beforeEach(async ({page}) => {
   await page.addInitScript(value => {
     if (!localStorage.getItem('maze:settings:v1')) localStorage.setItem('maze:settings:v1', JSON.stringify(value));
@@ -121,17 +121,31 @@ test('emoji picker stays in viewport and returns focus after Escape', async ({pa
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('animation restarts after completion and mid-run; search preserves the seed', async ({page}) => {
+test('build animation switches algorithms and supports shared playback controls', async ({page}) => {
   await page.goto('./');
-  await page.getByText('Classic DFS build animation',{exact:true}).click();
-  await page.getByLabel('Animate build (DFS carve order)').check();
-  await expect(page.locator('.dfs-overlay-svg')).toBeVisible();
+  await expect(page.getByText('Build Animation',{exact:true})).toBeVisible();
+  const algorithm = page.getByLabel('Algorithm');
+  await expect(algorithm).toHaveValue('dfs');
+  await expect(algorithm.locator('option')).toHaveText(['DFS','BFS','Dijkstra','A*']);
+  await expect(page.locator('.solver-overlay-svg')).toBeVisible();
+  await page.getByRole('button',{name:'Pause',exact:true}).click();
+  await page.getByRole('button',{name:'Step',exact:true}).click();
+  await expect(page.getByText(/^Progress: [1-9]/)).toBeVisible();
+  await algorithm.selectOption('astar');
+  await expect(page.getByText(/Manhattan distance/)).toBeVisible();
+  await expect(page.getByText(/^Path$/).locator('..')).toContainText('steps');
+  await page.getByRole('button',{name:'Restart',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Pause',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Generate new maze',exact:true}).click();
-  await expect(page.locator('.dfs-overlay-svg')).toBeVisible();
-  await expect(page.locator('.dfs-overlay-svg')).toHaveCount(0);
-  await page.getByRole('button',{name:'Generate new maze',exact:true}).click();
-  await expect(page.locator('.dfs-overlay-svg')).toBeVisible();
-  await expect(page.locator('.dfs-overlay-svg')).toHaveCount(0);
+  await expect(page.locator('.solver-overlay-svg')).toBeVisible();
+  await page.getByLabel('Show solver overlay').uncheck();
+  await expect(page.locator('.solver-overlay-svg')).toHaveCount(0);
+  await page.getByLabel('Show solver overlay').check();
+  await expect(page.locator('.solver-overlay-svg')).toBeVisible();
+});
+
+test('difficulty search preserves the seed', async ({page}) => {
+  await page.goto('./');
   await openControls(page);
   await page.getByText('Adjust difficulty',{exact:true}).click();
   const seed = await page.locator('header').innerText();
@@ -187,7 +201,7 @@ test('printing invokes the browser once and excludes drawings from paper output'
   const markup = await page.evaluate(() => (window as Window & {printedMarkup?:string}).printedMarkup);
   expect(markup).toContain('<svg');
   expect(markup).not.toContain('<canvas');
-  expect(markup).not.toContain('dfs-overlay-svg');
+  expect(markup).not.toContain('solver-overlay-svg');
 
   // Exercise installed/iOS-style in-page printing without opening a real dialog.
   await page.evaluate(() => Object.defineProperty(navigator,'standalone',{configurable:true,value:true}));

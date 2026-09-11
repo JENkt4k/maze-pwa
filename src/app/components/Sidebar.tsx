@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import EmojiPicker from "./EmojiPicker";
 
 import type { SavedMaze } from "../state";
 import { normalizeMarker } from "../maze";
+import SolverControls, { type SolverControlsProps } from './SolverControls';
 
 type Props = {
   canInstall: boolean;
@@ -23,12 +24,7 @@ type Props = {
   goalIcon: string | null;
   setStartIcon: (v: string | null) => void;
   setGoalIcon: (v: string | null) => void;
-  animateDFS: boolean;
-  setAnimateDFS: (v:boolean)=>void;
-  dfsSegMs: number;
-  setDfsSegMs: (n:number)=>void;
-  lingerMs: number;
-  setLingerMs: React.Dispatch<React.SetStateAction<number>>;
+  solver: SolverControlsProps;
   onShare: () => void;
 };
 
@@ -41,9 +37,6 @@ export default function Sidebar(props: Props){
     saveName, setSaveName, saved = [], selectedId, onSave, onLoad, onDelete,
     controlsOpen, onMinimize,
     startIcon, goalIcon, setStartIcon, setGoalIcon,
-    animateDFS, setAnimateDFS,
-    dfsSegMs, setDfsSegMs,
-    lingerMs, setLingerMs,
     onShare,
   } = props;
 
@@ -221,40 +214,11 @@ export default function Sidebar(props: Props){
 
       <fieldset>
         <legend>Animation</legend>
-        <details >
+        <details open>
           <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>
-            Classic DFS build animation
+            Build Animation
           </summary>
-
-          <label className="hstack" style={{ alignItems:"center", gap:8 }}>
-            <input
-              type="checkbox"
-              checked={animateDFS}
-              onChange={(e)=>setAnimateDFS(e.target.checked)}
-            />
-            <span>Animate build (DFS carve order)</span>
-          </label>
-
-          <label>
-            Segment speed: {dfsSegMs} ms / edge
-            <input
-              type="range" min={10} max={150} step={5}
-              value={dfsSegMs}
-              onChange={(e)=>setDfsSegMs(parseInt(e.target.value))}
-              disabled={!animateDFS}
-            />
-          </label>
-
-          <label>
-            Linger after draw: {lingerMs} ms
-            <input
-              type="range" min={0} max={5000} step={100}
-              value={lingerMs}
-              onChange={(e)=>setLingerMs(parseInt(e.target.value))}
-              disabled={!animateDFS}
-            />
-          </label>
-
+          <SolverControls {...props.solver} />
         </details>
       </fieldset>
 

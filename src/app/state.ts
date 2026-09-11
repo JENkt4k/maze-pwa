@@ -1,13 +1,24 @@
 import { normalizeMarker, type MazeParams } from './maze';
+import type { SolverId } from '../maze/solvers';
 
 export const SETTINGS_KEY = 'maze:settings:v1';
 export const STORAGE_KEY = 'savedMazes:v1';
 export type { MazeParams } from './maze';
 export type Markers = { startIcon: string | null; goalIcon: string | null };
-export type Settings = MazeParams & Markers & { controlsOpen: boolean; lockSize: boolean; animateDFS: boolean; dfsSegMs: number; lingerMs: number };
+export type Settings = MazeParams & Markers & {
+  controlsOpen: boolean;
+  lockSize: boolean;
+  solverEnabled: boolean;
+  solverAlgorithm: SolverId;
+  solverStepMs: number;
+  // Legacy fields retained only while migrating existing settings.
+  animateDFS: boolean;
+  dfsSegMs: number;
+  lingerMs: number;
+};
 export type SavedMaze = { id: string; name: string; params: MazeParams & Partial<Markers>; createdAt: number };
 const record = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
-const ranges = { width: [7, 41], height: [7, 41], seed: [-2147483648, 2147483647], g: [0, 1], b: [0, .5], tau: [0, 1], dfsSegMs: [10, 150], lingerMs: [0, 5000] } as const;
+const ranges = { width: [7, 41], height: [7, 41], seed: [-2147483648, 2147483647], g: [0, 1], b: [0, .5], tau: [0, 1], dfsSegMs: [10, 250], lingerMs: [0, 5000], solverStepMs: [10, 250] } as const;
 
 export function validateSettings(value: unknown): Partial<Settings> {
   if (!record(value)) return {};
@@ -18,10 +29,11 @@ export function validateSettings(value: unknown): Partial<Settings> {
     const [lo, hi] = ranges[key];
     let v = Math.max(lo, Math.min(hi, n));
     if (key === 'width' || key === 'height') { v = Math.trunc(v); v += v % 2 === 0 ? 1 : 0; }
-    if (key === 'seed' || key === 'dfsSegMs' || key === 'lingerMs') v = Math.trunc(v);
+    if (key === 'seed' || key === 'dfsSegMs' || key === 'lingerMs' || key === 'solverStepMs') v = Math.trunc(v);
     out[key] = v;
   }
-  for (const key of ['controlsOpen', 'lockSize', 'animateDFS']) if (typeof value[key] === 'boolean') out[key] = value[key];
+  for (const key of ['controlsOpen', 'lockSize', 'animateDFS', 'solverEnabled']) if (typeof value[key] === 'boolean') out[key] = value[key];
+  if (['dfs', 'bfs', 'dijkstra', 'astar'].includes(String(value.solverAlgorithm))) out.solverAlgorithm = value.solverAlgorithm;
   for (const key of ['startIcon', 'goalIcon']) if (key in value) out[key] = normalizeMarker(value[key]);
   return out as Partial<Settings>;
 }

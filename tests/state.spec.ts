@@ -20,9 +20,10 @@ test('image markers remain local and cannot inflate shared links', () => {
   const url = buildShareURL('https://example.test/', {...params,startIcon:'data:image/png;base64,AAAA',goalIcon:null});
   expect(parseFromURL(new URL(url).search)).toMatchObject({startIcon:null,goalIcon:null});
 });
-test('settings validate types and bound dimensions and numeric controls', () => {
-  expect(validateSettings({width:1000,height:8.8,g:'oops',b:Infinity,tau:-4,seed:42.5,controlsOpen:'yes',lockSize:true,animateDFS:false,dfsSegMs:0,lingerMs:1e9}))
-    .toEqual({width:41,height:9,tau:0,seed:42,lockSize:true,animateDFS:false,dfsSegMs:10,lingerMs:5000});
+test('settings validate types, solver preferences, and numeric bounds', () => {
+  expect(validateSettings({width:1000,height:8.8,g:'oops',b:Infinity,tau:-4,seed:42.5,controlsOpen:'yes',lockSize:true,animateDFS:false,dfsSegMs:0,lingerMs:1e9,solverEnabled:true,solverAlgorithm:'astar',solverStepMs:999}))
+    .toEqual({width:41,height:9,tau:0,seed:42,dfsSegMs:10,lingerMs:5000,solverStepMs:250,lockSize:true,animateDFS:false,solverEnabled:true,solverAlgorithm:'astar'});
+  expect(validateSettings({solverAlgorithm:'wall-follower'})).toEqual({});
   expect(parseSettings('{')).toEqual({});
   expect(parseSettings('null')).toEqual({});
   expect(parseSettings('[]')).toEqual({});
