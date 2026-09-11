@@ -20,6 +20,7 @@ test('markers are escaped; malformed URLs do not crash; desktop/mobile controls 
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('./?start=%25');
   await expect(page.getByRole('heading',{name:'InfiMaze',exact:true})).toBeVisible();
+  await expect(page.locator('input[type="text"]:not([name]):not([id]), select:not([name]):not([id])')).toHaveCount(0);
   await expect(page.getByLabel('Start marker',{exact:true})).toHaveValue('%');
   await page.goto('./?v=2&start=' + encodeURIComponent('</text><image onload="alert(1)"/><text>'));
   await expect(page.locator('#print-maze-only image')).toHaveCount(0);

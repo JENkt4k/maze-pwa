@@ -139,7 +139,7 @@ export default function Sidebar(props: Props){
               Start (emoji or empty):
               <div className="hstack" style={{ gap:8 }}>
                 <input
-                  type="text"
+                  type="text" name="start-marker"
                   aria-label="Start marker" maxLength={64}
                   value={startIcon?.startsWith("data:") ? "" : startIcon ?? ""}
                   onChange={(e) => setStartIcon(normalizeMarker(e.target.value))}
@@ -163,7 +163,7 @@ export default function Sidebar(props: Props){
               Goal (emoji or empty):
               <div className="hstack" style={{ gap:8 }}>
                 <input
-                  type="text"
+                  type="text" name="goal-marker"
                   aria-label="Goal marker" maxLength={64}
                   value={goalIcon?.startsWith("data:") ? "" : goalIcon ?? ""}
                   onChange={(e) => setGoalIcon(normalizeMarker(e.target.value))}
@@ -265,7 +265,7 @@ export default function Sidebar(props: Props){
       <fieldset>
         <legend>Save / Load</legend>
         <div className="stack">
-          <input className="input" aria-label="Maze name" maxLength={200} placeholder="Name this maze…" value={saveName} onChange={e=>setSaveName(e.target.value)}/>
+          <input className="input" name="maze-name" aria-label="Maze name" maxLength={200} placeholder="Name this maze…" value={saveName} onChange={e=>setSaveName(e.target.value)}/>
           <button className="btn btn-primary" onClick={onSave}>Save current</button>
         </div>
 
