@@ -80,6 +80,22 @@ test('custom silhouette upload exposes preview controls and builds a maze',async
   await expect(page.locator('#print-maze-only')).toBeVisible();
 });
 
+test('endpoints can be placed on cells and restored automatically',async({page})=>{
+  await page.goto('./');
+  await page.getByRole('button',{name:'Set start',exact:true}).click();
+  await expect(page.getByRole('grid',{name:'Choose start cell'})).toBeVisible();
+  await page.getByRole('gridcell',{name:'Set start at column 2, row 2'}).click();
+  await expect(page.getByText(/Start: 2,2/)).toBeVisible();
+  await page.getByRole('button',{name:'Set goal',exact:true}).click();
+  await page.getByRole('gridcell',{name:'Set goal at column 6, row 6'}).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByText(/Goal: 6,6/)).toBeVisible();
+  await page.getByLabel('Automatic endpoint placement').selectOption('farthest');
+  await expect(page.getByLabel('Automatic endpoint placement')).toHaveValue('');
+  await page.getByRole('button',{name:'Reset',exact:true}).click();
+  await expect(page.getByText(/Start: 1,4 · Goal: 7,4/)).toBeVisible();
+});
+
 test('storage failure does not pretend to save a maze', async ({page}) => {
   await page.goto('./');
   await page.evaluate(() => {

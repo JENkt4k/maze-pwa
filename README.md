@@ -33,6 +33,8 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
 - Use emoji, short text, or uploaded PNG/JPEG/GIF/WebP markers. Uploads must be
   no larger than 5 MB and are converted to PNG at a maximum of 256 pixels per side.
   Animated uploads become a still image. Clearing a marker restores its colored dot.
+- Place start and goal on any active maze cell by mouse, touch, or keyboard. Automatic
+  strategies restore opposite edges, approximate the farthest route, or choose seeded random cells.
 - Draw, erase, and clear a freehand path. Drawing stays aligned when the viewport
   changes and clears when the maze changes. Select **Scroll** to scroll by touch
   over the maze. Drawing is session-only and is not a validated solution.

@@ -47,6 +47,9 @@ export function validateSettings(value: unknown): Partial<Settings> {
     const threshold=Math.max(1,Math.min(254,Math.trunc(value.customMask.threshold)));
     out.customMask={pixels:value.customMask.pixels,threshold,invert:value.customMask.invert===true,name:typeof value.customMask.name==='string'?value.customMask.name.slice(0,100):undefined} satisfies CustomMask;
   }
+  for(const endpoint of ['startCell','goalCell'] as const)if(record(value[endpoint])&&Number.isInteger(value[endpoint].x)&&Number.isInteger(value[endpoint].y)){
+    out[endpoint]={x:Math.max(0,Math.min(100,value[endpoint].x as number)),y:Math.max(0,Math.min(100,value[endpoint].y as number))};
+  }
   if (['build-solve', 'build', 'solve'].includes(String(value.animationMode))) out.animationMode = value.animationMode as AnimationMode;
   if (typeof value.generationColor === 'string' && /^#[0-9a-f]{6}$/i.test(value.generationColor)) out.generationColor = value.generationColor.toLowerCase();
   if (typeof value.solverColor === 'string' && /^#[0-9a-f]{6}$/i.test(value.solverColor)) out.solverColor = value.solverColor.toLowerCase();
@@ -82,6 +85,8 @@ export function parseFromURL(search: string): Partial<Settings> {
   if (q.has('gen')) values.generator = q.get('gen');
   if (q.has('mask')) values.mask=q.get('mask');
   if(q.has('cm')) values.customMask={pixels:q.get('cm'),threshold:Number(q.get('ct')??160),invert:q.get('ci')==='1',name:q.get('cn')??undefined};
+  if(q.has('sx')&&q.has('sy'))values.startCell={x:Number(q.get('sx')),y:Number(q.get('sy'))};
+  if(q.has('gx')&&q.has('gy'))values.goalCell={x:Number(q.get('gx')),y:Number(q.get('gy'))};
   for (const [query, key] of [['start', 'startIcon'], ['goal', 'goalIcon']]) {
     if (!q.has(query)) continue;
     let marker = q.get(query) ?? '';
@@ -99,6 +104,10 @@ export function buildShareURL(base: string, p: MazeParams & Markers): string {
   if (p.mask && p.mask !== 'rectangle') u.searchParams.set('mask',p.mask); else u.searchParams.delete('mask');
   if(p.mask==='custom'&&p.customMask){u.searchParams.set('cm',p.customMask.pixels);u.searchParams.set('ct',String(p.customMask.threshold));if(p.customMask.invert)u.searchParams.set('ci','1');else u.searchParams.delete('ci');if(p.customMask.name)u.searchParams.set('cn',p.customMask.name);else u.searchParams.delete('cn');}
   else for(const key of ['cm','ct','ci','cn'])u.searchParams.delete(key);
+  for(const [prefix,point] of [['s',p.startCell],['g',p.goalCell]] as const){
+    if(point){u.searchParams.set(`${prefix}x`,String(point.x));u.searchParams.set(`${prefix}y`,String(point.y));}
+    else{u.searchParams.delete(`${prefix}x`);u.searchParams.delete(`${prefix}y`);}
+  }
   // Raster uploads are kept locally; explicit empty values prevent recipient defaults.
   for (const [query, marker] of [['start', p.startIcon], ['goal', p.goalIcon]] as const) u.searchParams.set(query, /^data:/i.test(marker ?? '') ? '' : marker ?? '');
   return u.toString();

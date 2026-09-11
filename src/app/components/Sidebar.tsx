@@ -7,6 +7,8 @@ import AnimationControls, { type AnimationControlsProps } from './AnimationContr
 import { MASKS, type MaskId } from '../../maze/masks';
 import type { CustomMask } from '../../maze/masks';
 import CustomMaskControls from './CustomMaskControls';
+import type { EndpointStrategy } from '../../maze/endpoints';
+import type { MazePoint } from '../maze';
 
 type Props = {
   canInstall: boolean;
@@ -28,6 +30,8 @@ type Props = {
   goalIcon: string | null;
   setStartIcon: (v: string | null) => void;
   setGoalIcon: (v: string | null) => void;
+  startCell:MazePoint; goalCell:MazePoint; endpointMode:'start'|'goal'|null;
+  setEndpointMode:(mode:'start'|'goal'|null)=>void; onPlaceEndpoints:(strategy:EndpointStrategy)=>void;
   animation: AnimationControlsProps;
   onShare: () => void;
 };
@@ -138,6 +142,22 @@ export default function Sidebar(props: Props){
           </summary>
 
           <div style={{ display:"grid", gap:12 }}>
+            <div className="endpoint-controls">
+              <div className="grid-3" role="group" aria-label="Endpoint placement tools">
+                <button type="button" className={`btn btn-sm${props.endpointMode==='start'?' btn-primary':''}`} aria-pressed={props.endpointMode==='start'} onClick={()=>props.setEndpointMode(props.endpointMode==='start'?null:'start')}>Set start</button>
+                <button type="button" className={`btn btn-sm${props.endpointMode==='goal'?' btn-primary':''}`} aria-pressed={props.endpointMode==='goal'} onClick={()=>props.setEndpointMode(props.endpointMode==='goal'?null:'goal')}>Set goal</button>
+                <button type="button" className="btn btn-sm" onClick={()=>props.onPlaceEndpoints('opposite')}>Reset</button>
+              </div>
+              <span>{props.endpointMode?`Select an active maze cell for the ${props.endpointMode}.`:`Start: ${props.startCell.x+1},${props.startCell.y+1} · Goal: ${props.goalCell.x+1},${props.goalCell.y+1}`}</span>
+              <label>Automatic placement
+                <select name="endpoint-strategy" aria-label="Automatic endpoint placement" defaultValue="" onChange={e=>{if(e.target.value){props.onPlaceEndpoints(e.target.value as EndpointStrategy);e.target.value='';}}}>
+                  <option value="" disabled>Choose a strategy…</option>
+                  <option value="opposite">Opposite edges</option>
+                  <option value="farthest">Farthest route</option>
+                  <option value="random">Random cells</option>
+                </select>
+              </label>
+            </div>
             <label>
               Start (emoji or empty):
               <div className="hstack" style={{ gap:8 }}>
