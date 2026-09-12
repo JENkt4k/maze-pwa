@@ -154,8 +154,9 @@ publishing to GitHub Pages. No deployment occurs for pull requests.
 The completed stabilization checklist and verification evidence are recorded in
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The solver playback architecture
 and verification are recorded in [SOLVER_PLAYBACK_PLAN.md](SOLVER_PLAYBACK_PLAN.md).
-Play history records local human attempts with exact maze restoration. Local
-leaderboards and drawing persistence remain planned future features; see
+Play history records local human attempts with exact maze restoration. Per-maze
+leaderboards rank completed runs by time or moves and compare them with a stored
+Micromouse benchmark. Difficulty 2.0 and drawing persistence remain planned; see
 [ROADMAP.md](ROADMAP.md).
 The unified animation replays maze construction first and then continues into
 solver exploration using separate colors, independent algorithm selectors, and

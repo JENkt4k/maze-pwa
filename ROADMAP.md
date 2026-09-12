@@ -9,22 +9,20 @@
 - Interactive gameplay with persisted in-progress sessions.
 - Freeform graph mazes.
 - Micromouse simulation with search, return, and speed-run phases.
+- Play history with exact local attempt restoration.
+- Per-maze local leaderboards with time and move rankings.
 
-## Next stages
+## Backlog
 
-1. **Play history**
-   - Add a history entry whenever a maze is started, including abandoned and
-     completed attempts.
-   - Store a stable maze identity plus enough maze data to reopen the exact maze.
-   - Record elapsed time, moves, revisits, completion state, timestamps, and the
-     player's route.
-   - Provide history UI, reopen, delete, and clear controls.
+1. **Difficulty 2.0**
+   - Replace the coarse structural score with a deterministic, human-oriented
+     analysis of wrong branches, trap depth, decision entropy, and goal deception.
+   - Preserve the legacy score, generation output, saved mazes, and share links.
+   - Follow the incremental phases in [DIFFICULTY_2_PLAN.md](DIFFICULTY_2_PLAN.md),
+     beginning with pure graph analysis and synthetic ordering tests.
 
-2. **Local leaderboard**
-   - Rank completed attempts per maze, with best-time and fewest-moves views.
-   - Include Micromouse results as a separate comparison category.
-   - Keep the first version local and offline-capable. A shared online leaderboard
-     requires identity, moderation, and a backend and should be a separate stage.
+2. **Shared online leaderboard**
+   - Add identity, moderation, and a backend only as a separate opt-in stage.
 
 ## Ordering decision
 

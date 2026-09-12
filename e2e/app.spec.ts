@@ -181,6 +181,25 @@ test('play history records, restores, abandons, and clears attempts',async({page
   expect(pageErrors).toEqual([]);
 });
 
+test('local leaderboard ranks completed attempts and shows robot benchmark',async({page})=>{
+  await page.addInitScript(()=>{
+    const params={width:7,height:7,seed:42,g:.3,b:.15,tau:.4,generator:'dfs',topology:'grid'};
+    const attempt=(id:string,elapsedMs:number,moves:number,revisits:number,completedAt:number,micromouse?:object)=>({version:1,id,mazeId:'shared-maze',gameKey:'shared-key',params,startedAt:completedAt-1000,updatedAt:completedAt,completedAt,status:'completed',elapsedMs,moves,revisits,route:['0,0','1,0'],micromouse});
+    localStorage.setItem('maze:play-history:v1',JSON.stringify([
+      attempt('fast',5000,12,2,3000,{totalTimeMs:4200,speedTimeMs:1300,speedCells:8,exploredPercent:42,turns:9}),
+      attempt('efficient',7000,8,0,2000),attempt('slow',9000,10,1,1000),
+    ]));
+  });
+  await page.goto('./');
+  const board=page.getByRole('region',{name:'Local leaderboard'});
+  await expect(board.getByRole('row').nth(1)).toContainText('0:05.0');
+  await expect(board.getByRole('row').nth(1)).toContainText('12');
+  await board.getByRole('button',{name:'Fewest moves'}).click();
+  await expect(board.getByRole('row').nth(1)).toContainText('0:07.0');
+  await expect(board.getByRole('row').nth(1)).toContainText('8');
+  await expect(board.getByRole('region',{name:'Micromouse benchmark'})).toContainText('8 cells');
+});
+
 test('Micromouse explores, exposes phases, and disables physics for freeform mazes',async({page})=>{
   await page.goto('./');
   const controls=page.locator('.mouse-controls');
