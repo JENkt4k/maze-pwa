@@ -66,6 +66,13 @@ label { display: grid; gap: 6px; font-size: 12px; color: #3c4557; }
 .mouse-controls p { margin:0;color:#586174;font-size:12px; }
 .mouse-layer-toggles { display:flex;flex-wrap:wrap;gap:8px 14px; }
 .mouse-layer-toggles label { display:flex;grid-template-columns:none;align-items:center;gap:6px; }
+.history-filters { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:10px; }
+.history-list { list-style:none;padding:0;margin:0 0 10px;display:grid;gap:8px;max-height:360px;overflow:auto; }
+.history-list li { display:grid;gap:6px;padding:9px;border:1px solid #e6e9ef;border-radius:10px;background:#fafbff; }
+.history-heading { display:flex;align-items:baseline;justify-content:space-between;gap:8px; }
+.history-heading time,.history-maze,.muted { font-size:12px;color:#64748b; }
+.history-metrics { display:flex;flex-wrap:wrap;gap:6px 12px;font-size:13px; }
+.history-list .hstack { gap:6px; }
 .mouse-discovered rect { fill:#fef3c7;opacity:.72; }
 .mouse-route { fill:none;stroke:#f59e0b;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke; }
 .mouse-known-walls line { stroke:#7c3aed;stroke-width:4;stroke-linecap:round;vector-effect:non-scaling-stroke; }
