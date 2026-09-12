@@ -59,6 +59,19 @@ test('gameplay only follows graph edges, counts revisits, and detects completion
   expect(result.current.state.current).toBe(graph.goals[0]);
 });
 
+test('gameplay timer advances when the graph is recreated during renders',()=>{
+  localStorage.clear();
+  const maze=createMaze({width:7,height:7,seed:42,g:.3,b:0,tau:.4});
+  const {result}=renderHook(()=>useMazeGame(mazeToGraph(maze),'game-timer-test'));
+  act(()=>result.current.start());
+  act(()=>{jest.advanceTimersByTime(1250);});
+  expect(result.current.state.elapsedMs).toBeGreaterThanOrEqual(1000);
+  act(()=>result.current.pause());
+  const pausedAt=result.current.state.elapsedMs;
+  act(()=>{jest.advanceTimersByTime(1000);});
+  expect(result.current.state.elapsedMs).toBe(pausedAt);
+});
+
 test('the maze view renders any solver event stream through one overlay', () => {
   const { container, rerender } = render(<MazeView hostRef={createRef<HTMLDivElement>()}
     data={data} graph={graph} solverRun={solverRun} solverEnabled solverEventIndex={solverRun.events.length}

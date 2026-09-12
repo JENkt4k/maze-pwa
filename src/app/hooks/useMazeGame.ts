@@ -17,23 +17,28 @@ function load(key:string,start:NodeId,valid:ReadonlyMap<NodeId,unknown>):MazeGam
 export function useMazeGame(graph:MazeGraph,key:string){
   const [state,setState]=useState(()=>load(key,graph.start,graph.nodes));
   const startedAt=useRef<number|null>(null);
+  const elapsedAtStart=useRef(0);
   const goals=useMemo(()=>new Set(graph.goals),[graph.goals]);
-  useEffect(()=>{startedAt.current=null;setState(load(key,graph.start,graph.nodes));},[key,graph.start,graph.nodes]);
+  // `key` already represents the maze topology and endpoints. Depending on the
+  // graph objects here resets the session whenever App recreates the graph on a
+  // render, including every timer tick.
+  useEffect(()=>{startedAt.current=null;elapsedAtStart.current=0;setState(load(key,graph.start,graph.nodes));},[key]);
   useEffect(()=>{try{localStorage.setItem(GAME_STORAGE_KEY,JSON.stringify(state));}catch{}},[state]);
   useEffect(()=>{
     if(state.status!=='playing'){startedAt.current=null;return;}
     startedAt.current=Date.now();
-    const timer=window.setInterval(()=>{const now=Date.now();setState(current=>({...current,elapsedMs:current.elapsedMs+Math.max(0,now-(startedAt.current??now))}));startedAt.current=now;},250);
+    elapsedAtStart.current=state.elapsedMs;
+    const timer=window.setInterval(()=>setState(current=>({...current,elapsedMs:elapsedAtStart.current+Math.max(0,Date.now()-(startedAt.current??Date.now()))})),250);
     return()=>window.clearInterval(timer);
   },[state.status]);
   const start=()=>setState(current=>current.status==='complete'?initial(key,graph.start,'playing'):{...current,status:'playing'});
-  const pause=()=>setState(current=>current.status==='playing'?{...current,status:'paused'}:current);
-  const restart=()=>setState(initial(key,graph.start,'playing'));
+  const pause=()=>setState(current=>current.status==='playing'?{...current,elapsedMs:elapsedAtStart.current+Math.max(0,Date.now()-(startedAt.current??Date.now())),status:'paused'}:current);
+  const restart=()=>{startedAt.current=Date.now();elapsedAtStart.current=0;setState(initial(key,graph.start,'playing'));};
   const move=(target:NodeId)=>setState(current=>{
     if(current.status!=='playing')return current;
     const node=graph.nodes.get(current.current);if(!node?.neighbors.includes(target))return current;
     const route=[...current.route,target],complete=goals.has(target);
-    return{...current,current:target,route,moves:current.moves+1,revisits:current.revisits+(current.route.includes(target)?1:0),status:complete?'complete':'playing'};
+    return{...current,current:target,route,moves:current.moves+1,revisits:current.revisits+(current.route.includes(target)?1:0),elapsedMs:complete?elapsedAtStart.current+Math.max(0,Date.now()-(startedAt.current??Date.now())):current.elapsedMs,status:complete?'complete':'playing'};
   });
   return{state,start,pause,restart,move};
 }
