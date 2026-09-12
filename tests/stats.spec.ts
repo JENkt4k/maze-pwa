@@ -95,6 +95,18 @@ test.each(['ellipse','diamond','heart'] as const)('%s SVG closes every active-ce
   }
 });
 
+test('rounded and organic renderers join walls without changing maze data',()=>{
+  const result=createMaze({...baseline,mask:'brain'}),snapshot=JSON.stringify(result);
+  const rounded=toSVG(result,{cell:20,margin:10,wallStyle:'rounded',cornerRadius:.35,stroke:4});
+  const organic=toSVG(result,{cell:20,margin:10,wallStyle:'organic',cornerRadius:.4,stroke:5});
+  expect(rounded).toContain('class="walls walls-rounded"');
+  expect(rounded).toContain('<path d="');
+  expect(rounded).toContain(' Q ');
+  expect(organic).toContain('organic-wall-filter');
+  expect(organic).toContain('stroke-width="5"');
+  expect(JSON.stringify(result)).toBe(snapshot);
+});
+
 test('solution length is the shortest route through tree and braid edges', () => {
   for (const b of [0, .5]) {
     const m = createMaze({ ...baseline, b });

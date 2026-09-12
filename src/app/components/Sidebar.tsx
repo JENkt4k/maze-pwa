@@ -9,6 +9,7 @@ import type { CustomMask } from '../../maze/masks';
 import CustomMaskControls from './CustomMaskControls';
 import type { EndpointStrategy } from '../../maze/endpoints';
 import type { MazePoint } from '../maze';
+import type { WallStyle } from '../../maze/walls';
 
 type Props = {
   canInstall: boolean;
@@ -24,6 +25,7 @@ type Props = {
   lockSize: boolean;
   setLockSize: (v:boolean)=>void;
   mask:MaskId; setMask:(mask:MaskId)=>void; customMask?:CustomMask; setCustomMask:(mask:CustomMask)=>void;
+  wallStyle:WallStyle;setWallStyle:(style:WallStyle)=>void;wallThickness:number;setWallThickness:(value:number)=>void;cornerRadius:number;setCornerRadius:(value:number)=>void;
   onMaxDifficulty: () => void;
   searching: boolean;
   startIcon: string | null;
@@ -129,6 +131,26 @@ export default function Sidebar(props: Props){
             />
             <span>Lock width & height (square)</span>
           </label>
+        </details>
+      </fieldset>
+
+      <fieldset>
+        <legend>Appearance</legend>
+        <details open>
+          <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>Wall style</summary>
+          <div className="stack" style={{gap:10}}>
+            <label>Style
+              <select name="wall-style" value={props.wallStyle} onChange={e=>props.setWallStyle(e.target.value as WallStyle)}>
+                <option value="classic">Classic</option><option value="rounded">Rounded</option><option value="organic">Organic</option>
+              </select>
+            </label>
+            <label>Wall thickness: {props.wallThickness}px
+              <input name="wall-thickness" type="range" min="1" max="8" step="1" value={props.wallThickness} onChange={e=>props.setWallThickness(Number(e.target.value))}/>
+            </label>
+            <label>Corner radius: {Math.round(props.cornerRadius*100)}%
+              <input name="corner-radius" type="range" min="0" max="50" step="5" value={props.cornerRadius*100} disabled={props.wallStyle==='classic'} onChange={e=>props.setCornerRadius(Number(e.target.value)/100)}/>
+            </label>
+          </div>
         </details>
       </fieldset>
 

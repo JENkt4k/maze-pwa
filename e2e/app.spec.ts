@@ -96,6 +96,22 @@ test('endpoints can be placed on cells and restored automatically',async({page})
   await expect(page.getByText(/Start: 1,4 · Goal: 7,4/)).toBeVisible();
 });
 
+test('wall styles update rendered and printable maze appearance',async({page})=>{
+  await page.goto('./');
+  const style=page.locator('select[name="wall-style"]');
+  await expect(style).toHaveValue('classic');
+  await style.selectOption('rounded');
+  await page.getByLabel(/Wall thickness:/).fill('6');
+  await page.getByLabel(/Corner radius:/).fill('45');
+  await expect(page.locator('#print-maze-only .walls-rounded path').first()).toBeVisible();
+  await expect(page.locator('#print-maze-only .walls-rounded')).toHaveAttribute('stroke-width','6');
+  await style.selectOption('organic');
+  await expect(page.locator('#print-maze-only #organic-wall-filter')).toHaveCount(1);
+  await page.reload();
+  await expect(style).toHaveValue('organic');
+  await expect(page.getByLabel(/Wall thickness:/)).toHaveValue('6');
+});
+
 test('storage failure does not pretend to save a maze', async ({page}) => {
   await page.goto('./');
   await page.evaluate(() => {

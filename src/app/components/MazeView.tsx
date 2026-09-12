@@ -7,7 +7,7 @@ import GenerationOverlay from './GenerationOverlay';
 import EndpointOverlay from './EndpointOverlay';
 import type { MazePoint } from '../maze';
 
-type RenderOpts = { cell:number; margin:number; stroke?:number; startIcon?:string|null; goalIcon?:string|null; iconScale?:number };
+type RenderOpts = { cell:number; margin:number; stroke?:number; wallStyle?:import('../../maze/walls').WallStyle;cornerRadius?:number;startIcon?:string|null; goalIcon?:string|null; iconScale?:number };
 type Props = {
   hostRef: RefObject<HTMLDivElement>;
   data: MazeResult;
@@ -30,12 +30,12 @@ type Props = {
 export default function MazeView({ hostRef, data, graph, solverRun, solverEnabled, solverEventIndex, generationEventIndex, generationComplete, generationColor, generationOpacity, solverColor, solverOpacity, render, onSVGChange, endpointMode, onEndpointSelect }: Props) {
   const width = data.maze[0]?.length ?? 0;
   const height = data.maze.length;
-  const { cell, margin, startIcon, goalIcon, iconScale = 0.7 } = render;
+  const { cell, margin, startIcon, goalIcon, iconScale = 0.7,wallStyle='classic',cornerRadius=.3 } = render;
   const stroke = render.stroke ?? Math.max(2, Math.round(cell / 8));
   const baseSVG = useMemo(() => toSVG(data, {
     cell, margin, stroke, showStartGoal: true,
-    startIcon, goalIcon, iconScale,
-  }), [data, cell, margin, stroke, startIcon, goalIcon, iconScale]);
+    startIcon, goalIcon, iconScale,wallStyle,cornerRadius,
+  }), [data, cell, margin, stroke, startIcon, goalIcon, iconScale,wallStyle,cornerRadius]);
 
   useEffect(() => { onSVGChange?.(baseSVG); }, [baseSVG, onSVGChange]);
   return (
