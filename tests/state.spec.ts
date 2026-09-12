@@ -57,6 +57,9 @@ test('wall appearance survives validated settings and sharing',()=>{
   const url=buildShareURL('https://example.test/',{...params,...appearance,startIcon:null,goalIcon:null});
   expect(parseFromURL(new URL(url).search)).toMatchObject(appearance);
 });
+test('Micromouse display preferences are bounded and persisted',()=>{
+  expect(validateSettings({micromouseSpeed:999,mouseShowWalls:true,mouseShowFlood:false,mouseShowRoute:true})).toEqual({micromouseSpeed:250,mouseShowWalls:true,mouseShowFlood:false,mouseShowRoute:true});
+});
 test('saved records preserve markers and accept legacy records while dropping corrupt entries', () => {
   const old = {id:'old',name:'Old maze',params,createdAt:1};
   const current = {id:'new',name:'New maze',params:{...params,startIcon:null,goalIcon:'🏁'},createdAt:2};
