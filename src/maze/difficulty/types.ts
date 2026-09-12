@@ -35,7 +35,26 @@ export interface Difficulty2RawMetrics {
 export interface Difficulty2Analysis {
   version:2;
   raw:Difficulty2RawMetrics;
+  normalized:Difficulty2NormalizedMetrics;
+  score:number;
+  label:DifficultyLabel;
 }
+
+export interface Difficulty2NormalizedMetrics {
+  path:number;
+  turns:number;
+  solutionJunctions:number;
+  branchBurden:number;
+  traps:number;
+  entropy:number;
+  goalDeception:number;
+  falseHope:number;
+  loops:number;
+  repetition:number;
+}
+
+export type DifficultyMetric=keyof Difficulty2NormalizedMetrics;
+export type DifficultyLabel='Easy'|'Moderate'|'Challenging'|'Hard'|'Expert'|'Brutal'|'Diabolical';
 
 export interface WrongBranch {
   pathIndex:number;

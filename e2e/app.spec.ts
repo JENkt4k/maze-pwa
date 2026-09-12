@@ -200,6 +200,14 @@ test('local leaderboard ranks completed attempts and shows robot benchmark',asyn
   await expect(board.getByRole('region',{name:'Micromouse benchmark'})).toContainText('8 cells');
 });
 
+test('Difficulty 2 score is labeled as estimated and retains the legacy score',async({page})=>{
+  await page.goto('./');
+  const stats=page.getByText('Stats',{exact:true}).locator('..');
+  await expect(stats.getByText('Estimated difficulty',{exact:true}).locator('..')).toContainText(/\d+\/100/);
+  await expect(stats.getByText('Legacy difficulty D',{exact:true})).toBeVisible();
+  await expect(stats).toContainText('not yet calibrated from human results');
+});
+
 test('Micromouse explores, exposes phases, and disables physics for freeform mazes',async({page})=>{
   await page.goto('./');
   const controls=page.locator('.mouse-controls');
