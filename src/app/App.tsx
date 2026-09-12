@@ -23,6 +23,7 @@ import type { CustomMask, MaskId } from '../maze/masks';
 import { chooseEndpoints, type EndpointStrategy } from '../maze/endpoints';
 import type { MazePoint } from './maze';
 import type { WallStyle } from '../maze/walls';
+import { useMazeGame } from './hooks/useMazeGame';
 
 const DEFAULT_START = "\u{1f680}";
 const DEFAULT_GOAL = "\u{1f3c1}";
@@ -62,6 +63,8 @@ export default function App() {
   const [wallStyle,setWallStyle]=useState<WallStyle>(persisted.wallStyle??'classic');
   const [wallThickness,setWallThickness]=useState(persisted.wallThickness??3);
   const [cornerRadius,setCornerRadius]=useState(persisted.cornerRadius??.3);
+  const [gameBreadcrumbs,setGameBreadcrumbs]=useState(persisted.gameBreadcrumbs??true);
+  const [gameActive,setGameActive]=useState(false);
   const [controlsOpen, setControlsOpen] = useState(persisted.controlsOpen ?? !window.matchMedia("(max-width: 840px)").matches);
   const [lockSize, setLockSize]         = useState((persisted.lockSize ?? false) && width === height);
 
@@ -187,6 +190,7 @@ export default function App() {
           wallStyle,
           wallThickness,
           cornerRadius,
+          gameBreadcrumbs,
           generationColor,
           generationOpacity,
           solverColor,
@@ -196,7 +200,7 @@ export default function App() {
         }));
       setSettingsError(null);
     } catch { setSettingsError("Settings could not be stored. They will reset when this page is closed."); }
-  }, [seed,width,height,g,b,tau,generator,mask,customMask,startCell,goalCell,wallStyle,wallThickness,cornerRadius,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
+  }, [seed,width,height,g,b,tau,generator,mask,customMask,startCell,goalCell,wallStyle,wallThickness,cornerRadius,gameBreadcrumbs,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
 
   // compute margin/stroke once from cell
   const margin = Math.round(cell/2);
@@ -222,6 +226,9 @@ export default function App() {
   const mazeKey = `${generator}:${mask}:${customMask?.pixels??''}:${customMask?.threshold??''}:${customMask?.invert??''}:${width}:${height}:${seed}:${g}:${b}:${tau}`;
   const mazeData = useMemo(() => createMaze(mazeParams), [width,height,seed,g,b,tau,generator,mask,customMask,startCell,goalCell]);
   const mazeGraph = useMemo(() => mazeToGraph(mazeData), [mazeData]);
+  const gameKey=`${mazeKey}:${mazeGraph.start}:${mazeGraph.goals.join('|')}`;
+  const game=useMazeGame(mazeGraph,gameKey);
+  useEffect(()=>setGameActive(false),[gameKey]);
   const solverRun = useMemo(() => solveMaze(mazeGraph, solverAlgorithm), [mazeGraph, solverAlgorithm]);
   const buildEventCount = mazeData.treeSteps.length + mazeData.braidEdits.length;
   const includesBuild = animationMode !== 'solve';
@@ -271,7 +278,7 @@ export default function App() {
               data={mazeData}
               graph={mazeGraph}
               solverRun={solverRun}
-              solverEnabled={solverEnabled}
+              solverEnabled={solverEnabled&&!gameActive}
               solverEventIndex={solverEventIndex}
               generationEventIndex={generationEventIndex}
               generationComplete={generationEventIndex >= buildEventCount}
@@ -283,8 +290,10 @@ export default function App() {
               onSVGChange={setCurrentSVG}
               endpointMode={endpointMode}
               onEndpointSelect={selectEndpoint}
+              gameplay={gameActive?{state:game.state,breadcrumbs:gameBreadcrumbs,move:game.move}:null}
             />
-            <DrawingCanvas hostRef={svgHostRef} mazeKey={mazeKey} disabled={endpointMode!==null} />
+            <DrawingCanvas hostRef={svgHostRef} mazeKey={mazeKey} disabled={endpointMode!==null||gameActive} playActive={gameActive}
+              onPlay={()=>{setEndpointMode(null);setGameActive(true);game.start();}} onExitPlay={()=>setGameActive(false)}/>
           </div>
 
           <StatsCard stats={mazeData.stats} />
@@ -329,7 +338,9 @@ export default function App() {
         setStartIcon={setStartIcon}
         setGoalIcon={setGoalIcon}
         startCell={mazeData.start} goalCell={mazeData.goal} endpointMode={endpointMode}
-        setEndpointMode={setEndpointMode} onPlaceEndpoints={placeEndpoints}
+        setEndpointMode={mode=>{setGameActive(false);setEndpointMode(mode);}} onPlaceEndpoints={placeEndpoints}
+        gameplay={{active:gameActive,state:game.state,breadcrumbs:gameBreadcrumbs,setBreadcrumbs:setGameBreadcrumbs,
+          start:()=>{setEndpointMode(null);setGameActive(true);game.start();},pause:game.pause,restart:()=>{setEndpointMode(null);setGameActive(true);game.restart();}}}
 
         animation={{
           mode: animationMode,

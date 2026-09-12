@@ -37,6 +37,8 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
   strategies restore opposite edges, approximate the farthest route, or choose seeded random cells.
 - Render walls in classic, rounded, or subtly organic styles with adjustable thickness
   and corner radius. Appearance is preserved in settings, saved mazes, shared links, and printing.
+- Play mazes with arrow keys, WASD, adjacent-cell taps, or swipes. Gameplay rejects
+  wall crossings, tracks time, moves and revisits, supports optional breadcrumbs, and restores unfinished progress as paused.
 - Draw, erase, and clear a freehand path. Drawing stays aligned when the viewport
   changes and clears when the maze changes. Select **Scroll** to scroll by touch
   over the maze. Drawing is session-only and is not a validated solution.

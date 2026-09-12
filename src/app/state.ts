@@ -19,6 +19,7 @@ export type Settings = MazeParams & Markers & {
   generationOpacity: number;
   solverColor: string;
   solverOpacity: number;
+  gameBreadcrumbs:boolean;
   // Legacy fields retained only while migrating existing settings.
   animateDFS: boolean;
   dfsSegMs: number;
@@ -40,7 +41,7 @@ export function validateSettings(value: unknown): Partial<Settings> {
     if (key === 'seed' || key === 'dfsSegMs' || key === 'lingerMs' || key === 'solverStepMs') v = Math.trunc(v);
     out[key] = v;
   }
-  for (const key of ['controlsOpen', 'lockSize', 'animateDFS', 'solverEnabled']) if (typeof value[key] === 'boolean') out[key] = value[key];
+  for (const key of ['controlsOpen', 'lockSize', 'animateDFS', 'solverEnabled','gameBreadcrumbs']) if (typeof value[key] === 'boolean') out[key] = value[key];
   if (['dfs', 'bfs', 'dijkstra', 'astar'].includes(String(value.solverAlgorithm))) out.solverAlgorithm = value.solverAlgorithm;
   if (['dfs', 'prim', 'kruskal'].includes(String(value.generator))) out.generator = value.generator as GeneratorId;
   if (['rectangle','ellipse','diamond','heart','star','cup','brain','moose','custom'].includes(String(value.mask))) out.mask=value.mask as MaskId;

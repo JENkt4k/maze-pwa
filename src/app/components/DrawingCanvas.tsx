@@ -3,9 +3,9 @@ import { createPortal } from "react-dom";
 
 type Point = { x: number; y: number };
 type Stroke = { mode: "draw" | "erase"; width: number; points: Point[] };
-type Props = { hostRef: RefObject<HTMLDivElement>; mazeKey: string; disabled?:boolean };
+type Props = { hostRef: RefObject<HTMLDivElement>; mazeKey: string; disabled?:boolean;playActive?:boolean;onPlay?:()=>void;onExitPlay?:()=>void };
 
-export default function DrawingCanvas({ hostRef, mazeKey, disabled=false }: Props) {
+export default function DrawingCanvas({ hostRef, mazeKey, disabled=false,playActive=false,onPlay,onExitPlay }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [host, setHost] = useState<HTMLDivElement | null>(null);
   const [mode, setMode] = useState<"draw" | "erase" | "scroll">("draw");
@@ -90,9 +90,10 @@ export default function DrawingCanvas({ hostRef, mazeKey, disabled=false }: Prop
       style={{ pointerEvents: disabled||mode === "scroll" ? "none" : "auto" }}
       onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onLostPointerCapture={up} />, host)}
     <div className="draw-toolbar" role="group" aria-label="Drawing tools">
+      <button type="button" className={`btn btn-sm${playActive?' btn-primary':''}`} aria-pressed={playActive} onClick={onPlay}>Play</button>
       {(["draw", "erase", "scroll"] as const).map(value => <button key={value} type="button"
-        className={`btn btn-sm${mode === value ? " btn-primary" : ""}`} aria-pressed={mode === value}
-        onClick={() => { activePointer.current = null; setMode(value); }}>{value === "draw" ? "Draw" : value === "erase" ? "Erase" : "Scroll"}</button>)}
+        className={`btn btn-sm${!playActive&&mode === value ? " btn-primary" : ""}`} aria-pressed={!playActive&&mode === value}
+        onClick={() => { activePointer.current = null;onExitPlay?.();setMode(value); }}>{value === "draw" ? "Draw" : value === "erase" ? "Erase" : "Scroll"}</button>)}
       <label className="hstack">Pen<input type="range" min={2} max={24} step={1} value={pen}
         onChange={event => setPen(Number(event.target.value))} /></label>
       <button type="button" className="btn btn-sm" onClick={() => { strokes.current = []; activePointer.current = null; repaint(); }}>Clear</button>
