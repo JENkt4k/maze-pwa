@@ -2,6 +2,7 @@
 import { createRef } from 'react';
 import { act, render, renderHook } from '@testing-library/react';
 import MazeView from '@src/app/components/MazeView';
+import { useMazeGame } from '@src/app/hooks/useMazeGame';
 import { useSolverPlayback } from '@src/app/hooks/useSolverPlayback';
 import { createMaze } from '@src/app/maze';
 import { mazeToGraph } from '@src/maze/graph';
@@ -40,6 +41,22 @@ test('playback can pause, step, seek, restart, and reset for a new run', () => {
   expect(result.current.state.index).toBe(0);
   rerender({ runKey: 'second', enabled: false });
   expect(result.current.state.playing).toBe(false);
+});
+
+test('gameplay only follows graph edges, counts revisits, and detects completion',()=>{
+  localStorage.clear();
+  const data=createMaze({width:7,height:7,seed:42,g:.3,b:0,tau:.4});
+  const graph=mazeToGraph(data),solution=solveMaze(graph,'bfs').path;
+  const {result}=renderHook(()=>useMazeGame(graph,'game-test'));
+  act(()=>result.current.start());
+  act(()=>result.current.move('not-a-neighbor'));
+  expect(result.current.state.moves).toBe(0);
+  act(()=>result.current.move(solution[1]));
+  act(()=>result.current.move(solution[0]));
+  expect(result.current.state).toMatchObject({moves:2,revisits:1,status:'playing'});
+  for(const node of solution.slice(1))act(()=>result.current.move(node));
+  expect(result.current.state.status).toBe('complete');
+  expect(result.current.state.current).toBe(graph.goals[0]);
 });
 
 test('the maze view renders any solver event stream through one overlay', () => {

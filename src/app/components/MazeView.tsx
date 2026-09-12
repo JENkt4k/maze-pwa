@@ -6,6 +6,9 @@ import SolverOverlay from './SolverOverlay';
 import GenerationOverlay from './GenerationOverlay';
 import EndpointOverlay from './EndpointOverlay';
 import type { MazePoint } from '../maze';
+import GameplayOverlay from './GameplayOverlay';
+import type { MazeGameState } from '../hooks/useMazeGame';
+import type { NodeId } from '../../maze/graph';
 
 type RenderOpts = { cell:number; margin:number; stroke?:number; wallStyle?:import('../../maze/walls').WallStyle;cornerRadius?:number;startIcon?:string|null; goalIcon?:string|null; iconScale?:number };
 type Props = {
@@ -25,9 +28,10 @@ type Props = {
   onSVGChange?: (svg:string) => void;
   endpointMode?:'start'|'goal'|null;
   onEndpointSelect?:(point:MazePoint)=>void;
+  gameplay?:{state:MazeGameState;breadcrumbs:boolean;move:(target:NodeId)=>void}|null;
 };
 
-export default function MazeView({ hostRef, data, graph, solverRun, solverEnabled, solverEventIndex, generationEventIndex, generationComplete, generationColor, generationOpacity, solverColor, solverOpacity, render, onSVGChange, endpointMode, onEndpointSelect }: Props) {
+export default function MazeView({ hostRef, data, graph, solverRun, solverEnabled, solverEventIndex, generationEventIndex, generationComplete, generationColor, generationOpacity, solverColor, solverOpacity, render, onSVGChange, endpointMode, onEndpointSelect,gameplay }: Props) {
   const width = data.maze[0]?.length ?? 0;
   const height = data.maze.length;
   const { cell, margin, startIcon, goalIcon, iconScale = 0.7,wallStyle='classic',cornerRadius=.3 } = render;
@@ -47,6 +51,7 @@ export default function MazeView({ hostRef, data, graph, solverRun, solverEnable
       {solverEnabled && <SolverOverlay graph={graph} events={solverRun.events} eventIndex={solverEventIndex}
         color={solverColor} opacity={solverOpacity} cell={cell} margin={margin} widthCells={width} heightCells={height} />}
       {endpointMode&&onEndpointSelect&&<EndpointOverlay data={data} mode={endpointMode} cell={cell} margin={margin} onSelect={onEndpointSelect}/>}
+      {!endpointMode&&gameplay&&<GameplayOverlay graph={graph} state={gameplay.state} breadcrumbs={gameplay.breadcrumbs} move={gameplay.move} cell={cell} margin={margin} width={width} height={height}/>}
     </div>
   );
 }

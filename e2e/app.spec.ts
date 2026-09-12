@@ -1,4 +1,4 @@
-﻿import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 const settings = {width:7,height:7,seed:42,g:.3,b:.15,tau:.4,generator:'dfs',controlsOpen:true,lockSize:false,solverEnabled:true,solverAlgorithm:'dfs',animationMode:'build-solve',solverStepMs:250,generationColor:'#14b8a6',generationOpacity:.35,solverColor:'#2563eb',solverOpacity:.65};
 test.beforeEach(async ({page}) => {
@@ -39,7 +39,7 @@ test('saved rectangular maze and markers restore despite square lock; empty mark
   await page.goto('./');
   await page.getByText('Adjust size',{exact:true}).click();
   await page.getByLabel(/^Height:/).fill('9');
-  await page.getByLabel('Start marker',{exact:true}).fill('👨‍👩‍👧‍👦');
+  await page.getByLabel('Start marker',{exact:true}).fill('???????????');
   await page.getByLabel('Goal marker',{exact:true}).fill('');
   await page.getByLabel('Maze name').fill('Rectangle');
   await page.getByRole('button',{name:'Save current',exact:true}).click();
@@ -49,10 +49,10 @@ test('saved rectangular maze and markers restore despite square lock; empty mark
   await page.getByRole('button',{name:'Load',exact:true}).click();
   await expect(page.getByLabel(/^Height:/)).toHaveValue('9');
   await expect(page.getByLabel('Lock width & height (square)')).not.toBeChecked();
-  await expect(page.getByLabel('Start marker',{exact:true})).toHaveValue('👨‍👩‍👧‍👦');
+  await expect(page.getByLabel('Start marker',{exact:true})).toHaveValue('???????????');
   await expect(page.getByLabel('Goal marker',{exact:true})).toHaveValue('');
   await page.reload();
-  await expect(page.getByLabel('Start marker',{exact:true})).toHaveValue('👨‍👩‍👧‍👦');
+  await expect(page.getByLabel('Start marker',{exact:true})).toHaveValue('???????????');
   await expect(page.getByLabel('Goal marker',{exact:true})).toHaveValue('');
   await expect(page.getByRole('button',{name:'Load',exact:true})).toBeVisible();
 });
@@ -74,7 +74,7 @@ test('custom silhouette upload exposes preview controls and builds a maze',async
   await page.getByLabel('Maze shape').selectOption('custom');
   await page.getByLabel('Silhouette image').setInputFiles('public/silhouettes/brain.png');
   await expect(page.getByLabel('Custom mask preview')).toBeVisible();
-  await expect(page.getByText(/brain\.png · \d+ active cells/)).toBeVisible();
+  await expect(page.getByText(/brain\.png � \d+ active cells/)).toBeVisible();
   await page.getByLabel(/Threshold:/).fill('120');
   await page.getByLabel('Invert light and dark').check();
   await expect(page.locator('#print-maze-only')).toBeVisible();
@@ -93,7 +93,7 @@ test('endpoints can be placed on cells and restored automatically',async({page})
   await page.getByLabel('Automatic endpoint placement').selectOption('farthest');
   await expect(page.getByLabel('Automatic endpoint placement')).toHaveValue('');
   await page.getByRole('button',{name:'Reset',exact:true}).click();
-  await expect(page.getByText(/Start: 1,4 · Goal: 7,4/)).toBeVisible();
+  await expect(page.getByText(/Start: 1,4 � Goal: 7,4/)).toBeVisible();
 });
 
 test('wall styles update rendered and printable maze appearance',async({page})=>{
@@ -110,6 +110,21 @@ test('wall styles update rendered and printable maze appearance',async({page})=>
   await page.reload();
   await expect(style).toHaveValue('organic');
   await expect(page.getByLabel(/Wall thickness:/)).toHaveValue('6');
+});
+
+test('gameplay moves through passages and restores progress paused',async({page})=>{
+  await page.goto('./');
+  await page.getByRole('button',{name:'Play',exact:true}).first().click();
+  const game=page.getByRole('application',{name:'Maze gameplay area'});
+  await expect(game).toBeFocused();
+  await game.getByRole('button').first().click();
+  await expect(page.getByText('Moves').locator('..')).toContainText('1');
+  await game.getByRole('button',{name:'Move to column 1, row 4'}).click();
+  await expect(page.getByText('Revisits').locator('..')).toContainText('1');
+  await page.locator('.game-controls').getByRole('button',{name:'Pause',exact:true}).click();
+  await page.reload();
+  await expect(page.getByText('Paused',{exact:true})).toBeVisible();
+  await expect(page.getByText('Moves').locator('..')).toContainText('2');
 });
 
 test('storage failure does not pretend to save a maze', async ({page}) => {
@@ -188,9 +203,10 @@ test('animation independently switches generation and solving algorithms', async
   await expect(solver).toHaveValue('dfs');
   await expect(solver.locator('option')).toHaveText(['DFS','BFS','Dijkstra','A*']);
   await expect(page.locator('.generation-overlay-svg')).toBeVisible();
-  await page.getByRole('button',{name:'Pause',exact:true}).click();
+  const animationControls=page.getByRole('group',{name:'Animation playback controls'});
+  await animationControls.getByRole('button',{name:'Pause',exact:true}).click();
   await page.getByRole('button',{name:'Step',exact:true}).click();
-  await expect(page.getByText(/^Building — [1-9]/)).toBeVisible();
+  await expect(page.getByText(/^Building � [1-9]/)).toBeVisible();
   await page.getByLabel('Build animation color').fill('#7c3aed');
   await page.getByLabel('Build animation opacity').fill('70');
   await expect(page.locator('.generation-overlay-svg path').first()).toHaveAttribute('stroke','#7c3aed');
@@ -201,8 +217,8 @@ test('animation independently switches generation and solving algorithms', async
   await solver.selectOption('astar');
   await expect(page.getByText(/Manhattan distance/)).toBeVisible();
   await expect(page.getByText(/^Path$/).locator('..')).toContainText('steps');
-  await page.getByRole('button',{name:'Restart',exact:true}).click();
-  await expect(page.getByRole('button',{name:'Pause',exact:true})).toBeVisible();
+  await animationControls.getByRole('button',{name:'Restart',exact:true}).click();
+  await expect(animationControls.getByRole('button',{name:'Pause',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Generate new maze',exact:true}).click();
   await expect(page.locator('.generation-overlay-svg')).toBeVisible();
   await page.getByLabel('Show animation overlay').uncheck();

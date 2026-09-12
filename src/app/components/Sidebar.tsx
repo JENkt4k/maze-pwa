@@ -10,6 +10,8 @@ import CustomMaskControls from './CustomMaskControls';
 import type { EndpointStrategy } from '../../maze/endpoints';
 import type { MazePoint } from '../maze';
 import type { WallStyle } from '../../maze/walls';
+import GameplayControls from './GameplayControls';
+import type { MazeGameState } from '../hooks/useMazeGame';
 
 type Props = {
   canInstall: boolean;
@@ -34,6 +36,7 @@ type Props = {
   setGoalIcon: (v: string | null) => void;
   startCell:MazePoint; goalCell:MazePoint; endpointMode:'start'|'goal'|null;
   setEndpointMode:(mode:'start'|'goal'|null)=>void; onPlaceEndpoints:(strategy:EndpointStrategy)=>void;
+  gameplay:{active:boolean;state:MazeGameState;breadcrumbs:boolean;setBreadcrumbs:(value:boolean)=>void;start:()=>void;pause:()=>void;restart:()=>void};
   animation: AnimationControlsProps;
   onShare: () => void;
 };
@@ -131,6 +134,14 @@ export default function Sidebar(props: Props){
             />
             <span>Lock width & height (square)</span>
           </label>
+        </details>
+      </fieldset>
+
+      <fieldset>
+        <legend>Gameplay</legend>
+        <details open>
+          <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>Play maze</summary>
+          <GameplayControls {...props.gameplay}/>
         </details>
       </fieldset>
 
