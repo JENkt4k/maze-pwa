@@ -43,6 +43,11 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
   and corner radius. Appearance is preserved in settings, saved mazes, shared links, and printing.
 - Play mazes with arrow keys, WASD, adjacent-cell taps, or swipes. Gameplay rejects
   wall crossings, tracks time, moves and revisits, supports optional breadcrumbs, and restores unfinished progress as paused.
+- Run a grid-based Micromouse simulation whose robot initially knows only its start,
+  goal, and sensed walls. Replay its flood-fill search, return, and learned-map
+  speed run; inspect discovered walls, flood values, route, exploration metrics,
+  and deterministic simplified physics times. A competition preset places the
+  start near a corner and goal near the center.
 - Draw, erase, and clear a freehand path. Drawing stays aligned when the viewport
   changes and clears when the maze changes. Select **Scroll** to scroll by touch
   over the maze. Drawing is session-only and is not a validated solution.

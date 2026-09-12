@@ -146,6 +146,33 @@ test('gameplay moves through passages and restores progress paused',async({page}
   await expect(page.getByText('Moves').locator('..')).toContainText('2');
 });
 
+test('Micromouse explores, exposes phases, and disables physics for freeform mazes',async({page})=>{
+  await page.goto('./');
+  const controls=page.locator('.mouse-controls');
+  const width=Number(await page.getByLabel(/^Width:/).inputValue());
+  const height=Number(await page.getByLabel(/^Height:/).inputValue());
+  await controls.getByRole('button',{name:'Competition endpoints'}).click();
+  await expect(page.locator('.endpoint-controls > span')).toContainText(`Start: 1,${height}`);
+  await expect(page.locator('.endpoint-controls > span')).toContainText(
+    `Goal: ${Math.floor(width/2)+1},${Math.floor(height/2)+1}`,
+  );
+  await controls.getByLabel(/^Playback speed:/).fill('250');
+  await controls.getByRole('button',{name:'Start',exact:true}).click();
+  await expect(page.locator('.micromouse-overlay-svg')).toBeVisible();
+  await controls.getByRole('button',{name:'Pause',exact:true}).click();
+  await controls.getByRole('button',{name:'Step',exact:true}).click();
+  await controls.getByRole('button',{name:'Step',exact:true}).click();
+  await expect(page.locator('.mouse-discovered rect')).not.toHaveCount(0);
+  await controls.getByLabel('Flood values').check();
+  await controls.getByRole('button',{name:'Speed',exact:true}).click();
+  await expect(controls.getByRole('status')).toContainText('Speed');
+  await expect(controls.getByText('Speed run')).toBeVisible();
+  await page.getByText('Adjust size',{exact:true}).click();
+  await page.getByLabel('Maze topology').selectOption('freeform');
+  await expect(controls.getByText('Micromouse physics requires grid topology.')).toBeVisible();
+  await expect(page.locator('.micromouse-overlay-svg')).toHaveCount(0);
+});
+
 test('storage failure does not pretend to save a maze', async ({page}) => {
   await page.goto('./');
   await page.evaluate(() => {

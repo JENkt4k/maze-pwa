@@ -24,6 +24,7 @@ import { chooseEndpoints, type EndpointStrategy } from '../maze/endpoints';
 import type { MazePoint } from './maze';
 import type { WallStyle } from '../maze/walls';
 import { useMazeGame } from './hooks/useMazeGame';
+import { simulateMicromouse, type MousePhase } from '../maze/micromouse';
 
 const DEFAULT_START = "\u{1f680}";
 const DEFAULT_GOAL = "\u{1f3c1}";
@@ -68,6 +69,11 @@ export default function App() {
   const [cornerRadius,setCornerRadius]=useState(persisted.cornerRadius??.3);
   const [gameBreadcrumbs,setGameBreadcrumbs]=useState(persisted.gameBreadcrumbs??true);
   const [gameActive,setGameActive]=useState(false);
+  const [micromouseActive,setMicromouseActive]=useState(false);
+  const [micromouseSpeed,setMicromouseSpeed]=useState(persisted.micromouseSpeed??45);
+  const [mouseShowWalls,setMouseShowWalls]=useState(persisted.mouseShowWalls??true);
+  const [mouseShowFlood,setMouseShowFlood]=useState(persisted.mouseShowFlood??false);
+  const [mouseShowRoute,setMouseShowRoute]=useState(persisted.mouseShowRoute??true);
   const [controlsOpen, setControlsOpen] = useState(persisted.controlsOpen ?? !window.matchMedia("(max-width: 840px)").matches);
   const [lockSize, setLockSize]         = useState((persisted.lockSize ?? false) && width === height);
 
@@ -200,6 +206,10 @@ export default function App() {
           wallThickness,
           cornerRadius,
           gameBreadcrumbs,
+          micromouseSpeed,
+          mouseShowWalls,
+          mouseShowFlood,
+          mouseShowRoute,
           generationColor,
           generationOpacity,
           solverColor,
@@ -209,7 +219,7 @@ export default function App() {
         }));
       setSettingsError(null);
     } catch { setSettingsError("Settings could not be stored. They will reset when this page is closed."); }
-  }, [seed,width,height,g,b,tau,generator,topology,regionDensity,irregularity,mask,customMask,startCell,goalCell,wallStyle,wallThickness,cornerRadius,gameBreadcrumbs,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
+  }, [seed,width,height,g,b,tau,generator,topology,regionDensity,irregularity,mask,customMask,startCell,goalCell,wallStyle,wallThickness,cornerRadius,gameBreadcrumbs,micromouseSpeed,mouseShowWalls,mouseShowFlood,mouseShowRoute,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
 
   // compute margin/stroke once from cell
   const margin = Math.round(cell/2);
@@ -239,6 +249,10 @@ export default function App() {
   const gameKey=`${mazeKey}:${mazeId}`;
   const game=useMazeGame(mazeGraph,gameKey);
   useEffect(()=>setGameActive(false),[gameKey]);
+  useEffect(()=>setMicromouseActive(false),[mazeId]);
+  const micromouse=useMemo(()=>topology==='grid'?simulateMicromouse(mazeGraph):null,[topology,mazeGraph]);
+  const mousePlayback=useSolverPlayback(micromouse?.events.length??0,`mouse:${mazeId}`,micromouseActive,micromouseSpeed);
+  const mousePhase:MousePhase|'ready'|'complete'=!micromouseActive||!micromouse?'ready':mousePlayback.state.finished?'complete':([...micromouse.events.slice(0,mousePlayback.state.index)].reverse().find(event=>event.type==='phase')?.phase??'search');
   const solverRun = useMemo(() => solveMaze(mazeGraph, solverAlgorithm), [mazeGraph, solverAlgorithm]);
   const buildEventCount = mazeData.treeSteps.length + mazeData.braidEdits.length;
   const includesBuild = animationMode !== 'solve';
@@ -288,7 +302,7 @@ export default function App() {
               data={mazeData}
               graph={mazeGraph}
               solverRun={solverRun}
-              solverEnabled={solverEnabled&&!gameActive}
+              solverEnabled={solverEnabled&&!gameActive&&!micromouseActive}
               solverEventIndex={solverEventIndex}
               generationEventIndex={generationEventIndex}
               generationComplete={generationEventIndex >= buildEventCount}
@@ -301,9 +315,10 @@ export default function App() {
               endpointMode={endpointMode}
               onEndpointSelect={selectEndpoint}
               gameplay={gameActive?{state:game.state,breadcrumbs:gameBreadcrumbs,move:game.move}:null}
+              micromouse={micromouseActive&&micromouse?{events:micromouse.events,eventIndex:mousePlayback.state.index,showWalls:mouseShowWalls,showFlood:mouseShowFlood,showRoute:mouseShowRoute}:null}
             />
-            <DrawingCanvas hostRef={svgHostRef} mazeKey={mazeKey} disabled={endpointMode!==null||gameActive} playActive={gameActive}
-              onPlay={()=>{setEndpointMode(null);setGameActive(true);game.start();}} onExitPlay={()=>setGameActive(false)}/>
+            <DrawingCanvas hostRef={svgHostRef} mazeKey={mazeKey} disabled={endpointMode!==null||gameActive||micromouseActive} playActive={gameActive}
+              onPlay={()=>{setEndpointMode(null);setMicromouseActive(false);mousePlayback.pause();playback.pause();setGameActive(true);game.start();}} onExitPlay={()=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);}}/>
           </div>
 
           <StatsCard stats={mazeData.stats} />
@@ -350,9 +365,13 @@ export default function App() {
         setStartIcon={setStartIcon}
         setGoalIcon={setGoalIcon}
         startCell={mazeData.start} goalCell={mazeData.goal} endpointMode={endpointMode}
-        setEndpointMode={mode=>{setGameActive(false);setEndpointMode(mode);}} onPlaceEndpoints={placeEndpoints}
+        setEndpointMode={mode=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);setEndpointMode(mode);}} onPlaceEndpoints={placeEndpoints}
         gameplay={{active:gameActive,state:game.state,breadcrumbs:gameBreadcrumbs,setBreadcrumbs:setGameBreadcrumbs,
-          start:()=>{setEndpointMode(null);setGameActive(true);game.start();},pause:game.pause,restart:()=>{setEndpointMode(null);setGameActive(true);game.restart();}}}
+          start:()=>{setEndpointMode(null);setMicromouseActive(false);mousePlayback.pause();playback.pause();setGameActive(true);game.start();},pause:game.pause,restart:()=>{setEndpointMode(null);setMicromouseActive(false);mousePlayback.pause();playback.pause();setGameActive(true);game.restart();}}}
+        micromouse={{available:topology==='grid',active:micromouseActive,reason:'Micromouse physics requires grid topology.',failureReason:micromouse?.reason,state:mousePlayback.state,phase:mousePhase,eventCount:micromouse?.events.length??0,speed:micromouseSpeed,setSpeed:setMicromouseSpeed,showWalls:mouseShowWalls,setShowWalls:setMouseShowWalls,showFlood:mouseShowFlood,setShowFlood:setMouseShowFlood,showRoute:mouseShowRoute,setShowRoute:setMouseShowRoute,metrics:micromouse?.metrics,
+          start:()=>{game.pause();playback.pause();setGameActive(false);setEndpointMode(null);setMicromouseActive(true);},play:mousePlayback.play,pause:mousePlayback.pause,restart:()=>{game.pause();playback.pause();setGameActive(false);setEndpointMode(null);setMicromouseActive(true);mousePlayback.restart();},step:mousePlayback.step,seek:mousePlayback.seek,
+          seekPhase:phase=>{const index=micromouse?.events.findIndex(event=>event.type==='phase'&&event.phase===phase)??-1;if(index>=0){setMicromouseActive(true);mousePlayback.seek(index+1);}},
+          competitionPreset:()=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);setEndpointMode(null);setStartCell({x:0,y:height-1});setGoalCell({x:Math.floor(width/2),y:Math.floor(height/2)});}}}
 
         animation={{
           mode: animationMode,
