@@ -23,8 +23,9 @@ import type { CustomMask, MaskId } from '../maze/masks';
 import { chooseEndpoints, type EndpointStrategy } from '../maze/endpoints';
 import type { MazePoint } from './maze';
 import type { WallStyle } from '../maze/walls';
-import { useMazeGame } from './hooks/useMazeGame';
+import { GAME_STORAGE_KEY, useMazeGame, type MazeGameState } from './hooks/useMazeGame';
 import { simulateMicromouse, type MousePhase } from '../maze/micromouse';
+import { abandonHistoryEntry, createHistoryEntry, HISTORY_LIMIT, HISTORY_STORAGE_KEY, historyGameState, parsePlayHistory, updateHistoryEntry, type HistoryMazeParams, type PlayHistoryEntry } from './history';
 
 const DEFAULT_START = "\u{1f680}";
 const DEFAULT_GOAL = "\u{1f3c1}";
@@ -85,6 +86,16 @@ export default function App() {
   const [saveName, setSaveName] = useState<string>("");
   const [saved, setSaved] = useState<SavedMaze[]>(() => { try { return parseSaved(localStorage.getItem(STORAGE_KEY)); } catch { return []; } });
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [history,setHistory]=useState<PlayHistoryEntry[]>(()=>{try{return parsePlayHistory(localStorage.getItem(HISTORY_STORAGE_KEY));}catch{return[];}});
+  const historyRef=useRef(history);historyRef.current=history;
+  const activeAttemptId=useRef<string|null>(null);
+  const pendingHistoryId=useRef<string|null>(null);
+  const storeHistory=(next:PlayHistoryEntry[])=>{
+    const capped=[...next].sort((a,b)=>b.startedAt-a.startedAt).slice(0,HISTORY_LIMIT);
+    try{localStorage.setItem(HISTORY_STORAGE_KEY,JSON.stringify(capped));}
+    catch{setStorageError('Could not update play history. Browser storage may be full or unavailable.');return false;}
+    historyRef.current=capped;setHistory(capped);setStorageError(null);return true;
+  };
 
   const handleSave = () => {
     const name = saveName.trim().slice(0, 200) || `Maze ${saved.length + 1}`;
@@ -99,30 +110,20 @@ export default function App() {
     setSelectedId(id);
   };
 
-  const handleLoad = (id: string) => {
-    const maze = saved.find(m => m.id === id);
-    if (!maze) return;
-    setWidthRaw(maze.params.width);
-    setHeightRaw(maze.params.height);
-    if (maze.params.width !== maze.params.height) setLockSize(false);
-    setStartIcon(maze.params.startIcon === undefined ? DEFAULT_START : maze.params.startIcon);
-    setGoalIcon(maze.params.goalIcon === undefined ? DEFAULT_GOAL : maze.params.goalIcon);
-    setSeed(maze.params.seed);
-    setG(maze.params.g);
-    setB(maze.params.b);
-    setTau(maze.params.tau);
-    setGenerator(maze.params.generator ?? 'dfs');
-    setTopology(maze.params.topology??'grid');
-    setRegionDensity(maze.params.regionDensity??.38);
-    setIrregularity(maze.params.irregularity??.75);
-    setMask(maze.params.mask??'rectangle');
-    setCustomMask(maze.params.customMask);
-    setStartCell(maze.params.startCell);
-    setGoalCell(maze.params.goalCell);
-    setWallStyle(maze.params.wallStyle??'classic');
-    setWallThickness(maze.params.wallThickness??3);
-    setCornerRadius(maze.params.cornerRadius??.3);
+  const applyMazeParams=(params:HistoryMazeParams)=>{
+    setWidthRaw(params.width);setHeightRaw(params.height);
+    if(params.width!==params.height)setLockSize(false);
+    setStartIcon(params.startIcon===undefined?DEFAULT_START:params.startIcon);setGoalIcon(params.goalIcon===undefined?DEFAULT_GOAL:params.goalIcon);
+    setSeed(params.seed);setG(params.g);setB(params.b);setTau(params.tau);setGenerator(params.generator??'dfs');
+    setTopology(params.topology??'grid');setRegionDensity(params.regionDensity??.38);setIrregularity(params.irregularity??.75);
+    setMask(params.mask??'rectangle');setCustomMask(params.customMask);setStartCell(params.startCell);setGoalCell(params.goalCell);
+    setWallStyle(params.wallStyle??'classic');setWallThickness(params.wallThickness??3);setCornerRadius(params.cornerRadius??.3);
     setEndpointMode(null);
+  };
+
+  const handleLoad = (id: string) => {
+    const maze = saved.find(m => m.id === id);if(!maze)return;
+    applyMazeParams(maze.params);
     setSelectedId(id);
   };
 
@@ -248,7 +249,46 @@ export default function App() {
   const mazeId=useMemo(()=>mazeFingerprint(mazeGraph),[mazeGraph]);
   const gameKey=`${mazeKey}:${mazeId}`;
   const game=useMazeGame(mazeGraph,gameKey);
-  useEffect(()=>setGameActive(false),[gameKey]);
+  const historyParams:HistoryMazeParams={...mazeParams,startCell:mazeData.start,goalCell:mazeData.goal,wallStyle,wallThickness,cornerRadius,startIcon,goalIcon};
+  const replaceHistoryEntry=(entry:PlayHistoryEntry)=>storeHistory(historyRef.current.map(item=>item.id===entry.id?entry:item));
+  const abandonActiveAttempt=()=>{const id=activeAttemptId.current;if(!id)return;const entry=historyRef.current.find(item=>item.id===id);if(entry)replaceHistoryEntry(abandonHistoryEntry(entry));activeAttemptId.current=null;};
+  const newAttemptState=():MazeGameState=>({key:gameKey,current:mazeGraph.start,route:[mazeGraph.start],moves:0,revisits:0,elapsedMs:0,status:'playing'});
+  const startGameplay=()=>{
+    setEndpointMode(null);setMicromouseActive(false);mousePlayback.pause();playback.pause();setGameActive(true);
+    const active=historyRef.current.find(entry=>entry.id===activeAttemptId.current&&entry.gameKey===gameKey);
+    if(game.state.status==='paused'&&active){game.start();return;}
+    abandonActiveAttempt();
+    const state=game.state.status==='paused'?{...game.state,status:'playing' as const}:newAttemptState();
+    const entry=createHistoryEntry(mazeId,gameKey,historyParams,state);if(storeHistory([entry,...historyRef.current]))activeAttemptId.current=entry.id;
+    game.start();
+  };
+  const restartGameplay=()=>{
+    abandonActiveAttempt();const entry=createHistoryEntry(mazeId,gameKey,historyParams,newAttemptState());
+    if(storeHistory([entry,...historyRef.current]))activeAttemptId.current=entry.id;
+    setEndpointMode(null);setMicromouseActive(false);mousePlayback.pause();playback.pause();setGameActive(true);game.restart();
+  };
+  const openHistory=(id:string)=>{
+    const entry=historyRef.current.find(item=>item.id===id);if(!entry)return;
+    abandonActiveAttempt();const restored=historyGameState(entry);
+    try{localStorage.setItem(GAME_STORAGE_KEY,JSON.stringify(restored));}catch{setStorageError('Could not restore this attempt. Browser storage may be unavailable.');return;}
+    activeAttemptId.current=id;pendingHistoryId.current=id;applyMazeParams(entry.params);
+    if(entry.gameKey===gameKey){game.restore(restored);pendingHistoryId.current=null;setGameActive(true);}
+  };
+  const deleteHistory=(id:string)=>{if(storeHistory(historyRef.current.filter(entry=>entry.id!==id))&&activeAttemptId.current===id)activeAttemptId.current=null;};
+  const clearHistory=()=>{if(storeHistory([]))activeAttemptId.current=null;};
+  useEffect(()=>{
+    const active=historyRef.current.find(entry=>entry.id===activeAttemptId.current);
+    if(active&&active.gameKey!==gameKey){replaceHistoryEntry(abandonHistoryEntry(active));activeAttemptId.current=null;}
+    setGameActive(false);
+    const pending=historyRef.current.find(entry=>entry.id===pendingHistoryId.current);
+    if(pending?.gameKey===gameKey){activeAttemptId.current=pending.id;pendingHistoryId.current=null;setGameActive(true);}
+  },[gameKey]);
+  const historyElapsedSecond=Math.floor(game.state.elapsedMs/1000);
+  useEffect(()=>{
+    if(game.state.status==='idle')return;
+    const entry=historyRef.current.find(item=>item.id===activeAttemptId.current&&item.gameKey===gameKey);if(!entry)return;
+    replaceHistoryEntry(updateHistoryEntry(entry,game.state));
+  },[game.state.status,game.state.moves,game.state.revisits,game.state.route,historyElapsedSecond,gameKey]);
   useEffect(()=>setMicromouseActive(false),[mazeId]);
   const micromouse=useMemo(()=>topology==='grid'?simulateMicromouse(mazeGraph):null,[topology,mazeGraph]);
   const mousePlayback=useSolverPlayback(micromouse?.events.length??0,`mouse:${mazeId}`,micromouseActive,micromouseSpeed);
@@ -318,7 +358,7 @@ export default function App() {
               micromouse={micromouseActive&&micromouse?{events:micromouse.events,eventIndex:mousePlayback.state.index,showWalls:mouseShowWalls,showFlood:mouseShowFlood,showRoute:mouseShowRoute}:null}
             />
             <DrawingCanvas hostRef={svgHostRef} mazeKey={mazeKey} disabled={endpointMode!==null||gameActive||micromouseActive} playActive={gameActive}
-              onPlay={()=>{setEndpointMode(null);setMicromouseActive(false);mousePlayback.pause();playback.pause();setGameActive(true);game.start();}} onExitPlay={()=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);}}/>
+              onPlay={startGameplay} onExitPlay={()=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);}}/>
           </div>
 
           <StatsCard stats={mazeData.stats} />
@@ -367,11 +407,12 @@ export default function App() {
         startCell={mazeData.start} goalCell={mazeData.goal} endpointMode={endpointMode}
         setEndpointMode={mode=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);setEndpointMode(mode);}} onPlaceEndpoints={placeEndpoints}
         gameplay={{active:gameActive,state:game.state,breadcrumbs:gameBreadcrumbs,setBreadcrumbs:setGameBreadcrumbs,
-          start:()=>{setEndpointMode(null);setMicromouseActive(false);mousePlayback.pause();playback.pause();setGameActive(true);game.start();},pause:game.pause,restart:()=>{setEndpointMode(null);setMicromouseActive(false);mousePlayback.pause();playback.pause();setGameActive(true);game.restart();}}}
+          start:startGameplay,pause:game.pause,restart:restartGameplay}}
         micromouse={{available:topology==='grid',active:micromouseActive,reason:'Micromouse physics requires grid topology.',failureReason:micromouse?.reason,state:mousePlayback.state,phase:mousePhase,eventCount:micromouse?.events.length??0,speed:micromouseSpeed,setSpeed:setMicromouseSpeed,showWalls:mouseShowWalls,setShowWalls:setMouseShowWalls,showFlood:mouseShowFlood,setShowFlood:setMouseShowFlood,showRoute:mouseShowRoute,setShowRoute:setMouseShowRoute,metrics:micromouse?.metrics,
           start:()=>{game.pause();playback.pause();setGameActive(false);setEndpointMode(null);setMicromouseActive(true);},play:mousePlayback.play,pause:mousePlayback.pause,restart:()=>{game.pause();playback.pause();setGameActive(false);setEndpointMode(null);setMicromouseActive(true);mousePlayback.restart();},step:mousePlayback.step,seek:mousePlayback.seek,
           seekPhase:phase=>{const index=micromouse?.events.findIndex(event=>event.type==='phase'&&event.phase===phase)??-1;if(index>=0){setMicromouseActive(true);mousePlayback.seek(index+1);}},
           competitionPreset:()=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);setEndpointMode(null);setStartCell({x:0,y:height-1});setGoalCell({x:Math.floor(width/2),y:Math.floor(height/2)});}}}
+        history={{entries:history,onOpen:openHistory,onDelete:deleteHistory,onClear:clearHistory}}
 
         animation={{
           mode: animationMode,

@@ -34,11 +34,12 @@ export function useMazeGame(graph:MazeGraph,key:string){
   const start=()=>setState(current=>current.status==='complete'?initial(key,graph.start,'playing'):{...current,status:'playing'});
   const pause=()=>setState(current=>current.status==='playing'?{...current,elapsedMs:elapsedAtStart.current+Math.max(0,Date.now()-(startedAt.current??Date.now())),status:'paused'}:current);
   const restart=()=>{startedAt.current=Date.now();elapsedAtStart.current=0;setState(initial(key,graph.start,'playing'));};
+  const restore=(saved:MazeGameState)=>{startedAt.current=null;elapsedAtStart.current=saved.elapsedMs;setState(saved.key===key?{...saved,status:saved.status==='playing'?'paused':saved.status}:initial(key,graph.start));};
   const move=(target:NodeId)=>setState(current=>{
     if(current.status!=='playing')return current;
     const node=graph.nodes.get(current.current);if(!node?.neighbors.includes(target))return current;
     const route=[...current.route,target],complete=goals.has(target);
     return{...current,current:target,route,moves:current.moves+1,revisits:current.revisits+(current.route.includes(target)?1:0),elapsedMs:complete?elapsedAtStart.current+Math.max(0,Date.now()-(startedAt.current??Date.now())):current.elapsedMs,status:complete?'complete':'playing'};
   });
-  return{state,start,pause,restart,move};
+  return{state,start,pause,restart,restore,move};
 }

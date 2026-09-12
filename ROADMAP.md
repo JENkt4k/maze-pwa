@@ -7,31 +7,22 @@
 - Start and goal placement.
 - Rounded and organic wall rendering.
 - Interactive gameplay with persisted in-progress sessions.
+- Freeform graph mazes.
+- Micromouse simulation with search, return, and speed-run phases.
 
 ## Next stages
 
-1. **Freeform graph mazes**
-   - Add a topology-neutral maze document shared by rendering, solving,
-     animation, endpoints, gameplay, saving, and sharing.
-   - Add a seeded Voronoi-style generator with irregular cells and walls.
-   - Preserve every existing grid maze and saved/share-link contract.
-
-2. **Micromouse simulation**
-   - Give the simulated mouse incomplete knowledge rather than the full graph.
-   - Add flood-fill exploration, discovered-wall memory, return/search runs, and
-     a speed run.
-   - Add simplified motion costs for distance, turns, acceleration, and collisions.
-   - Compare algorithms using time, distance, turns, explored cells, and final
-     route quality.
-
-3. **Play history and local leaderboard**
+1. **Play history**
    - Add a history entry whenever a maze is started, including abandoned and
      completed attempts.
    - Store a stable maze identity plus enough maze data to reopen the exact maze.
    - Record elapsed time, moves, revisits, completion state, timestamps, and the
      player's route.
+   - Provide history UI, reopen, delete, and clear controls.
+
+2. **Local leaderboard**
    - Rank completed attempts per maze, with best-time and fewest-moves views.
-   - Provide history/leaderboard UI, replay, delete, and clear controls.
+   - Include Micromouse results as a separate comparison category.
    - Keep the first version local and offline-capable. A shared online leaderboard
      requires identity, moderation, and a backend and should be a separate stage.
 

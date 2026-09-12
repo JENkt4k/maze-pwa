@@ -147,6 +147,35 @@ test('gameplay moves through passages and restores progress paused',async({page}
   await expect(gameControls.getByText('Moves',{exact:true}).locator('..')).toContainText('2');
 });
 
+test('play history records, restores, abandons, and clears attempts',async({page})=>{
+  await page.goto('./');
+  const history=page.getByRole('region',{name:'Play history'});
+  await expect(history.getByText('Play a maze to start your history.')).toBeVisible();
+  await page.getByRole('button',{name:'Play',exact:true}).first().click();
+  const game=page.getByRole('application',{name:'Maze gameplay area'});
+  await game.getByRole('button').first().click();
+  await page.getByRole('group',{name:'Gameplay controls'}).getByRole('button',{name:'Pause',exact:true}).click();
+  await expect(history.getByText('Paused',{exact:true})).toBeVisible();
+  await expect(history.getByText('1 moves',{exact:true})).toBeVisible();
+  await history.getByRole('button',{name:'Completed',exact:true}).click();
+  await expect(history.getByText('No attempts match this filter.')).toBeVisible();
+  await history.getByRole('button',{name:'All',exact:true}).click();
+  await page.reload();
+  await history.getByRole('button',{name:'Reopen',exact:true}).click();
+  await expect(page.getByRole('group',{name:'Gameplay controls'}).getByRole('status')).toContainText('Paused');
+  await expect(page.getByRole('group',{name:'Gameplay controls'}).getByText('Moves',{exact:true}).locator('..')).toContainText('1');
+  await page.getByRole('group',{name:'Gameplay controls'}).getByRole('button',{name:'Resume',exact:true}).click();
+  await page.getByRole('button',{name:'Generate new maze',exact:true}).click();
+  await expect(history.getByText('Abandoned',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Play',exact:true}).first().click();
+  await page.getByRole('group',{name:'Gameplay controls'}).getByRole('button',{name:'Pause',exact:true}).click();
+  await expect(history.getByRole('button',{name:'Delete',exact:true})).toHaveCount(2);
+  await history.getByRole('button',{name:'Delete',exact:true}).first().click();
+  await expect(history.getByRole('button',{name:'Delete',exact:true})).toHaveCount(1);
+  await history.getByRole('button',{name:'Clear history'}).click();
+  await expect(history.getByText('Play a maze to start your history.')).toBeVisible();
+});
+
 test('Micromouse explores, exposes phases, and disables physics for freeform mazes',async({page})=>{
   await page.goto('./');
   const controls=page.locator('.mouse-controls');
