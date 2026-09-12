@@ -1,5 +1,5 @@
 import { createMaze } from '@src/app/maze';
-import { analyzeDifficultyV2, createAnalysisContext, difficultyLabel, scoreDifficultyV2, type Difficulty2NormalizedMetrics } from '@src/maze/difficulty';
+import { analyzeDifficultyV2, createAnalysisContext, difficultyLabel, scoreDifficultyV2, structuralMetrics, type Difficulty2NormalizedMetrics } from '@src/maze/difficulty';
 import { mazeToGraph, type MazeGraph, type MazeNode } from '@src/maze/graph';
 
 type Definition={id:string;x:number;y:number;neighbors:string[]};
@@ -58,10 +58,46 @@ test.each([
 
 test.each([[0,'Easy'],[19,'Easy'],[20,'Moderate'],[34,'Moderate'],[35,'Challenging'],[49,'Challenging'],[50,'Hard'],[64,'Hard'],[65,'Expert'],[79,'Expert'],[80,'Brutal'],[94,'Brutal'],[95,'Diabolical'],[100,'Diabolical']] as const)('score %i maps to %s', (score,label)=>expect(difficultyLabel(score)).toBe(label));
 
-test('composite scoring clamps to 0..100 and ignores future zero placeholders',()=>{
-  const metrics=(value:number):Difficulty2NormalizedMetrics=>({path:value,turns:value,solutionJunctions:value,branchBurden:value,traps:value,entropy:value,goalDeception:value,falseHope:0,loops:0,repetition:0});
+test('composite scoring clamps to 0..100 across all active metrics',()=>{
+  const metrics=(value:number):Difficulty2NormalizedMetrics=>({path:value,turns:value,solutionJunctions:value,branchBurden:value,traps:value,entropy:value,goalDeception:value,falseHope:value,loops:value,repetition:value});
   expect(scoreDifficultyV2(metrics(0))).toEqual({score:0,label:'Easy'});
   expect(scoreDifficultyV2(metrics(1))).toEqual({score:100,label:'Diabolical'});
+});
+
+test('a wrong branch approaching the goal creates more false hope',()=>{
+  const withBranch=(x:number,y:number)=>graph([
+    {id:'s',x:0,y:0,neighbors:['a']},{id:'a',x:1,y:0,neighbors:['s','g','b']},{id:'g',x:2,y:0,neighbors:['a']},{id:'b',x,y,neighbors:['a']},
+  ]);
+  expect(analyzeDifficultyV2(withBranch(1.9,.1)).raw.falseHopeScore).toBeGreaterThan(analyzeDifficultyV2(withBranch(8,8)).raw.falseHopeScore);
+});
+
+test('adding an edge records cycle rank and loop density',()=>{
+  const tree=base([{id:'b',x:1,y:1,neighbors:['a']}]);
+  const cycle=graph([
+    {id:'s',x:0,y:0,neighbors:['a','g']},{id:'a',x:1,y:0,neighbors:['s','g']},{id:'g',x:2,y:0,neighbors:['s','a']},
+  ]);
+  expect(analyzeDifficultyV2(tree).raw.cycleRank).toBe(0);
+  expect(analyzeDifficultyV2(cycle).raw.cycleRank).toBe(1);
+  expect(analyzeDifficultyV2(cycle).raw.loopDensity).toBeGreaterThan(0);
+});
+
+test('repeated radius-one neighborhoods increase perceptual repetition',()=>{
+  const pair=graph([{id:'s',x:0,y:0,neighbors:['g']},{id:'g',x:1,y:0,neighbors:['s']}]);
+  const corridor=graph([
+    {id:'s',x:0,y:0,neighbors:['a']},{id:'a',x:1,y:0,neighbors:['s','b']},{id:'b',x:2,y:0,neighbors:['a','c']},
+    {id:'c',x:3,y:0,neighbors:['b','d']},{id:'d',x:4,y:0,neighbors:['c','g']},{id:'g',x:5,y:0,neighbors:['d']},
+  ]);
+  expect(structuralMetrics(createAnalysisContext(corridor)).localPatternRepetitionRate).toBeGreaterThan(structuralMetrics(createAnalysisContext(pair)).localPatternRepetitionRate);
+});
+
+test('diameter ratio falls when the selected endpoints cover less of the graph',()=>{
+  const full=graph([{id:'s',x:0,y:0,neighbors:['a']},{id:'a',x:1,y:0,neighbors:['s','g']},{id:'g',x:2,y:0,neighbors:['a']}]);
+  const partial=graph([
+    {id:'s',x:0,y:0,neighbors:['a','b']},{id:'a',x:1,y:0,neighbors:['s','g']},{id:'g',x:2,y:0,neighbors:['a']},
+    {id:'b',x:0,y:1,neighbors:['s','c']},{id:'c',x:0,y:2,neighbors:['b','d']},{id:'d',x:0,y:3,neighbors:['c']},
+  ]);
+  expect(analyzeDifficultyV2(full).raw.startGoalDiameterRatio).toBe(1);
+  expect(analyzeDifficultyV2(partial).raw.startGoalDiameterRatio).toBeLessThan(1);
 });
 
 test('analysis context excludes unreachable islands and independently verifies the goal',()=>{

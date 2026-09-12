@@ -14,6 +14,8 @@ export function normalizeDifficultyMetrics(raw:Difficulty2RawMetrics):Difficulty
     traps:clamp(raw.maxWrongBranchDepth/Math.sqrt(cells)*normalization.trapScale),
     entropy:saturate(raw.weightedDecisionEntropy,Math.sqrt(cells)*normalization.entropyCellScale),
     goalDeception:clamp(raw.goalDeceptionRate*normalization.goalDeceptionRateWeight+raw.goalDeceptionMagnitude/path*normalization.goalDeceptionMagnitudeWeight),
-    falseHope:0,loops:0,repetition:0,
+    falseHope:saturate(raw.falseHopeScore,Math.sqrt(cells)/normalization.falseHopeCellScale),
+    loops:clamp(raw.loopDensity*normalization.loopDensityScale),
+    repetition:clamp(raw.localPatternRepetitionRate),
   };
 }

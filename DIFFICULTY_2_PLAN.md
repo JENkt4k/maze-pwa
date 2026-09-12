@@ -5,8 +5,10 @@
 - **Phase 1 — Analysis foundation:** implemented and validated on
   `feature/difficulty-v2-analysis`; merged.
 - **Phase 2 — Composite score:** implemented and validated on
-  `feature/difficulty-v2-score`; pending merge.
-- **Phases 3–7:** backlog.
+  `feature/difficulty-v2-score`; merged.
+- **Phase 3 — Additional visual/graph metrics:** implemented and validated on
+  `feature/difficulty-v2-metrics`; pending merge.
+- **Phases 4–7:** backlog.
 
 > **Purpose:** Implementation specification for Codex / coding agents working on `JENkt4k/maze-pwa` (InfiMaze).
 >
