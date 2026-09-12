@@ -1,5 +1,5 @@
 import { createMaze } from '@src/app/maze';
-import { analyzeDifficultyV2, createAnalysisContext } from '@src/maze/difficulty';
+import { analyzeDifficultyV2, createAnalysisContext, difficultyLabel, scoreDifficultyV2, type Difficulty2NormalizedMetrics } from '@src/maze/difficulty';
 import { mazeToGraph, type MazeGraph, type MazeNode } from '@src/maze/graph';
 
 type Definition={id:string;x:number;y:number;neighbors:string[]};
@@ -16,6 +16,7 @@ test('a deeper wrong branch increases branch burden and trap score',()=>{
   expect(deep.raw.wrongBranchCellBurden).toBeGreaterThan(shallow.raw.wrongBranchCellBurden);
   expect(deep.raw.maxWrongBranchDepth).toBeGreaterThan(shallow.raw.maxWrongBranchDepth);
   expect(deep.raw.deepTrapScore).toBeGreaterThan(shallow.raw.deepTrapScore);
+  expect(deep.score).toBeGreaterThan(shallow.score);
 });
 
 test('more plausible exits increase solution decision entropy',()=>{
@@ -24,10 +25,11 @@ test('more plausible exits increase solution decision entropy',()=>{
     {id:'s',x:0,y:0,neighbors:['a']},{id:'a',x:1,y:0,neighbors:['s','g','b','c']},{id:'g',x:2,y:0,neighbors:['a']},
     {id:'b',x:1,y:1,neighbors:['a']},{id:'c',x:1,y:-1,neighbors:['a']},
   ]);
-  const low=analyzeDifficultyV2(twoChoices).raw,high=analyzeDifficultyV2(threeChoices).raw;
-  expect(high.solutionDecisionCount).toBe(low.solutionDecisionCount);
-  expect(high.decisionEntropy).toBeGreaterThan(low.decisionEntropy);
-  expect(high.weightedDecisionEntropy).toBeGreaterThan(low.weightedDecisionEntropy);
+  const low=analyzeDifficultyV2(twoChoices),high=analyzeDifficultyV2(threeChoices);
+  expect(high.raw.solutionDecisionCount).toBe(low.raw.solutionDecisionCount);
+  expect(high.raw.decisionEntropy).toBeGreaterThan(low.raw.decisionEntropy);
+  expect(high.raw.weightedDecisionEntropy).toBeGreaterThan(low.raw.weightedDecisionEntropy);
+  expect(high.score).toBeGreaterThan(low.score);
 });
 
 test('correct moves away from the visible goal register as deception',()=>{
@@ -38,6 +40,7 @@ test('correct moves away from the visible goal register as deception',()=>{
   expect(analyzeDifficultyV2(direct).raw.goalDeceptionRate).toBe(0);
   expect(analyzeDifficultyV2(deceptive).raw.goalDeceptionRate).toBeGreaterThan(0);
   expect(analyzeDifficultyV2(deceptive).raw.goalDeceptionMagnitude).toBeGreaterThan(0);
+  expect(analyzeDifficultyV2(deceptive).score).toBeGreaterThan(analyzeDifficultyV2(direct).score);
 });
 
 test.each([
@@ -49,6 +52,16 @@ test.each([
   expect(second).toEqual(first);expect(Object.values(first.raw).every(Number.isFinite)).toBe(true);
   expect([...mazeGraph.nodes].map(([id,node])=>[id,node.position,[...node.neighbors]])).toEqual(before);
   expect(first.raw.activeCells).toBe(mazeGraph.nodes.size);
+  expect(first.score).toBeGreaterThanOrEqual(0);expect(first.score).toBeLessThanOrEqual(100);
+  expect(Object.values(first.normalized).every(value=>value>=0&&value<=1)).toBe(true);
+});
+
+test.each([[0,'Easy'],[19,'Easy'],[20,'Moderate'],[34,'Moderate'],[35,'Challenging'],[49,'Challenging'],[50,'Hard'],[64,'Hard'],[65,'Expert'],[79,'Expert'],[80,'Brutal'],[94,'Brutal'],[95,'Diabolical'],[100,'Diabolical']] as const)('score %i maps to %s', (score,label)=>expect(difficultyLabel(score)).toBe(label));
+
+test('composite scoring clamps to 0..100 and ignores future zero placeholders',()=>{
+  const metrics=(value:number):Difficulty2NormalizedMetrics=>({path:value,turns:value,solutionJunctions:value,branchBurden:value,traps:value,entropy:value,goalDeception:value,falseHope:0,loops:0,repetition:0});
+  expect(scoreDifficultyV2(metrics(0))).toEqual({score:0,label:'Easy'});
+  expect(scoreDifficultyV2(metrics(1))).toEqual({score:100,label:'Diabolical'});
 });
 
 test('analysis context excludes unreachable islands and independently verifies the goal',()=>{

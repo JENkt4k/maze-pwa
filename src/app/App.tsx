@@ -25,6 +25,7 @@ import type { MazePoint } from './maze';
 import type { WallStyle } from '../maze/walls';
 import { GAME_STORAGE_KEY, useMazeGame, type MazeGameState } from './hooks/useMazeGame';
 import { simulateMicromouse, type MousePhase } from '../maze/micromouse';
+import { analyzeDifficultyV2 } from '../maze/difficulty';
 import { abandonHistoryEntry, createHistoryEntry, HISTORY_LIMIT, HISTORY_STORAGE_KEY, historyGameState, parsePlayHistory, updateHistoryEntry, type HistoryMazeParams, type PlayHistoryEntry } from './history';
 
 const DEFAULT_START = "\u{1f680}";
@@ -246,6 +247,7 @@ export default function App() {
   const mazeKey = `${topology}:${regionDensity}:${irregularity}:${generator}:${mask}:${customMask?.pixels??''}:${customMask?.threshold??''}:${customMask?.invert??''}:${width}:${height}:${seed}:${g}:${b}:${tau}`;
   const mazeData = useMemo(() => createMaze(mazeParams), [width,height,seed,g,b,tau,generator,topology,regionDensity,irregularity,mask,customMask,startCell,goalCell]);
   const mazeGraph = useMemo(() => mazeToGraph(mazeData), [mazeData]);
+  const difficultyV2=useMemo(()=>analyzeDifficultyV2(mazeGraph),[mazeGraph]);
   const mazeId=useMemo(()=>mazeFingerprint(mazeGraph),[mazeGraph]);
   const gameKey=`${mazeKey}:${mazeId}`;
   const game=useMazeGame(mazeGraph,gameKey);
@@ -363,7 +365,7 @@ export default function App() {
               onPlay={startGameplay} onExitPlay={()=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);}}/>
           </div>
 
-          <StatsCard stats={mazeData.stats} />
+          <StatsCard stats={mazeData.stats} difficulty={difficultyV2} />
         </section>
       </main>
 
