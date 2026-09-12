@@ -33,6 +33,13 @@ test('non-default generators survive shared links', () => {
   const url=buildShareURL('https://example.test/',{...params,generator:'kruskal',mask:'heart',startIcon:null,goalIcon:null});
   expect(parseFromURL(new URL(url).search)).toMatchObject({generator:'kruskal',mask:'heart'});
 });
+test('freeform topology controls survive settings and versioned share links',()=>{
+  const freeform={topology:'freeform' as const,regionDensity:.45,irregularity:.8};
+  expect(validateSettings(freeform)).toEqual(freeform);
+  const url=buildShareURL('https://example.test/',{...params,...freeform,startIcon:null,goalIcon:null});
+  expect(new URL(url).searchParams.get('v')).toBe('3');
+  expect(parseFromURL(new URL(url).search)).toMatchObject(freeform);
+});
 test('custom silhouette data survives validated share links',()=>{
   const customMask={pixels:btoa(String.fromCharCode(...new Array(41**2).fill(127))),threshold:140,invert:true,name:'sample.png'};
   const url=buildShareURL('https://example.test/',{...params,mask:'custom',customMask,startIcon:null,goalIcon:null});

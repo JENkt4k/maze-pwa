@@ -13,9 +13,9 @@ import MazeView from "./components/MazeView";
 
 import { buildShareURL, parseFromURL, parseSettings, parseSaved, SETTINGS_KEY, STORAGE_KEY, type SavedMaze } from "./state";
 import { handlePrint } from "./print";
-import { createMaze, type GeneratorId } from "./maze";
+import { createMaze, type GeneratorId, type MazeTopology } from "./maze";
 import { useDifficultySearch } from "./hooks/useDifficultySearch";
-import { mazeToGraph } from '../maze/graph';
+import { mazeFingerprint, mazeToGraph } from '../maze/graph';
 import { solveMaze, type SolverId } from '../maze/solvers';
 import { useSolverPlayback } from './hooks/useSolverPlayback';
 import type { AnimationMode } from '../maze/animation';
@@ -55,6 +55,9 @@ export default function App() {
   const [b, setB]              = useState(fromURL.b      ?? persisted?.b      ?? 0.15);
   const [tau, setTau]          = useState(fromURL.tau    ?? persisted?.tau    ?? 0.4);
   const [generator, setGenerator] = useState<GeneratorId>(fromURL.generator ?? persisted.generator ?? 'dfs');
+  const [topology,setTopology]=useState<MazeTopology>(fromURL.topology??persisted.topology??'grid');
+  const [regionDensity,setRegionDensity]=useState(fromURL.regionDensity??persisted.regionDensity??.38);
+  const [irregularity,setIrregularity]=useState(fromURL.irregularity??persisted.irregularity??.75);
   const [mask,setMask]=useState<MaskId>(fromURL.mask??persisted.mask??'rectangle');
   const [customMask,setCustomMask]=useState<CustomMask|undefined>(persisted.customMask);
   const [startCell,setStartCell]=useState<MazePoint|undefined>(fromURL.startCell??persisted.startCell);
@@ -79,7 +82,7 @@ export default function App() {
 
   const handleSave = () => {
     const name = saveName.trim().slice(0, 200) || `Maze ${saved.length + 1}`;
-    const params = { width, height, seed, g, b, tau, generator, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, wallStyle, wallThickness, cornerRadius, startIcon, goalIcon };
+    const params = { width, height, seed, g, b, tau, generator,topology,regionDensity,irregularity, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, wallStyle, wallThickness, cornerRadius, startIcon, goalIcon };
     const id = crypto.randomUUID();
     const newMaze: SavedMaze = { id, name, params, createdAt: Date.now() };
     const updated = [...saved, newMaze];
@@ -103,6 +106,9 @@ export default function App() {
     setB(maze.params.b);
     setTau(maze.params.tau);
     setGenerator(maze.params.generator ?? 'dfs');
+    setTopology(maze.params.topology??'grid');
+    setRegionDensity(maze.params.regionDensity??.38);
+    setIrregularity(maze.params.irregularity??.75);
     setMask(maze.params.mask??'rectangle');
     setCustomMask(maze.params.customMask);
     setStartCell(maze.params.startCell);
@@ -124,7 +130,7 @@ export default function App() {
   };
 
   const handleShare = async () => {
-    const url = buildShareURL(window.location.href, { width, height, seed, g, b, tau, generator, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, wallStyle, wallThickness, cornerRadius, startIcon, goalIcon });
+    const url = buildShareURL(window.location.href, { width, height, seed, g, b, tau, generator,topology,regionDensity,irregularity, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, wallStyle, wallThickness, cornerRadius, startIcon, goalIcon });
     try {
       // Native share on mobile; clipboard elsewhere
       if (navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
@@ -183,6 +189,9 @@ export default function App() {
           solverStepMs,
           animationMode,
           generator,
+          topology,
+          regionDensity,
+          irregularity,
           mask,
           customMask,
           startCell,
@@ -200,7 +209,7 @@ export default function App() {
         }));
       setSettingsError(null);
     } catch { setSettingsError("Settings could not be stored. They will reset when this page is closed."); }
-  }, [seed,width,height,g,b,tau,generator,mask,customMask,startCell,goalCell,wallStyle,wallThickness,cornerRadius,gameBreadcrumbs,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
+  }, [seed,width,height,g,b,tau,generator,topology,regionDensity,irregularity,mask,customMask,startCell,goalCell,wallStyle,wallThickness,cornerRadius,gameBreadcrumbs,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
 
   // compute margin/stroke once from cell
   const margin = Math.round(cell/2);
@@ -218,15 +227,16 @@ export default function App() {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  const mazeParams={width,height,seed,g,b,tau,generator,mask,customMask:mask==='custom'?customMask:undefined,startCell,goalCell};
+  const mazeParams={width,height,seed,g,b,tau,generator,topology,regionDensity,irregularity,mask,customMask:mask==='custom'?customMask:undefined,startCell,goalCell};
   const { search: findMaxDifficulty, searching, error: searchError } = useDifficultySearch(mazeParams, best => {
     setG(best.g); setB(best.b); setTau(best.tau); setSeed(best.seed);
   });
   const newMaze = () => setSeed(s => (s + 1) | 0);
-  const mazeKey = `${generator}:${mask}:${customMask?.pixels??''}:${customMask?.threshold??''}:${customMask?.invert??''}:${width}:${height}:${seed}:${g}:${b}:${tau}`;
-  const mazeData = useMemo(() => createMaze(mazeParams), [width,height,seed,g,b,tau,generator,mask,customMask,startCell,goalCell]);
+  const mazeKey = `${topology}:${regionDensity}:${irregularity}:${generator}:${mask}:${customMask?.pixels??''}:${customMask?.threshold??''}:${customMask?.invert??''}:${width}:${height}:${seed}:${g}:${b}:${tau}`;
+  const mazeData = useMemo(() => createMaze(mazeParams), [width,height,seed,g,b,tau,generator,topology,regionDensity,irregularity,mask,customMask,startCell,goalCell]);
   const mazeGraph = useMemo(() => mazeToGraph(mazeData), [mazeData]);
-  const gameKey=`${mazeKey}:${mazeGraph.start}:${mazeGraph.goals.join('|')}`;
+  const mazeId=useMemo(()=>mazeFingerprint(mazeGraph),[mazeGraph]);
+  const gameKey=`${mazeKey}:${mazeId}`;
   const game=useMazeGame(mazeGraph,gameKey);
   useEffect(()=>setGameActive(false),[gameKey]);
   const solverRun = useMemo(() => solveMaze(mazeGraph, solverAlgorithm), [mazeGraph, solverAlgorithm]);
@@ -307,6 +317,8 @@ export default function App() {
 
         /* Size & difficulty */
         width={width} height={height} g={g} b={b} tau={tau}
+        topology={topology} setTopology={value=>{setTopology(value);setStartCell(undefined);setGoalCell(undefined);setEndpointMode(null);}}
+        regionDensity={regionDensity} setRegionDensity={setRegionDensity} irregularity={irregularity} setIrregularity={setIrregularity}
         setWidth={setWidth} setHeight={setHeight} setG={setG} setB={setB} setTau={setTau}
 
         /* Actions */

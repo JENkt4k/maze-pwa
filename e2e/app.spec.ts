@@ -68,6 +68,25 @@ test('shape selector changes the maze mask', async ({page}) => {
   await expect.poll(()=>page.locator('#print-maze-only .walls').innerHTML()).not.toBe(rectangularWalls);
 });
 
+test('freeform topology exposes region controls and supports endpoints and gameplay',async({page})=>{
+  await page.goto('./');
+  await page.getByText('Adjust size',{exact:true}).click();
+  const topology=page.getByLabel('Maze topology');
+  await expect(topology).toHaveValue('grid');
+  await topology.selectOption('freeform');
+  await expect(page.getByLabel(/Region density:/)).toBeVisible();
+  await expect(page.getByLabel(/Irregularity:/)).toBeVisible();
+  await expect(page.locator('#print-maze-only .freeform-outline')).toBeVisible();
+  const walls=await page.locator('#print-maze-only .walls').innerHTML();
+  await page.getByLabel(/Irregularity:/).fill('20');
+  await expect.poll(()=>page.locator('#print-maze-only .walls').innerHTML()).not.toBe(walls);
+  await page.getByRole('button',{name:'Set start',exact:true}).click();
+  await page.getByRole('gridcell',{name:/Set start at region/}).first().click();
+  await page.getByRole('button',{name:'Play',exact:true}).first().click();
+  await expect(page.getByRole('application',{name:'Maze gameplay area'})).toBeFocused();
+  await expect(page.getByRole('application',{name:'Maze gameplay area'}).getByRole('button')).not.toHaveCount(0);
+});
+
 test('custom silhouette upload exposes preview controls and builds a maze',async({page})=>{
   await page.goto('./');
   await page.getByText('Adjust size',{exact:true}).click();
@@ -215,7 +234,7 @@ test('animation independently switches generation and solving algorithms', async
   await generator.selectOption('prim');
   await expect.poll(()=>page.locator('#print-maze-only .walls').innerHTML()).not.toBe(originalMaze);
   await solver.selectOption('astar');
-  await expect(page.getByText(/Manhattan distance/)).toBeVisible();
+  await expect(page.getByText(/straight-line distance/)).toBeVisible();
   await expect(page.getByText(/^Path$/).locator('..')).toContainText('steps');
   await animationControls.getByRole('button',{name:'Restart',exact:true}).click();
   await expect(animationControls.getByRole('button',{name:'Pause',exact:true})).toBeVisible();

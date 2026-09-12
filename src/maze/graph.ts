@@ -23,6 +23,7 @@ const DIRECTIONS = [
 export const nodeId = (point: Point): NodeId => `${point.x},${point.y}`;
 
 export function mazeToGraph(result: MazeResult): MazeGraph {
+  if(result.graph)return result.graph;
   const nodes = new Map<NodeId, MazeNode>();
   for (const row of result.maze) for (const cell of row) if(result.mask[cell.y][cell.x]) {
     const neighbors = DIRECTIONS
@@ -38,4 +39,11 @@ export function requireNode(graph: MazeGraph, id: NodeId): MazeNode {
   const node = graph.nodes.get(id);
   if (!node) throw new Error(`Maze graph does not contain node ${id}`);
   return node;
+}
+
+/** Stable topology/content identity for gameplay records and future history. */
+export function mazeFingerprint(graph:MazeGraph):string{
+  const canonical=[...graph.nodes.values()].sort((a,b)=>a.id.localeCompare(b.id)).map(node=>`${node.id}@${node.position.x.toFixed(5)},${node.position.y.toFixed(5)}>${[...node.neighbors].sort().join(',')}`).join('|')+`#${graph.start}>${[...graph.goals].sort().join(',')}`;
+  let hash=0x811c9dc5;for(let i=0;i<canonical.length;i++){hash^=canonical.charCodeAt(i);hash=Math.imul(hash,0x01000193);}
+  return`v1-${(hash>>>0).toString(16).padStart(8,'0')}`;
 }

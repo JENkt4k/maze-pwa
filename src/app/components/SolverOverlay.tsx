@@ -12,9 +12,10 @@ type Props = {
   heightCells: number;
   color: string;
   opacity: number;
+  freeform?:boolean;
 };
 
-export default function SolverOverlay({ graph, events, eventIndex, cell, margin, widthCells, heightCells, color, opacity }: Props) {
+export default function SolverOverlay({ graph, events, eventIndex, cell, margin, widthCells, heightCells, color, opacity,freeform }: Props) {
   const playback = useMemo(() => {
     const discovered = new Set<NodeId>(), expanded = new Set<NodeId>(), path: NodeId[] = [];
     let current: NodeId | null = null;
@@ -29,7 +30,7 @@ export default function SolverOverlay({ graph, events, eventIndex, cell, margin,
   if (eventIndex === 0) return null;
   const center = (id: NodeId) => {
     const point = requireNode(graph, id).position;
-    return { x: margin + point.x * cell + cell / 2, y: margin + point.y * cell + cell / 2 };
+    return { x: margin + point.x * cell + (freeform?0:cell/2), y: margin + point.y * cell + (freeform?0:cell/2) };
   };
   const pathPoints = playback.path.filter(Boolean).map(center);
   return <svg className="solver-overlay-svg" viewBox={`0 0 ${widthCells * cell + margin * 2} ${heightCells * cell + margin * 2}`} aria-hidden="true">
