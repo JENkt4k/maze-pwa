@@ -1,4 +1,4 @@
-import { normalizeMarker, type GeneratorId, type MazeParams } from './maze';
+import { normalizeMarker, type GeneratorId, type MazeParams, type MazeTopology } from './maze';
 import type { SolverId } from '../maze/solvers';
 import type { AnimationMode } from '../maze/animation';
 import { CUSTOM_MASK_SIZE, type CustomMask, type MaskId } from '../maze/masks';
@@ -27,7 +27,7 @@ export type Settings = MazeParams & Markers & {
 };
 export type SavedMaze = { id: string; name: string; params: MazeParams & Partial<Markers>; createdAt: number };
 const record = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
-const ranges = { width: [7, 41], height: [7, 41], seed: [-2147483648, 2147483647], g: [0, 1], b: [0, .5], tau: [0, 1], dfsSegMs: [10, 250], lingerMs: [0, 5000], solverStepMs: [10, 250], generationOpacity: [.1, 1], solverOpacity: [.1, 1],wallThickness:[1,8],cornerRadius:[0,.5] } as const;
+const ranges = { width: [7, 41], height: [7, 41], seed: [-2147483648, 2147483647], g: [0, 1], b: [0, .5], tau: [0, 1],regionDensity:[.15,1],irregularity:[0,1], dfsSegMs: [10, 250], lingerMs: [0, 5000], solverStepMs: [10, 250], generationOpacity: [.1, 1], solverOpacity: [.1, 1],wallThickness:[1,8],cornerRadius:[0,.5] } as const;
 
 export function validateSettings(value: unknown): Partial<Settings> {
   if (!record(value)) return {};
@@ -44,13 +44,14 @@ export function validateSettings(value: unknown): Partial<Settings> {
   for (const key of ['controlsOpen', 'lockSize', 'animateDFS', 'solverEnabled','gameBreadcrumbs']) if (typeof value[key] === 'boolean') out[key] = value[key];
   if (['dfs', 'bfs', 'dijkstra', 'astar'].includes(String(value.solverAlgorithm))) out.solverAlgorithm = value.solverAlgorithm;
   if (['dfs', 'prim', 'kruskal'].includes(String(value.generator))) out.generator = value.generator as GeneratorId;
+  if(['grid','freeform'].includes(String(value.topology)))out.topology=value.topology as MazeTopology;
   if (['rectangle','ellipse','diamond','heart','star','cup','brain','moose','custom'].includes(String(value.mask))) out.mask=value.mask as MaskId;
   if(['classic','rounded','organic'].includes(String(value.wallStyle)))out.wallStyle=value.wallStyle as WallStyle;
   if(record(value.customMask)&&typeof value.customMask.pixels==='string'&&value.customMask.pixels.length<=Math.ceil(CUSTOM_MASK_SIZE**2/3)*4&&typeof value.customMask.threshold==='number'){
     const threshold=Math.max(1,Math.min(254,Math.trunc(value.customMask.threshold)));
     out.customMask={pixels:value.customMask.pixels,threshold,invert:value.customMask.invert===true,name:typeof value.customMask.name==='string'?value.customMask.name.slice(0,100):undefined} satisfies CustomMask;
   }
-  for(const endpoint of ['startCell','goalCell'] as const)if(record(value[endpoint])&&Number.isInteger(value[endpoint].x)&&Number.isInteger(value[endpoint].y)){
+  for(const endpoint of ['startCell','goalCell'] as const)if(record(value[endpoint])&&Number.isFinite(value[endpoint].x)&&Number.isFinite(value[endpoint].y)){
     out[endpoint]={x:Math.max(0,Math.min(100,value[endpoint].x as number)),y:Math.max(0,Math.min(100,value[endpoint].y as number))};
   }
   if (['build-solve', 'build', 'solve'].includes(String(value.animationMode))) out.animationMode = value.animationMode as AnimationMode;
@@ -86,6 +87,9 @@ export function parseFromURL(search: string): Partial<Settings> {
     if (raw !== null && raw.trim() !== '') values[key] = Number(raw);
   }
   if (q.has('gen')) values.generator = q.get('gen');
+  if(q.has('top'))values.topology=q.get('top');
+  if(q.has('rd'))values.regionDensity=Number(q.get('rd'));
+  if(q.has('irr'))values.irregularity=Number(q.get('irr'));
   if (q.has('mask')) values.mask=q.get('mask');
   if(q.has('cm')) values.customMask={pixels:q.get('cm'),threshold:Number(q.get('ct')??160),invert:q.get('ci')==='1',name:q.get('cn')??undefined};
   if(q.has('sx')&&q.has('sy'))values.startCell={x:Number(q.get('sx')),y:Number(q.get('sy'))};
@@ -97,16 +101,19 @@ export function parseFromURL(search: string): Partial<Settings> {
     if (!q.has(query)) continue;
     let marker = q.get(query) ?? '';
     // Older links double-encoded markers. Never let malformed escapes throw.
-    if (q.get('v') !== '2') { try { marker = decodeURIComponent(marker); } catch {} }
+    if (!['2','3'].includes(q.get('v')??'')) { try { marker = decodeURIComponent(marker); } catch {} }
     values[key] = marker;
   }
   return validateSettings(values);
 }
 export function buildShareURL(base: string, p: MazeParams & Markers): string {
   const u = new URL(base);
-  u.searchParams.set('v', '2');
+  u.searchParams.set('v', p.topology==='freeform'?'3':'2');
   for (const [query, key] of [['w', 'width'], ['h', 'height'], ['seed', 'seed'], ['g', 'g'], ['b', 'b'], ['tau', 'tau']] as const) u.searchParams.set(query, String(p[key]));
   if (p.generator && p.generator !== 'dfs') u.searchParams.set('gen', p.generator); else u.searchParams.delete('gen');
+  if(p.topology==='freeform')u.searchParams.set('top','freeform');else u.searchParams.delete('top');
+  if(p.topology==='freeform'&&p.regionDensity!==undefined)u.searchParams.set('rd',String(p.regionDensity));else u.searchParams.delete('rd');
+  if(p.topology==='freeform'&&p.irregularity!==undefined)u.searchParams.set('irr',String(p.irregularity));else u.searchParams.delete('irr');
   if (p.mask && p.mask !== 'rectangle') u.searchParams.set('mask',p.mask); else u.searchParams.delete('mask');
   if(p.mask==='custom'&&p.customMask){u.searchParams.set('cm',p.customMask.pixels);u.searchParams.set('ct',String(p.customMask.threshold));if(p.customMask.invert)u.searchParams.set('ci','1');else u.searchParams.delete('ci');if(p.customMask.name)u.searchParams.set('cn',p.customMask.name);else u.searchParams.delete('cn');}
   else for(const key of ['cm','ct','ci','cn'])u.searchParams.delete(key);

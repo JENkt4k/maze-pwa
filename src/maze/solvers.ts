@@ -115,12 +115,14 @@ function bestFirst(graph: MazeGraph, algorithm: 'dijkstra' | 'astar'): SolverRun
   const parents = new Map<NodeId, NodeId | null>([[graph.start, null]]), closed = new Set<NodeId>();
   const events: SolverEvent[] = [{ type: 'discover', node: graph.start }];
   let order = 0, expanded = 0, goal: NodeId | null = null;
+  let longestEdge=1;
+  for(const node of graph.nodes.values())for(const neighborId of node.neighbors){const neighbor=requireNode(graph,neighborId);longestEdge=Math.max(longestEdge,Math.hypot(node.position.x-neighbor.position.x,node.position.y-neighbor.position.y));}
   const heuristic = (id: NodeId) => {
     if (algorithm === 'dijkstra') return 0;
     const point = requireNode(graph, id).position;
     return Math.min(...graph.goals.map(candidate => {
       const target = requireNode(graph, candidate).position;
-      return Math.abs(point.x - target.x) + Math.abs(point.y - target.y);
+      return Math.hypot(point.x-target.x,point.y-target.y)/longestEdge;
     }));
   };
   const open: QueueItem[] = [{ node: graph.start, distance: 0, score: heuristic(graph.start), order: order++ }];
@@ -150,7 +152,7 @@ export const SOLVERS: Readonly<Record<SolverId, MazeSolver>> = {
   dfs: { id: 'dfs', name: 'DFS', description: 'Depth-first search explores one branch at a time and visibly backtracks.', solve: depthFirst },
   bfs: { id: 'bfs', name: 'BFS', description: 'Breadth-first search explores in layers and guarantees a shortest path.', solve: breadthFirst },
   dijkstra: { id: 'dijkstra', name: 'Dijkstra', description: 'Expands the lowest-cost frontier; unit edges produce a shortest path.', solve: graph => bestFirst(graph, 'dijkstra') },
-  astar: { id: 'astar', name: 'A*', description: 'Uses Manhattan distance to focus the shortest-path search toward the goal.', solve: graph => bestFirst(graph, 'astar') },
+  astar: { id: 'astar', name: 'A*', description: 'Uses scaled straight-line distance to focus the shortest-path search toward the goal.', solve: graph => bestFirst(graph, 'astar') },
 };
 
 export function solveMaze(graph: MazeGraph, algorithm: SolverId): SolverRun {

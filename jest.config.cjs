@@ -10,7 +10,8 @@ module.exports = {
 
   // Mirror TS path aliases here
   moduleNameMapper: {
-    '^@src/(.*)$': '<rootDir>/src/$1'
+    '^@src/(.*)$': '<rootDir>/src/$1',
+    '^d3-delaunay$': '<rootDir>/node_modules/d3-delaunay/dist/d3-delaunay.js'
   },
 
   // Use transform (not deprecated globals) and force CJS just for Jest

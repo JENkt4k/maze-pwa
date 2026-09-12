@@ -1,7 +1,8 @@
 ﻿import { createHash } from 'node:crypto';
 import { createMaze, findMaxDifficulty, normalizeMarker, toSVG, type MazeParams } from '@src/app/maze';
-import { mazeToGraph } from '@src/maze/graph';
+import { mazeFingerprint, mazeToGraph } from '@src/maze/graph';
 import { chooseEndpoints } from '@src/maze/endpoints';
+import { solveMaze } from '@src/maze/solvers';
 
 const baseline: MazeParams = { width:19, height:19, seed:42, g:.3, b:.15, tau:.4 };
 
@@ -40,6 +41,33 @@ test.each(['dfs','prim','kruskal'] as const)('%s generation is deterministic, co
   expect(first).toEqual(second);
   expect(first.treeSteps).toHaveLength(baseline.width*baseline.height-1);
   expect(first.stats.L).toBeGreaterThan(0);
+});
+
+test.each(['dfs','prim','kruskal'] as const)('%s freeform generation is deterministic, connected, and solvable',generator=>{
+  const params={...baseline,topology:'freeform' as const,mask:'brain' as const,generator,b:0,regionDensity:.45,irregularity:.8};
+  const first=createMaze(params),second=createMaze(params),graph=mazeToGraph(first);
+  expect(first).toEqual(second);
+  expect(mazeFingerprint(graph)).toBe(mazeFingerprint(mazeToGraph(second)));
+  expect(first.topology).toBe('freeform');
+  expect(first.geometry?.walls.length).toBeGreaterThan(graph.nodes.size);
+  expect(first.treeSteps).toHaveLength(graph.nodes.size-1);
+  for(const node of graph.nodes.values())for(const neighbor of node.neighbors)expect(graph.nodes.get(neighbor)?.neighbors).toContain(node.id);
+  expect(solveMaze(graph,'bfs').path.length).toBeGreaterThan(1);
+  expect(solveMaze(graph,'astar').metrics.pathLength).toBe(solveMaze(graph,'bfs').metrics.pathLength);
+});
+
+test('freeform SVG clips irregular regions to the selected silhouette and draws its outline',()=>{
+  const result=createMaze({...baseline,topology:'freeform',mask:'heart',regionDensity:.4,irregularity:.7});
+  const svg=toSVG(result,{cell:20,margin:10,wallStyle:'rounded'});
+  expect(svg).toContain('id="freeform-mask-clip"');
+  expect(svg).toContain('class="freeform-outline"');
+  expect(svg).toContain('clip-path="url(#freeform-mask-clip)"');
+  expect(result.start).not.toEqual(result.goal);
+});
+
+test('freeform DFS responds to direction bias controls',()=>{
+  const params={...baseline,topology:'freeform' as const,regionDensity:.5,irregularity:.8,b:0};
+  expect(createMaze({...params,g:0,tau:0}).treeSteps).not.toEqual(createMaze({...params,g:1,tau:1}).treeSteps);
 });
 
 test('moving endpoints preserves topology and recalculates route statistics',()=>{

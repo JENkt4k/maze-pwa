@@ -1,9 +1,12 @@
 export type Cell = { x:number; y:number; n:1|0; s:1|0; e:1|0; w:1|0 };
 export type CarveStep = { x:number; y:number; nx:number; ny:number };
 export type GeneratorId = 'dfs' | 'prim' | 'kruskal';
+export type MazeTopology = 'grid' | 'freeform';
 export type MazePoint={x:number;y:number};
-export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number;generator?:GeneratorId;mask?:MaskId;customMask?:CustomMask;startCell?:MazePoint;goalCell?:MazePoint;wallStyle?:WallStyle;wallThickness?:number;cornerRadius?:number };
+export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number;generator?:GeneratorId;topology?:MazeTopology;regionDensity?:number;irregularity?:number;mask?:MaskId;customMask?:CustomMask;startCell?:MazePoint;goalCell?:MazePoint;wallStyle?:WallStyle;wallThickness?:number;cornerRadius?:number };
 export type Stats = { L:number; T:number; J:number; E:number; D:number };
+export type GeometrySegment={x1:number;y1:number;x2:number;y2:number};
+export type MazeGeometry={width:number;height:number;walls:GeometrySegment[];outline:GeometrySegment[]};
 
 export const GENERATORS: Readonly<Record<GeneratorId, { id:GeneratorId; name:string; description:string }>> = {
   dfs: { id:'dfs', name:'Randomized DFS', description:'Carves long passages with an iterative depth-first backtracker.' },
@@ -24,6 +27,9 @@ export type MazeResult = {
   start: {x:number;y:number};
   goal:  {x:number;y:number};
   mask: boolean[][];
+  topology?:MazeTopology;
+  graph?:MazeGraph;
+  geometry?:MazeGeometry;
 };
 
 function isMazeResult(x: Cell[][] | MazeResult): x is MazeResult {
@@ -40,6 +46,7 @@ export function createMaze(params: MazeParams): MazeResult {
   }
   const generator = params.generator ?? 'dfs';
   if (!(generator in GENERATORS)) throw new RangeError('Unknown maze generator');
+  if(params.topology==='freeform')return createFreeformMaze(params);
   const { width: W, height: H, seed, g, b, tau } = params;
   const mask=createMask(W,H,params.mask??'rectangle',params.customMask);
   const rnd = mulberry32(seed);
@@ -289,23 +296,29 @@ export function toSVG(
   const m  = isMazeResult(input) ? input.maze : input;
   const activeMask=isMazeResult(input)?input.mask:m.map(row=>row.map(()=>true));
   const SG = isMazeResult(input) ? {start: input.start, goal: input.goal} : null;
+  const geometry=isMazeResult(input)?input.geometry:undefined;
 
   const { cell, margin, stroke = 2, wallStyle='classic', cornerRadius=.3 } = opts;
   if (![cell, margin, stroke, cornerRadius, opts.iconScale ?? .8].every(Number.isFinite) || cell <= 0 || margin < 0 || stroke <= 0 || cornerRadius<0||cornerRadius>.5 || (opts.iconScale ?? .8) <= 0 || !['classic','rounded','organic'].includes(wallStyle)) throw new RangeError("Invalid SVG dimensions");
   const startIcon = normalizeMarker(opts.startIcon), goalIcon = normalizeMarker(opts.goalIcon);
-  const H = m.length, W = m[0]?.length ?? 0;
+  const H = geometry?.height??m.length, W = geometry?.width??m[0]?.length??0;
   const widthPx  = W * cell + margin * 2;
   const heightPx = H * cell + margin * 2;
 
-  const cx  = (x:number)=> margin + x*cell + cell/2;
-  const cy  = (y:number)=> margin + y*cell + cell/2;
+  const cx  = (x:number)=> margin + x*cell + (geometry?0:cell/2);
+  const cy  = (y:number)=> margin + y*cell + (geometry?0:cell/2);
 
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Maze with start and goal markers" viewBox="0 0 ${widthPx} ${heightPx}">`;
-  if(wallStyle==='organic')svg+=`<defs><filter id="organic-wall-filter" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="${Math.abs(H*31+W)}" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="${Math.min(2.5,cell*.08)}" xChannelSelector="R" yChannelSelector="G"/></filter></defs>`;
+  if(wallStyle==='organic'||geometry){
+    svg+=`<defs>${wallStyle==='organic'?`<filter id="organic-wall-filter" x="-3%" y="-3%" width="106%" height="106%"><feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="${Math.abs(H*31+W)}" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="${Math.min(2.5,cell*.08)}" xChannelSelector="R" yChannelSelector="G"/></filter>`:''}`;
+    if(geometry)svg+=`<clipPath id="freeform-mask-clip">${activeMask.flatMap((row,y)=>row.flatMap((active,x)=>active?[`<rect x="${margin+x*cell}" y="${margin+y*cell}" width="${cell}" height="${cell}"/>`]:[])).join('')}</clipPath>`;
+    svg+='</defs>';
+  }
 
   // Walls
   let walls = "";
-  if(wallStyle==='classic')for (let y=0;y<H;y++) for(let x=0;x<W;x++){
+  if(geometry)walls=geometry.walls.map(line=>`<line x1="${margin+line.x1*cell}" y1="${margin+line.y1*cell}" x2="${margin+line.x2*cell}" y2="${margin+line.y2*cell}"/>`).join('');
+  else if(wallStyle==='classic')for (let y=0;y<H;y++) for(let x=0;x<W;x++){
       if(!activeMask[y][x]) continue;const c = m[y][x];
       if (c.n) walls += `<line x1="${margin+x*cell}" y1="${margin+y*cell}" x2="${margin+(x+1)*cell}" y2="${margin+y*cell}"/>`;
       if (c.w) walls += `<line x1="${margin+x*cell}" y1="${margin+y*cell}" x2="${margin+x*cell}" y2="${margin+(y+1)*cell}"/>`;
@@ -313,7 +326,8 @@ export function toSVG(
       if (c.e && (x===W-1 || !activeMask[y][x+1])) walls += `<line x1="${margin+(x+1)*cell}" y1="${margin+y*cell}" x2="${margin+(x+1)*cell}" y2="${margin+(y+1)*cell}"/>`;
     }
   else walls=wallPaths(m,activeMask).map(points=>`<path d="${pathData(points,cell,margin,cornerRadius*cell)}"/>`).join('');
-  svg += `<g class="walls walls-${wallStyle}" fill="none" stroke="#111" stroke-width="${stroke}" stroke-linecap="${wallStyle==='classic'?'square':'round'}" stroke-linejoin="round"${wallStyle==='organic'?' filter="url(#organic-wall-filter)"':''}>${walls}</g>`;
+  svg += `<g class="walls walls-${wallStyle}" fill="none" stroke="#111" stroke-width="${stroke}" stroke-linecap="${wallStyle==='classic'?'square':'round'}" stroke-linejoin="round"${wallStyle==='organic'?' filter="url(#organic-wall-filter)"':''}${geometry?' clip-path="url(#freeform-mask-clip)"':''}>${walls}</g>`;
+  if(geometry)svg+=`<g class="freeform-outline" fill="none" stroke="#111" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round">${geometry.outline.map(line=>`<line x1="${margin+line.x1*cell}" y1="${margin+line.y1*cell}" x2="${margin+line.x2*cell}" y2="${margin+line.y2*cell}"/>`).join('')}</g>`;
 
   // Start/Goal (prefer MazeResult’s start/goal if available; fallback to mid-row ends)
   if (opts.showStartGoal !== false) {
@@ -346,3 +360,5 @@ export function toSVG(
 }
 import { createMask, type CustomMask, type MaskId } from '../maze/masks';
 import { pathData, wallPaths, type WallStyle } from '../maze/walls';
+import { createFreeformMaze } from '../maze/freeform';
+import type { MazeGraph } from '../maze/graph';

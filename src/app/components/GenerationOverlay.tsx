@@ -11,11 +11,12 @@ type Props = {
   complete: boolean;
   color: string;
   opacity: number;
+  freeform?:boolean;
 };
 
-export default function GenerationOverlay({steps,eventIndex,cell,margin,stroke,widthCells,heightCells,complete,color,opacity}:Props){
+export default function GenerationOverlay({steps,eventIndex,cell,margin,stroke,widthCells,heightCells,complete,color,opacity,freeform}:Props){
   if(eventIndex===0) return null;
-  const center=(n:number)=>margin+n*cell+cell/2;
+  const center=(n:number)=>margin+n*cell+(freeform?0:cell/2);
   return <svg className={`generation-overlay-svg${complete?' generation-complete':''}`}
     viewBox={`0 0 ${widthCells*cell+margin*2} ${heightCells*cell+margin*2}`} aria-hidden="true">
     <g>

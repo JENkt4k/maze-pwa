@@ -8,7 +8,7 @@ import { MASKS, type MaskId } from '../../maze/masks';
 import type { CustomMask } from '../../maze/masks';
 import CustomMaskControls from './CustomMaskControls';
 import type { EndpointStrategy } from '../../maze/endpoints';
-import type { MazePoint } from '../maze';
+import type { MazePoint, MazeTopology } from '../maze';
 import type { WallStyle } from '../../maze/walls';
 import GameplayControls from './GameplayControls';
 import type { MazeGameState } from '../hooks/useMazeGame';
@@ -17,6 +17,7 @@ type Props = {
   canInstall: boolean;
   onInstall: () => void;
   width: number; height: number; g: number; b: number; tau: number;
+  topology:MazeTopology;setTopology:(value:MazeTopology)=>void;regionDensity:number;setRegionDensity:(value:number)=>void;irregularity:number;setIrregularity:(value:number)=>void;
   setWidth: (n:number)=>void; setHeight:(n:number)=>void; setG:(n:number)=>void; setB:(n:number)=>void; setTau:(n:number)=>void;
   onNew: () => void; onPrint: () => void;
   saveName: string; setSaveName: (s:string)=>void;
@@ -107,6 +108,19 @@ export default function Sidebar(props: Props){
               {Object.values(MASKS).map(mask=><option key={mask.id} value={mask.id}>{mask.name}</option>)}
             </select>
           </label>
+          <label>Maze topology
+            <select name="maze-topology" value={props.topology} onChange={e=>props.setTopology(e.target.value as MazeTopology)}>
+              <option value="grid">Grid cells</option><option value="freeform">Freeform regions</option>
+            </select>
+          </label>
+          {props.topology==='freeform'&&<>
+            <label>Region density: {Math.round(props.regionDensity*100)}%
+              <input name="region-density" type="range" min="15" max="100" step="5" value={props.regionDensity*100} onChange={e=>props.setRegionDensity(Number(e.target.value)/100)}/>
+            </label>
+            <label>Irregularity: {Math.round(props.irregularity*100)}%
+              <input name="region-irregularity" type="range" min="0" max="100" step="5" value={props.irregularity*100} onChange={e=>props.setIrregularity(Number(e.target.value)/100)}/>
+            </label>
+          </>}
           {props.mask==='custom'&&<CustomMaskControls value={props.customMask} onChange={props.setCustomMask} width={width} height={height}/>}
 
           <label>Width: {width}
@@ -181,7 +195,7 @@ export default function Sidebar(props: Props){
                 <button type="button" className={`btn btn-sm${props.endpointMode==='goal'?' btn-primary':''}`} aria-pressed={props.endpointMode==='goal'} onClick={()=>props.setEndpointMode(props.endpointMode==='goal'?null:'goal')}>Set goal</button>
                 <button type="button" className="btn btn-sm" onClick={()=>props.onPlaceEndpoints('opposite')}>Reset</button>
               </div>
-              <span>{props.endpointMode?`Select an active maze cell for the ${props.endpointMode}.`:`Start: ${props.startCell.x+1},${props.startCell.y+1} · Goal: ${props.goalCell.x+1},${props.goalCell.y+1}`}</span>
+              <span>{props.endpointMode?`Select an active maze ${props.topology==='freeform'?'region':'cell'} for the ${props.endpointMode}.`:`Start: ${props.topology==='freeform'?`${props.startCell.x.toFixed(1)},${props.startCell.y.toFixed(1)}`:`${props.startCell.x+1},${props.startCell.y+1}`} · Goal: ${props.topology==='freeform'?`${props.goalCell.x.toFixed(1)},${props.goalCell.y.toFixed(1)}`:`${props.goalCell.x+1},${props.goalCell.y+1}`}`}</span>
               <label>Automatic placement
                 <select name="endpoint-strategy" aria-label="Automatic endpoint placement" defaultValue="" onChange={e=>{if(e.target.value){props.onPlaceEndpoints(e.target.value as EndpointStrategy);e.target.value='';}}}>
                   <option value="" disabled>Choose a strategy…</option>

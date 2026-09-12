@@ -25,6 +25,10 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
 ## Features and behavior
 
 - Generate deterministic mazes with odd widths/heights from 7 to 41 cells.
+- Choose grid cells or seeded freeform regions. Freeform mazes use irregular
+  Voronoi regions with adjustable density and irregularity, while retaining the
+  selected silhouette, generation algorithm, braiding, solvers, animation,
+  endpoint editing, gameplay, printing, saving, and sharing.
 - Select rectangular, elliptical, diamond, heart, star, cup, brain, or moose-shaped maze masks. Import PNG, JPEG, or WebP silhouettes and tune their threshold or inversion with a live preview. Generation,
   solving, animation, saving, and sharing all respect the selected shape.
 - Adjust goal bias, braiding, and straight-direction preference. Square lock
@@ -62,9 +66,12 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
 
 ## Generation and difficulty
 
-The generator uses an iterative depth-first backtracker and a seeded random source.
-The initial spanning tree is a perfect maze: each pair of cells has one route.
-Optional braiding removes additional interior walls, creating loops.
+Grid and freeform generators use seeded random sources and support randomized DFS,
+Prim, and Kruskal spanning trees. Grid topology carves square cells. Freeform
+topology distributes points inside the selected mask, derives planar Voronoi
+regions and Delaunay adjacency, and opens shared region walls. The initial spanning
+tree is a perfect maze: each pair of nodes has one route. Optional braiding removes
+additional interior walls, creating loops.
 
 The existing random sequence is preserved so older saved/shared parameters retain
 their original layouts. Changing the selection algorithm in the future requires a
@@ -80,11 +87,11 @@ The displayed statistics are calculated on the **final braided maze**:
 
 | Statistic | Definition |
 | --- | --- |
-| `L` | Shortest start-to-goal route length, in cell-to-cell steps |
+| `L` | Shortest start-to-goal route length, in node-to-node steps |
 | `T` | Direction changes along that route divided by `L - 1`; zero for fewer than two steps |
-| `J` | Number of cells with at least three open neighbors |
-| `E` | Number of cells with exactly one open neighbor |
-| `D` | Heuristic score: `0.7 log2(L + 1) + 0.8 T + 0.5 J/N + 0.3 E/N`, where `N` is cell count |
+| `J` | Number of nodes with at least three open neighbors |
+| `E` | Number of nodes with exactly one open neighbor |
+| `D` | Heuristic score: `0.7 log2(L + 1) + 0.8 T + 0.5 J/N + 0.3 E/N`, where `N` is node count |
 
 Scores are rounded to three decimals and are not calibrated against human solving
 difficulty. A zero-length solution has score zero. If several shortest routes
@@ -142,8 +149,8 @@ publishing to GitHub Pages. No deployment occurs for pull requests.
 The completed stabilization checklist and verification evidence are recorded in
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The solver playback architecture
 and verification are recorded in [SOLVER_PLAYBACK_PLAN.md](SOLVER_PLAYBACK_PLAN.md).
-Hints, route validation, win detection, Micromouse simulation, shaped maze
-generation, and drawing persistence remain optional future features.
+Micromouse simulation, play history, leaderboards, and drawing persistence remain
+planned future features; see [ROADMAP.md](ROADMAP.md).
 The unified animation replays maze construction first and then continues into
 solver exploration using separate colors, independent algorithm selectors, and
 shared playback controls.

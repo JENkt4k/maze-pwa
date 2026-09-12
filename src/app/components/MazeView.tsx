@@ -47,11 +47,11 @@ export default function MazeView({ hostRef, data, graph, solverRun, solverEnable
       <div dangerouslySetInnerHTML={{ __html: baseSVG }} />
       {solverEnabled && <GenerationOverlay steps={[...data.treeSteps,...data.braidEdits]} eventIndex={generationEventIndex}
         complete={generationComplete} color={generationColor} opacity={generationOpacity}
-        cell={cell} margin={margin} stroke={stroke} widthCells={width} heightCells={height} />}
+        cell={cell} margin={margin} stroke={stroke} widthCells={width} heightCells={height} freeform={!!data.geometry} />}
       {solverEnabled && <SolverOverlay graph={graph} events={solverRun.events} eventIndex={solverEventIndex}
-        color={solverColor} opacity={solverOpacity} cell={cell} margin={margin} widthCells={width} heightCells={height} />}
-      {endpointMode&&onEndpointSelect&&<EndpointOverlay data={data} mode={endpointMode} cell={cell} margin={margin} onSelect={onEndpointSelect}/>}
-      {!endpointMode&&gameplay&&<GameplayOverlay graph={graph} state={gameplay.state} breadcrumbs={gameplay.breadcrumbs} move={gameplay.move} cell={cell} margin={margin} width={width} height={height}/>}
+        color={solverColor} opacity={solverOpacity} cell={cell} margin={margin} widthCells={width} heightCells={height} freeform={!!data.geometry} />}
+      {endpointMode&&onEndpointSelect&&<EndpointOverlay data={data} graph={graph} mode={endpointMode} cell={cell} margin={margin} onSelect={onEndpointSelect}/>}
+      {!endpointMode&&gameplay&&<GameplayOverlay graph={graph} state={gameplay.state} breadcrumbs={gameplay.breadcrumbs} move={gameplay.move} cell={cell} margin={margin} width={width} height={height} freeform={!!data.geometry}/>}
     </div>
   );
 }
