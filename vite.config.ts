@@ -22,7 +22,9 @@ export default defineConfig({
         'icons/icon-192.png',
         'icons/icon-256.png',
         'icons/icon-384.png',
-        'icons/icon-512.png'
+        'icons/icon-512.png',
+        'icons/icon-maskable-192.png',
+        'icons/icon-maskable-512.png'
       ],
       manifest: {
         name: 'InfiMaze',
@@ -34,10 +36,12 @@ export default defineConfig({
         background_color: '#ffffff',
         theme_color: '#2b2f77',
         icons: [
-          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-          { src: 'icons/icon-256.png', sizes: '256x256', type: 'image/png', purpose: 'any maskable' },
-          { src: 'icons/icon-384.png', sizes: '384x384', type: 'image/png', purpose: 'any maskable' },
-          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-256.png', sizes: '256x256', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-384.png', sizes: '384x384', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: 'icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
         ]
       },
       workbox: {
