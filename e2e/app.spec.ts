@@ -135,15 +135,16 @@ test('gameplay moves through passages and restores progress paused',async({page}
   await page.goto('./');
   await page.getByRole('button',{name:'Play',exact:true}).first().click();
   const game=page.getByRole('application',{name:'Maze gameplay area'});
+  const gameControls=page.getByRole('group',{name:'Gameplay controls'});
   await expect(game).toBeFocused();
   await game.getByRole('button').first().click();
-  await expect(page.getByText('Moves').locator('..')).toContainText('1');
+  await expect(gameControls.getByText('Moves',{exact:true}).locator('..')).toContainText('1');
   await game.getByRole('button',{name:'Move to column 1, row 4'}).click();
-  await expect(page.getByText('Revisits').locator('..')).toContainText('1');
-  await page.locator('.game-controls').getByRole('button',{name:'Pause',exact:true}).click();
+  await expect(gameControls.getByText('Revisits',{exact:true}).locator('..')).toContainText('1');
+  await gameControls.getByRole('button',{name:'Pause',exact:true}).click();
   await page.reload();
   await expect(page.getByText('Paused',{exact:true})).toBeVisible();
-  await expect(page.getByText('Moves').locator('..')).toContainText('2');
+  await expect(gameControls.getByText('Moves',{exact:true}).locator('..')).toContainText('2');
 });
 
 test('Micromouse explores, exposes phases, and disables physics for freeform mazes',async({page})=>{
@@ -251,7 +252,7 @@ test('animation independently switches generation and solving algorithms', async
   await expect(page.locator('.generation-overlay-svg')).toBeVisible();
   const animationControls=page.getByRole('group',{name:'Animation playback controls'});
   await animationControls.getByRole('button',{name:'Pause',exact:true}).click();
-  await page.getByRole('button',{name:'Step',exact:true}).click();
+  await animationControls.getByRole('button',{name:'Step',exact:true}).click();
   await expect(page.getByText(/^Building.*[1-9]/)).toBeVisible();
   await page.getByLabel('Build animation color').fill('#7c3aed');
   await page.getByLabel('Build animation opacity').fill('70');
