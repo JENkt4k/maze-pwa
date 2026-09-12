@@ -249,6 +249,7 @@ export default function App() {
   const mazeId=useMemo(()=>mazeFingerprint(mazeGraph),[mazeGraph]);
   const gameKey=`${mazeKey}:${mazeId}`;
   const game=useMazeGame(mazeGraph,gameKey);
+  const gameStateMatchesMaze=game.state.key===gameKey&&mazeGraph.nodes.has(game.state.current)&&game.state.route.every(node=>mazeGraph.nodes.has(node));
   const historyParams:HistoryMazeParams={...mazeParams,startCell:mazeData.start,goalCell:mazeData.goal,wallStyle,wallThickness,cornerRadius,startIcon,goalIcon};
   const replaceHistoryEntry=(entry:PlayHistoryEntry)=>storeHistory(historyRef.current.map(item=>item.id===entry.id?entry:item));
   const abandonActiveAttempt=()=>{const id=activeAttemptId.current;if(!id)return;const entry=historyRef.current.find(item=>item.id===id);if(entry)replaceHistoryEntry(abandonHistoryEntry(entry));activeAttemptId.current=null;};
@@ -354,7 +355,7 @@ export default function App() {
               onSVGChange={setCurrentSVG}
               endpointMode={endpointMode}
               onEndpointSelect={selectEndpoint}
-              gameplay={gameActive?{state:game.state,breadcrumbs:gameBreadcrumbs,move:game.move}:null}
+              gameplay={gameActive&&gameStateMatchesMaze?{state:game.state,breadcrumbs:gameBreadcrumbs,move:game.move}:null}
               micromouse={micromouseActive&&micromouse?{events:micromouse.events,eventIndex:mousePlayback.state.index,showWalls:mouseShowWalls,showFlood:mouseShowFlood,showRoute:mouseShowRoute}:null}
             />
             <DrawingCanvas hostRef={svgHostRef} mazeKey={mazeKey} disabled={endpointMode!==null||gameActive||micromouseActive} playActive={gameActive}

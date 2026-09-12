@@ -6,9 +6,12 @@ export type GameStatus='idle'|'playing'|'paused'|'complete';
 export type MazeGameState={key:string;current:NodeId;route:NodeId[];moves:number;revisits:number;elapsedMs:number;status:GameStatus};
 
 function initial(key:string,start:NodeId,status:GameStatus='idle'):MazeGameState{return{key,current:start,route:[start],moves:0,revisits:0,elapsedMs:0,status};}
+function isValidState(value:Partial<MazeGameState>,key:string,valid:ReadonlyMap<NodeId,unknown>):value is MazeGameState{
+  return value.key===key&&typeof value.current==='string'&&valid.has(value.current)&&Array.isArray(value.route)&&value.route.length>0&&value.route.every(item=>typeof item==='string'&&valid.has(item))&&Number.isFinite(value.moves)&&value.moves!>=0&&Number.isFinite(value.revisits)&&value.revisits!>=0&&Number.isFinite(value.elapsedMs)&&value.elapsedMs!>=0&&['idle','playing','paused','complete'].includes(String(value.status));
+}
 function load(key:string,start:NodeId,valid:ReadonlyMap<NodeId,unknown>):MazeGameState{
   try{const value=JSON.parse(localStorage.getItem(GAME_STORAGE_KEY)??'null') as Partial<MazeGameState>|null;
-    if(value?.key===key&&typeof value.current==='string'&&valid.has(value.current)&&Array.isArray(value.route)&&value.route.length>0&&value.route.every(item=>typeof item==='string'&&valid.has(item))&&Number.isFinite(value.moves)&&value.moves!>=0&&Number.isFinite(value.revisits)&&value.revisits!>=0&&Number.isFinite(value.elapsedMs)&&value.elapsedMs!>=0&&['idle','playing','paused','complete'].includes(String(value.status)))
+    if(value&&isValidState(value,key,valid))
       return{key,current:value.current,route:value.route,moves:value.moves!,revisits:value.revisits!,elapsedMs:value.elapsedMs!,status:value.status==='playing'?'paused':value.status as GameStatus};
   }catch{}
   return initial(key,start);
@@ -34,7 +37,7 @@ export function useMazeGame(graph:MazeGraph,key:string){
   const start=()=>setState(current=>current.status==='complete'?initial(key,graph.start,'playing'):{...current,status:'playing'});
   const pause=()=>setState(current=>current.status==='playing'?{...current,elapsedMs:elapsedAtStart.current+Math.max(0,Date.now()-(startedAt.current??Date.now())),status:'paused'}:current);
   const restart=()=>{startedAt.current=Date.now();elapsedAtStart.current=0;setState(initial(key,graph.start,'playing'));};
-  const restore=(saved:MazeGameState)=>{startedAt.current=null;elapsedAtStart.current=saved.elapsedMs;setState(saved.key===key?{...saved,status:saved.status==='playing'?'paused':saved.status}:initial(key,graph.start));};
+  const restore=(saved:MazeGameState)=>{startedAt.current=null;elapsedAtStart.current=saved.elapsedMs;setState(isValidState(saved,key,graph.nodes)?{...saved,status:saved.status==='playing'?'paused':saved.status}:initial(key,graph.start));};
   const move=(target:NodeId)=>setState(current=>{
     if(current.status!=='playing')return current;
     const node=graph.nodes.get(current.current);if(!node?.neighbors.includes(target))return current;

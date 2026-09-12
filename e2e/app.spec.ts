@@ -143,11 +143,13 @@ test('gameplay moves through passages and restores progress paused',async({page}
   await expect(gameControls.getByText('Revisits',{exact:true}).locator('..')).toContainText('1');
   await gameControls.getByRole('button',{name:'Pause',exact:true}).click();
   await page.reload();
-  await expect(page.getByText('Paused',{exact:true})).toBeVisible();
+  await expect(gameControls.getByText('Paused',{exact:true})).toBeVisible();
   await expect(gameControls.getByText('Moves',{exact:true}).locator('..')).toContainText('2');
 });
 
 test('play history records, restores, abandons, and clears attempts',async({page})=>{
+  const pageErrors:string[]=[];
+  page.on('pageerror',error=>pageErrors.push(error.message));
   await page.goto('./');
   const history=page.getByRole('region',{name:'Play history'});
   await expect(history.getByText('Play a maze to start your history.')).toBeVisible();
@@ -161,6 +163,8 @@ test('play history records, restores, abandons, and clears attempts',async({page
   await expect(history.getByText('No attempts match this filter.')).toBeVisible();
   await history.getByRole('button',{name:'All',exact:true}).click();
   await page.reload();
+  await page.getByText('Adjust size',{exact:true}).click();
+  await page.getByLabel('Maze topology').selectOption('freeform');
   await history.getByRole('button',{name:'Reopen',exact:true}).click();
   await expect(page.getByRole('group',{name:'Gameplay controls'}).getByRole('status')).toContainText('Paused');
   await expect(page.getByRole('group',{name:'Gameplay controls'}).getByText('Moves',{exact:true}).locator('..')).toContainText('1');
@@ -174,6 +178,7 @@ test('play history records, restores, abandons, and clears attempts',async({page
   await expect(history.getByRole('button',{name:'Delete',exact:true})).toHaveCount(1);
   await history.getByRole('button',{name:'Clear history'}).click();
   await expect(history.getByText('Play a maze to start your history.')).toBeVisible();
+  expect(pageErrors).toEqual([]);
 });
 
 test('Micromouse explores, exposes phases, and disables physics for freeform mazes',async({page})=>{
