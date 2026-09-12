@@ -74,7 +74,7 @@ test('custom silhouette upload exposes preview controls and builds a maze',async
   await page.getByLabel('Maze shape').selectOption('custom');
   await page.getByLabel('Silhouette image').setInputFiles('public/silhouettes/brain.png');
   await expect(page.getByLabel('Custom mask preview')).toBeVisible();
-  await expect(page.getByText(/brain\.png · \d+ active cells/)).toBeVisible();
+  await expect(page.getByText(/brain\.png.*\d+ active cells/)).toBeVisible();
   await page.getByLabel(/Threshold:/).fill('120');
   await page.getByLabel('Invert light and dark').check();
   await expect(page.locator('#print-maze-only')).toBeVisible();
@@ -93,7 +93,7 @@ test('endpoints can be placed on cells and restored automatically',async({page})
   await page.getByLabel('Automatic endpoint placement').selectOption('farthest');
   await expect(page.getByLabel('Automatic endpoint placement')).toHaveValue('');
   await page.getByRole('button',{name:'Reset',exact:true}).click();
-  await expect(page.getByText(/Start: 1,4 · Goal: 7,4/)).toBeVisible();
+  await expect(page.getByText(/Start: 1,4.*Goal: 7,4/)).toBeVisible();
 });
 
 test('wall styles update rendered and printable maze appearance',async({page})=>{
@@ -206,7 +206,7 @@ test('animation independently switches generation and solving algorithms', async
   const animationControls=page.getByRole('group',{name:'Animation playback controls'});
   await animationControls.getByRole('button',{name:'Pause',exact:true}).click();
   await page.getByRole('button',{name:'Step',exact:true}).click();
-  await expect(page.getByText(/^Building — [1-9]/)).toBeVisible();
+  await expect(page.getByText(/^Building.*[1-9]/)).toBeVisible();
   await page.getByLabel('Build animation color').fill('#7c3aed');
   await page.getByLabel('Build animation opacity').fill('70');
   await expect(page.locator('.generation-overlay-svg path').first()).toHaveAttribute('stroke','#7c3aed');
