@@ -1,5 +1,11 @@
 # InfiMaze Difficulty 2.0 — Agent Implementation Plan
 
+## Implementation status
+
+- **Phase 1 — Analysis foundation:** implemented and validated on
+  `feature/difficulty-v2-analysis`; pending merge.
+- **Phases 2–7:** backlog.
+
 > **Purpose:** Implementation specification for Codex / coding agents working on `JENkt4k/maze-pwa` (InfiMaze).
 >
 > **Primary goal:** Replace the current coarse difficulty heuristic with a human-oriented difficulty model while preserving determinism, solvability, existing saved/shared mazes, and current generation behavior unless a task explicitly changes it.
