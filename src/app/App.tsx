@@ -254,17 +254,18 @@ export default function App() {
   const replaceHistoryEntry=(entry:PlayHistoryEntry)=>storeHistory(historyRef.current.map(item=>item.id===entry.id?entry:item));
   const abandonActiveAttempt=()=>{const id=activeAttemptId.current;if(!id)return;const entry=historyRef.current.find(item=>item.id===id);if(entry)replaceHistoryEntry(abandonHistoryEntry(entry));activeAttemptId.current=null;};
   const newAttemptState=():MazeGameState=>({key:gameKey,current:mazeGraph.start,route:[mazeGraph.start],moves:0,revisits:0,elapsedMs:0,status:'playing'});
+  const currentMouseBenchmark=()=>micromouse?{totalTimeMs:micromouse.metrics.totalTimeMs,speedTimeMs:micromouse.metrics.speed.timeMs,speedCells:micromouse.metrics.speed.cells,exploredPercent:micromouse.metrics.exploredPercent,turns:micromouse.metrics.search.turns+micromouse.metrics.return.turns+micromouse.metrics.speed.turns}:undefined;
   const startGameplay=()=>{
     setEndpointMode(null);setMicromouseActive(false);mousePlayback.pause();playback.pause();setGameActive(true);
     const active=historyRef.current.find(entry=>entry.id===activeAttemptId.current&&entry.gameKey===gameKey);
     if(game.state.status==='paused'&&active){game.start();return;}
     abandonActiveAttempt();
     const state=game.state.status==='paused'?{...game.state,status:'playing' as const}:newAttemptState();
-    const entry=createHistoryEntry(mazeId,gameKey,historyParams,state);if(storeHistory([entry,...historyRef.current]))activeAttemptId.current=entry.id;
+    const entry=createHistoryEntry(mazeId,gameKey,historyParams,state,Date.now(),crypto.randomUUID(),currentMouseBenchmark());if(storeHistory([entry,...historyRef.current]))activeAttemptId.current=entry.id;
     game.start();
   };
   const restartGameplay=()=>{
-    abandonActiveAttempt();const entry=createHistoryEntry(mazeId,gameKey,historyParams,newAttemptState());
+    abandonActiveAttempt();const entry=createHistoryEntry(mazeId,gameKey,historyParams,newAttemptState(),Date.now(),crypto.randomUUID(),currentMouseBenchmark());
     if(storeHistory([entry,...historyRef.current]))activeAttemptId.current=entry.id;
     setEndpointMode(null);setMicromouseActive(false);mousePlayback.pause();playback.pause();setGameActive(true);game.restart();
   };
@@ -414,6 +415,7 @@ export default function App() {
           seekPhase:phase=>{const index=micromouse?.events.findIndex(event=>event.type==='phase'&&event.phase===phase)??-1;if(index>=0){setMicromouseActive(true);mousePlayback.seek(index+1);}},
           competitionPreset:()=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);setEndpointMode(null);setStartCell({x:0,y:height-1});setGoalCell({x:Math.floor(width/2),y:Math.floor(height/2)});}}}
         history={{entries:history,onOpen:openHistory,onDelete:deleteHistory,onClear:clearHistory}}
+        leaderboard={{entries:history,currentMazeId:mazeId}}
 
         animation={{
           mode: animationMode,

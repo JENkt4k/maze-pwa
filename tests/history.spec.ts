@@ -14,10 +14,12 @@ test('history entries follow a gameplay attempt through completion and restore p
 
 test('history parser rejects malformed records, deduplicates, sorts, and pauses interrupted play',()=>{
   const older=createHistoryEntry('maze-a','key-a',params,state,1000,'a');
-  const newer=createHistoryEntry('maze-b','key-b',params,state,2000,'b');
+  const newer=createHistoryEntry('maze-b','key-b',params,state,2000,'b',{totalTimeMs:1200,speedTimeMs:400,speedCells:12,exploredPercent:40,turns:8});
   const parsed=parsePlayHistory(JSON.stringify([older,{bad:true},newer,older]));
   expect(parsed.map(entry=>entry.id)).toEqual(['b','a']);
   expect(parsed.every(entry=>entry.status==='paused')).toBe(true);
+  expect(parsed[0].micromouse?.speedCells).toBe(12);
+  expect(parsed[1].micromouse).toBeUndefined();
   expect(parsePlayHistory('{')).toEqual([]);
 });
 

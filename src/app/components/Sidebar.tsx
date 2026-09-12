@@ -14,6 +14,7 @@ import GameplayControls from './GameplayControls';
 import type { MazeGameState } from '../hooks/useMazeGame';
 import MicromouseControls, { type MicromouseControlsProps } from './MicromouseControls';
 import PlayHistory, { type PlayHistoryProps } from './PlayHistory';
+import Leaderboard, { type LeaderboardProps } from './Leaderboard';
 
 type Props = {
   canInstall: boolean;
@@ -42,6 +43,7 @@ type Props = {
   gameplay:{active:boolean;state:MazeGameState;breadcrumbs:boolean;setBreadcrumbs:(value:boolean)=>void;start:()=>void;pause:()=>void;restart:()=>void};
   micromouse:MicromouseControlsProps;
   history:PlayHistoryProps;
+  leaderboard:LeaderboardProps;
   animation: AnimationControlsProps;
   onShare: () => void;
 };
@@ -176,6 +178,14 @@ export default function Sidebar(props: Props){
         <details open>
           <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>Played mazes</summary>
           <PlayHistory {...props.history}/>
+        </details>
+      </fieldset>
+
+      <fieldset>
+        <legend>Leaderboard</legend>
+        <details open>
+          <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>Local rankings</summary>
+          <Leaderboard {...props.leaderboard}/>
         </details>
       </fieldset>
 
