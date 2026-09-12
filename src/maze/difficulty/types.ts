@@ -30,6 +30,13 @@ export interface Difficulty2RawMetrics {
   weightedDecisionEntropy:number;
   goalDeceptionRate:number;
   goalDeceptionMagnitude:number;
+  falseHopeScore:number;
+  cycleRank:number;
+  loopDensity:number;
+  repeatedLocalPatternCells:number;
+  localPatternRepetitionRate:number;
+  approximateGraphDiameter:number;
+  startGoalDiameterRatio:number;
 }
 
 export interface Difficulty2Analysis {
