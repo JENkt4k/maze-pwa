@@ -8,7 +8,7 @@ test('history entries follow a gameplay attempt through completion and restore p
   const started=createHistoryEntry('maze-id','course-key',params,state,1000,'attempt-id');
   const completed=updateHistoryEntry(started,{...state,current:'1,0',route:['0,0','1,0'],moves:1,elapsedMs:2345,status:'complete'},4000);
   expect(completed).toMatchObject({id:'attempt-id',status:'completed',completedAt:4000,elapsedMs:2345,moves:1});
-  expect(historyGameState(completed)).toEqual({key:'course-key',current:'1,0',route:['0,0','1,0'],moves:1,revisits:0,elapsedMs:2345,status:'complete'});
+  expect(historyGameState(completed)).toEqual({key:'course-key',current:'1,0',route:['0,0','1,0'],moves:1,revisits:0,hints:0,elapsedMs:2345,status:'complete'});
   expect(abandonHistoryEntry(completed,5000)).toBe(completed);
 });
 
@@ -20,6 +20,7 @@ test('history parser rejects malformed records, deduplicates, sorts, and pauses 
   expect(parsed.every(entry=>entry.status==='paused')).toBe(true);
   expect(parsed[0].micromouse?.speedCells).toBe(12);
   expect(parsed[1].micromouse).toBeUndefined();
+  expect(parsed[1].hints).toBe(0);
   expect(parsePlayHistory('{')).toEqual([]);
 });
 

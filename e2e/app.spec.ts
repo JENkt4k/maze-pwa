@@ -147,6 +147,23 @@ test('gameplay moves through passages and restores progress paused',async({page}
   await expect(gameControls.getByText('Moves',{exact:true}).locator('..')).toContainText('2');
 });
 
+test('hints highlight a shortest-path move and completion shows assisted results',async({page})=>{
+  await page.emulateMedia({reducedMotion:'reduce'});
+  await page.goto('./');
+  await page.getByRole('button',{name:'Play',exact:true}).first().click();
+  const controls=page.getByRole('group',{name:'Gameplay controls'});
+  for(let step=0;step<60&&!await page.getByRole('region',{name:'Maze results'}).isVisible();step++){
+    await controls.getByRole('button',{name:'Show next move'}).click();
+    const hint=page.locator('.gameplay-overlay .hint-move');await expect(hint).toHaveCount(1);await hint.click();
+  }
+  const results=page.getByRole('region',{name:'Maze results'});
+  await expect(results).toContainText('Maze complete!');
+  await expect(results).toContainText('Assisted completion');
+  await expect(controls.getByText(/hints used.*excluded from rankings/)).toBeVisible();
+  await expect(results.getByRole('button',{name:'Play again'})).toBeVisible();
+  await expect(results.getByRole('button',{name:'New maze'})).toBeVisible();
+});
+
 test('play history records, restores, abandons, and clears attempts',async({page})=>{
   const pageErrors:string[]=[];
   page.on('pageerror',error=>pageErrors.push(error.message));

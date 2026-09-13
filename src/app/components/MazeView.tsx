@@ -30,7 +30,7 @@ type Props = {
   onSVGChange?: (svg:string) => void;
   endpointMode?:'start'|'goal'|null;
   onEndpointSelect?:(point:MazePoint)=>void;
-  gameplay?:{state:MazeGameState;breadcrumbs:boolean;move:(target:NodeId)=>void}|null;
+  gameplay?:{state:MazeGameState;hintNode?:NodeId|null;breadcrumbs:boolean;move:(target:NodeId)=>void}|null;
   micromouse?:{events:readonly MouseEvent[];eventIndex:number;showWalls:boolean;showFlood:boolean;showRoute:boolean}|null;
 };
 
@@ -54,7 +54,7 @@ export default function MazeView({ hostRef, data, graph, solverRun, solverEnable
       {solverEnabled && <SolverOverlay graph={graph} events={solverRun.events} eventIndex={solverEventIndex}
         color={solverColor} opacity={solverOpacity} cell={cell} margin={margin} widthCells={width} heightCells={height} freeform={!!data.geometry} />}
       {endpointMode&&onEndpointSelect&&<EndpointOverlay data={data} graph={graph} mode={endpointMode} cell={cell} margin={margin} onSelect={onEndpointSelect}/>}
-      {!endpointMode&&gameplay&&<GameplayOverlay graph={graph} state={gameplay.state} breadcrumbs={gameplay.breadcrumbs} move={gameplay.move} cell={cell} margin={margin} width={width} height={height} freeform={!!data.geometry}/>}
+      {!endpointMode&&gameplay&&<GameplayOverlay graph={graph} state={gameplay.state} hintNode={gameplay.hintNode} breadcrumbs={gameplay.breadcrumbs} move={gameplay.move} cell={cell} margin={margin} width={width} height={height} freeform={!!data.geometry}/>}
       {!endpointMode&&micromouse&&<MicromouseOverlay graph={graph} events={micromouse.events} eventIndex={micromouse.eventIndex} cell={cell} margin={margin} width={width} height={height} showWalls={micromouse.showWalls} showFlood={micromouse.showFlood} showRoute={micromouse.showRoute}/>}
     </div>
   );
