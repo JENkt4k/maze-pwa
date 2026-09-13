@@ -30,8 +30,8 @@ test('settings validate types, solver preferences, and numeric bounds', () => {
 });
 
 test('non-default generators survive shared links', () => {
-  const url=buildShareURL('https://example.test/',{...params,generator:'kruskal',mask:'heart',startIcon:null,goalIcon:null});
-  expect(parseFromURL(new URL(url).search)).toMatchObject({generator:'kruskal',mask:'heart'});
+  const url=buildShareURL('https://example.test/',{...params,generator:'wilson',mask:'heart',startIcon:null,goalIcon:null});
+  expect(parseFromURL(new URL(url).search)).toMatchObject({generator:'wilson',mask:'heart'});
 });
 test('freeform topology controls survive settings and versioned share links',()=>{
   const freeform={topology:'freeform' as const,regionDensity:.45,irregularity:.8};
