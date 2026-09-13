@@ -349,8 +349,17 @@ test('difficulty search preserves the seed', async ({page}) => {
   await openControls(page);
   await page.getByText('Adjust difficulty',{exact:true}).click();
   const seed = await page.locator('header').innerText();
+  await page.getByLabel('Search budget').selectOption('10000');
+  await page.getByRole('button',{name:'Max difficulty',exact:true}).click();
+  await page.getByRole('button',{name:'Stop search',exact:true}).click();
+  await page.getByLabel('Search budget').selectOption('250');
   await page.getByRole('button',{name:'Max difficulty',exact:true}).click();
   await expect(page.getByRole('button',{name:'Max difficulty',exact:true})).toBeEnabled();
+  const progress=page.getByLabel('Difficulty search progress');
+  const searchStatus=progress.locator('..');
+  await expect(searchStatus).toContainText(/Finished.*250 \/ 250 candidates/);
+  await expect(searchStatus).toContainText(/Best:.*\d+\/100/);
+  await expect(progress).toHaveAttribute('value','250');
   expect(await page.locator('header').innerText()).toBe(seed);
 });
 

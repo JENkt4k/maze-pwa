@@ -15,6 +15,7 @@ import type { MazeGameState } from '../hooks/useMazeGame';
 import MicromouseControls, { type MicromouseControlsProps } from './MicromouseControls';
 import PlayHistory, { type PlayHistoryProps } from './PlayHistory';
 import Leaderboard, { type LeaderboardProps } from './Leaderboard';
+import type { DifficultySearchBudget, DifficultySearchProgress } from '../difficultySearch';
 
 type Props = {
   canInstall: boolean;
@@ -33,7 +34,10 @@ type Props = {
   mask:MaskId; setMask:(mask:MaskId)=>void; customMask?:CustomMask; setCustomMask:(mask:CustomMask)=>void;
   wallStyle:WallStyle;setWallStyle:(style:WallStyle)=>void;wallThickness:number;setWallThickness:(value:number)=>void;cornerRadius:number;setCornerRadius:(value:number)=>void;
   onMaxDifficulty: () => void;
+  onCancelDifficulty:()=>void;
   searching: boolean;
+  difficultyBudget:DifficultySearchBudget;setDifficultyBudget:(budget:DifficultySearchBudget)=>void;
+  difficultyProgress:DifficultySearchProgress|null;
   startIcon: string | null;
   goalIcon: string | null;
   setStartIcon: (v: string | null) => void;
@@ -345,14 +349,27 @@ export default function Sidebar(props: Props){
             <input type="range" min={0} max={1} step={0.01} value={tau} onChange={e=>setTau(parseFloat(e.target.value))}/>
           </label>
 
+          <label>Search budget
+            <select name="difficulty-search-budget" value={props.difficultyBudget} disabled={props.searching} onChange={event=>props.setDifficultyBudget(Number(event.target.value) as DifficultySearchBudget)}>
+              <option value={250}>Quick — 250 candidates</option>
+              <option value={1000}>Standard — 1,000 candidates</option>
+              <option value={10000}>Deep — 10,000 candidates</option>
+            </select>
+          </label>
+
           <div className="hstack" style={{ gap:8, marginTop:8 }}>
-            <button className="btn btn-primary" type="button" disabled={props.searching} onClick={props.onMaxDifficulty}>
-              {props.searching ? 'Searching…' : 'Max difficulty'}
+            <button className="btn btn-primary" type="button" onClick={props.searching?props.onCancelDifficulty:props.onMaxDifficulty}>
+              {props.searching ? 'Stop search' : 'Max difficulty'}
             </button>
             <span style={{ fontSize:12, color:"#6b7280" }}>
-              (coarse sweep over g/b/τ for current size & seed)
+              Deterministic V2 search for the current size, seed, shape, and generator.
             </span>
           </div>
+          {props.difficultyProgress&&<div role="status" aria-live="polite" style={{fontSize:12,color:'#586174',marginTop:8}}>
+            <div>Best: <strong>{props.difficultyProgress.bestScore}/100 — {props.difficultyProgress.bestLabel}</strong></div>
+            <div>{props.searching?'Searching':'Finished'} — {props.difficultyProgress.completed.toLocaleString()} / {props.difficultyProgress.budget.toLocaleString()} candidates</div>
+            <progress aria-label="Difficulty search progress" max={props.difficultyProgress.budget} value={props.difficultyProgress.completed} style={{width:'100%'}}/>
+          </div>}
         </details>
       </fieldset>
 
