@@ -350,6 +350,9 @@ test('difficulty search preserves the seed', async ({page}) => {
   await page.goto('./');
   await openControls(page);
   await page.getByText('Adjust difficulty',{exact:true}).click();
+  await expect(page.getByLabel('Braid strategy')).toHaveValue('random');
+  await page.getByLabel('Braid strategy').selectOption('difficulty');
+  await expect(page.getByLabel('Braid strategy')).toHaveValue('difficulty');
   const seed = await page.locator('header').innerText();
   await page.getByLabel('Search budget').selectOption('10000');
   await page.getByRole('button',{name:'Max difficulty',exact:true}).click();

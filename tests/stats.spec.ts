@@ -187,6 +187,25 @@ test('Difficulty 2 candidates preserve fixed maze inputs and vary controls deter
   expect({g:first.g,b:first.b,tau:first.tau}).not.toEqual({g:baseline.g,b:baseline.b,tau:baseline.tau});
 });
 
+test('difficulty-aware braiding improves the V2 benchmark without breaking solvability',()=>{
+  const scores=[3,7,11,19,29,43].map(seed=>{
+    const params={...baseline,width:15,height:15,seed,b:.4};
+    const random=analyzeDifficultyV2(mazeToGraph(createMaze({...params,braidMode:'random'}))).score;
+    const difficulty=analyzeDifficultyV2(mazeToGraph(createMaze({...params,braidMode:'difficulty'}))).score;
+    expect(createMaze({...params,braidMode:'difficulty'}).stats.L).toBeGreaterThan(0);
+    return{random,difficulty};
+  });
+  expect(scores.some(item=>item.difficulty>item.random)).toBe(true);
+  expect(scores.reduce((sum,item)=>sum+item.difficulty,0)).toBeGreaterThan(scores.reduce((sum,item)=>sum+item.random,0));
+});
+
+test('difficulty-aware braiding is deterministic and solvable on freeform topology',()=>{
+  const params={...baseline,topology:'freeform' as const,mask:'brain' as const,braidMode:'difficulty' as const,b:.4};
+  const first=createMaze(params),second=createMaze(params);
+  expect(second).toEqual(first);
+  expect(solveMaze(mazeToGraph(first),'bfs').path.length).toBeGreaterThan(1);
+});
+
 test('marker markup is escaped and only bounded raster data is accepted', () => {
   const payload = '</text><image onload="alert(1)"/><text>';
   const svg = toSVG(createMaze(baseline), {cell:24,margin:12,startIcon:payload});

@@ -13,7 +13,7 @@ import MazeView from "./components/MazeView";
 
 import { buildShareURL, parseFromURL, parseSettings, parseSaved, SETTINGS_KEY, STORAGE_KEY, type SavedMaze } from "./state";
 import { handlePrint } from "./print";
-import { createMaze, type GeneratorId, type MazeTopology } from "./maze";
+import { createMaze, type BraidMode, type GeneratorId, type MazeTopology } from "./maze";
 import { useDifficultySearch } from "./hooks/useDifficultySearch";
 import { mazeFingerprint, mazeToGraph } from '../maze/graph';
 import { solveMaze, type SolverId } from '../maze/solvers';
@@ -56,6 +56,7 @@ export default function App() {
   const [height, setHeightRaw] = useState(fromURL.height ?? persisted?.height ?? 19);
   const [g, setG]              = useState(fromURL.g      ?? persisted?.g      ?? 0.3);
   const [b, setB]              = useState(fromURL.b      ?? persisted?.b      ?? 0.15);
+  const [braidMode,setBraidMode]=useState<BraidMode>(fromURL.braidMode??persisted.braidMode??'random');
   const [tau, setTau]          = useState(fromURL.tau    ?? persisted?.tau    ?? 0.4);
   const [generator, setGenerator] = useState<GeneratorId>(fromURL.generator ?? persisted.generator ?? 'dfs');
   const [topology,setTopology]=useState<MazeTopology>(fromURL.topology??persisted.topology??'grid');
@@ -100,7 +101,7 @@ export default function App() {
 
   const handleSave = () => {
     const name = saveName.trim().slice(0, 200) || `Maze ${saved.length + 1}`;
-    const params = { width, height, seed, g, b, tau, generator,topology,regionDensity,irregularity, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, wallStyle, wallThickness, cornerRadius, startIcon, goalIcon };
+    const params = { width, height, seed, g, b, tau, generator,braidMode,topology,regionDensity,irregularity, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, wallStyle, wallThickness, cornerRadius, startIcon, goalIcon };
     const id = crypto.randomUUID();
     const newMaze: SavedMaze = { id, name, params, createdAt: Date.now() };
     const updated = [...saved, newMaze];
@@ -115,7 +116,7 @@ export default function App() {
     setWidthRaw(params.width);setHeightRaw(params.height);
     if(params.width!==params.height)setLockSize(false);
     setStartIcon(params.startIcon===undefined?DEFAULT_START:params.startIcon);setGoalIcon(params.goalIcon===undefined?DEFAULT_GOAL:params.goalIcon);
-    setSeed(params.seed);setG(params.g);setB(params.b);setTau(params.tau);setGenerator(params.generator??'dfs');
+    setSeed(params.seed);setG(params.g);setB(params.b);setBraidMode(params.braidMode??'random');setTau(params.tau);setGenerator(params.generator??'dfs');
     setTopology(params.topology??'grid');setRegionDensity(params.regionDensity??.38);setIrregularity(params.irregularity??.75);
     setMask(params.mask??'rectangle');setCustomMask(params.customMask);setStartCell(params.startCell);setGoalCell(params.goalCell);
     setWallStyle(params.wallStyle??'classic');setWallThickness(params.wallThickness??3);setCornerRadius(params.cornerRadius??.3);
@@ -138,7 +139,7 @@ export default function App() {
   };
 
   const handleShare = async () => {
-    const url = buildShareURL(window.location.href, { width, height, seed, g, b, tau, generator,topology,regionDensity,irregularity, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, wallStyle, wallThickness, cornerRadius, startIcon, goalIcon });
+    const url = buildShareURL(window.location.href, { width, height, seed, g, b, tau, generator,braidMode,topology,regionDensity,irregularity, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, wallStyle, wallThickness, cornerRadius, startIcon, goalIcon });
     try {
       // Native share on mobile; clipboard elsewhere
       if (navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
@@ -196,7 +197,7 @@ export default function App() {
           solverAlgorithm,
           solverStepMs,
           animationMode,
-          generator,
+          generator,braidMode,
           topology,
           regionDensity,
           irregularity,
@@ -221,7 +222,7 @@ export default function App() {
         }));
       setSettingsError(null);
     } catch { setSettingsError("Settings could not be stored. They will reset when this page is closed."); }
-  }, [seed,width,height,g,b,tau,generator,topology,regionDensity,irregularity,mask,customMask,startCell,goalCell,wallStyle,wallThickness,cornerRadius,gameBreadcrumbs,micromouseSpeed,mouseShowWalls,mouseShowFlood,mouseShowRoute,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
+  }, [seed,width,height,g,b,tau,generator,braidMode,topology,regionDensity,irregularity,mask,customMask,startCell,goalCell,wallStyle,wallThickness,cornerRadius,gameBreadcrumbs,micromouseSpeed,mouseShowWalls,mouseShowFlood,mouseShowRoute,controlsOpen,lockSize,solverEnabled,solverAlgorithm,solverStepMs,animationMode,generationColor,generationOpacity,solverColor,solverOpacity,startIcon,goalIcon]);
 
   // compute margin/stroke once from cell
   const margin = Math.round(cell/2);
@@ -239,13 +240,13 @@ export default function App() {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  const mazeParams={width,height,seed,g,b,tau,generator,topology,regionDensity,irregularity,mask,customMask:mask==='custom'?customMask:undefined,startCell,goalCell};
+  const mazeParams={width,height,seed,g,b,tau,generator,braidMode,topology,regionDensity,irregularity,mask,customMask:mask==='custom'?customMask:undefined,startCell,goalCell};
   const { search: runDifficultySearch, cancel:cancelDifficultySearch, searching, error: searchError, budget:difficultyBudget, setBudget:setDifficultyBudget, progress:difficultyProgress } = useDifficultySearch(mazeParams, best => {
     setG(best.g); setB(best.b); setTau(best.tau); setSeed(best.seed);
   });
   const newMaze = () => setSeed(s => (s + 1) | 0);
-  const mazeKey = `${topology}:${regionDensity}:${irregularity}:${generator}:${mask}:${customMask?.pixels??''}:${customMask?.threshold??''}:${customMask?.invert??''}:${width}:${height}:${seed}:${g}:${b}:${tau}`;
-  const mazeData = useMemo(() => createMaze(mazeParams), [width,height,seed,g,b,tau,generator,topology,regionDensity,irregularity,mask,customMask,startCell,goalCell]);
+  const mazeKey = `${topology}:${regionDensity}:${irregularity}:${generator}:${braidMode==='difficulty'?'difficulty:':''}${mask}:${customMask?.pixels??''}:${customMask?.threshold??''}:${customMask?.invert??''}:${width}:${height}:${seed}:${g}:${b}:${tau}`;
+  const mazeData = useMemo(() => createMaze(mazeParams), [width,height,seed,g,b,tau,generator,braidMode,topology,regionDensity,irregularity,mask,customMask,startCell,goalCell]);
   const mazeGraph = useMemo(() => mazeToGraph(mazeData), [mazeData]);
   const difficultyV2=useMemo(()=>analyzeDifficultyV2(mazeGraph),[mazeGraph]);
   const mazeId=useMemo(()=>mazeFingerprint(mazeGraph),[mazeGraph]);
@@ -375,7 +376,7 @@ export default function App() {
         onInstall={install}
 
         /* Size & difficulty */
-        width={width} height={height} g={g} b={b} tau={tau}
+        width={width} height={height} g={g} b={b} tau={tau} braidMode={braidMode} setBraidMode={setBraidMode}
         topology={topology} setTopology={value=>{setTopology(value);setStartCell(undefined);setGoalCell(undefined);setEndpointMode(null);}}
         regionDensity={regionDensity} setRegionDensity={setRegionDensity} irregularity={irregularity} setIrregularity={setIrregularity}
         setWidth={setWidth} setHeight={setHeight} setG={setG} setB={setB} setTau={setTau}

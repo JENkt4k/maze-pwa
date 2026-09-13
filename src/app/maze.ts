@@ -1,9 +1,10 @@
 export type Cell = { x:number; y:number; n:1|0; s:1|0; e:1|0; w:1|0 };
 export type CarveStep = { x:number; y:number; nx:number; ny:number };
 export type GeneratorId = 'dfs' | 'prim' | 'kruskal' | 'wilson';
+export type BraidMode='random'|'difficulty';
 export type MazeTopology = 'grid' | 'freeform';
 export type MazePoint={x:number;y:number};
-export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number;generator?:GeneratorId;topology?:MazeTopology;regionDensity?:number;irregularity?:number;mask?:MaskId;customMask?:CustomMask;startCell?:MazePoint;goalCell?:MazePoint;wallStyle?:WallStyle;wallThickness?:number;cornerRadius?:number };
+export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number;generator?:GeneratorId;braidMode?:BraidMode;topology?:MazeTopology;regionDensity?:number;irregularity?:number;mask?:MaskId;customMask?:CustomMask;startCell?:MazePoint;goalCell?:MazePoint;wallStyle?:WallStyle;wallThickness?:number;cornerRadius?:number };
 export type Stats = { L:number; T:number; J:number; E:number; D:number };
 export type GeometrySegment={x1:number;y1:number;x2:number;y2:number};
 export type MazeGeometry={width:number;height:number;walls:GeometrySegment[];outline:GeometrySegment[]};
@@ -151,7 +152,8 @@ export function createMaze(params: MazeParams): MazeResult {
   // 2) clone tree into final grid and apply braids (recorded separately)
   const maze: Cell[][] = tree.map(row => row.map(c => ({...c})));
   const braidEdits: CarveStep[] = [];
-  if (b > 0) {
+  if(b>0&&params.braidMode==='difficulty')braidEdits.push(...applyDifficultyBraids(maze,mask,buildStart,buildGoal,b));
+  else if (b > 0) {
     for (let y=0;y<H;y++) for (let x=0;x<W;x++) if(mask[y][x]) {
       const c = maze[y][x];
       const deg = openDeg(c); // degree in current final graph
@@ -203,6 +205,24 @@ const DIRS = [
   { dx: 0, dy: 1, a: "s" as const, b: "n" as const },
   { dx: 0, dy:-1, a: "n" as const, b: "s" as const },
 ];
+
+function applyDifficultyBraids(maze:Cell[][],mask:boolean[][],start:MazePoint,goal:MazePoint,intensity:number):CarveStep[]{
+  const height=maze.length,width=maze[0]?.length??0,inBounds=(x:number,y:number)=>x>=0&&x<width&&y>=0&&y<height&&mask[y][x],key=(x:number,y:number)=>`${x},${y}`;
+  const score=()=>analyzeDifficultyV2(mazeToGraph({maze,mask,start,goal,treeSteps:[],braidEdits:[],stats:{L:0,T:0,J:0,E:0,D:0}})).score;
+  const distance=(from:MazePoint,to:MazePoint)=>{const queue=[from],distances=new Map([[key(from.x,from.y),0]]);for(let head=0;head<queue.length;head++){const point=queue[head],value=distances.get(key(point.x,point.y))!;if(point.x===to.x&&point.y===to.y)return value;for(const direction of DIRS)if(!maze[point.y][point.x][direction.a]){const next={x:point.x+direction.dx,y:point.y+direction.dy},id=key(next.x,next.y);if(inBounds(next.x,next.y)&&!distances.has(id)){distances.set(id,value+1);queue.push(next);}}}return 0;};
+  const deadEnds=maze.flat().filter(cell=>mask[cell.y][cell.x]&&openDeg(cell)===1).length,target=Math.min(8,Math.round(deadEnds*intensity)),result:CarveStep[]=[];let baseline=score();
+  for(let iteration=0;iteration<target;iteration++){
+    const candidates:{x:number;y:number;d:typeof DIRS[number];distance:number}[]=[];
+    for(let y=0;y<height;y++)for(let x=0;x<width;x++)if(mask[y][x]&&openDeg(maze[y][x])===1)for(const d of DIRS){const nx=x+d.dx,ny=y+d.dy;if(inBounds(nx,ny)&&maze[y][x][d.a])candidates.push({x,y,d,distance:distance({x,y},{x:nx,y:ny})});}
+    candidates.sort((a,z)=>z.distance-a.distance||a.y-z.y||a.x-z.x||DIRS.indexOf(a.d)-DIRS.indexOf(z.d));let chosen:typeof candidates[number]|undefined,nextScore=baseline;
+    for(const candidate of candidates.slice(0,8)){
+      const nx=candidate.x+candidate.d.dx,ny=candidate.y+candidate.d.dy;maze[candidate.y][candidate.x][candidate.d.a]=0;maze[ny][nx][candidate.d.b]=0;const candidateScore=score();maze[candidate.y][candidate.x][candidate.d.a]=1;maze[ny][nx][candidate.d.b]=1;
+      if(candidateScore>nextScore||candidateScore===nextScore&&!chosen){chosen=candidate;nextScore=candidateScore;}
+    }
+    if(!chosen)break;const nx=chosen.x+chosen.d.dx,ny=chosen.y+chosen.d.dy;maze[chosen.y][chosen.x][chosen.d.a]=0;maze[ny][nx][chosen.d.b]=0;result.push({x:chosen.x,y:chosen.y,nx,ny});baseline=nextScore;
+  }
+  return result;
+}
 
 function chooseDirWeighted(
   dirs: typeof DIRS,
@@ -359,3 +379,5 @@ import { pathData, wallPaths, type WallStyle } from '../maze/walls';
 import { createFreeformMaze } from '../maze/freeform';
 import type { MazeGraph } from '../maze/graph';
 import { wilsonTree } from '../maze/generators/wilson';
+import { mazeToGraph } from '../maze/graph';
+import { analyzeDifficultyV2 } from '../maze/difficulty';

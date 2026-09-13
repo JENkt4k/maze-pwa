@@ -7,7 +7,7 @@ test.each(['%', '%25', '%E0%A4%A', '%FF', ''])('malformed marker %s never crashe
 test('empty and compound markers and precise parameters survive sharing', () => {
   for (const marker of [null, '👨‍👩‍👧‍👦', '%25', '%', 'A&B']) {
     const url = buildShareURL('https://example.test/maze/?unrelated=ok', {...params,startIcon:marker,goalIcon:null});
-    expect(parseFromURL(new URL(url).search)).toEqual({...params,startIcon:marker,goalIcon:null});
+    expect(parseFromURL(new URL(url).search)).toEqual({...params,braidMode:'random',startIcon:marker,goalIcon:null});
     expect(new URL(url).searchParams.get('unrelated')).toBe('ok');
   }
 });
@@ -30,8 +30,8 @@ test('settings validate types, solver preferences, and numeric bounds', () => {
 });
 
 test('non-default generators survive shared links', () => {
-  const url=buildShareURL('https://example.test/',{...params,generator:'wilson',mask:'heart',startIcon:null,goalIcon:null});
-  expect(parseFromURL(new URL(url).search)).toMatchObject({generator:'wilson',mask:'heart'});
+  const url=buildShareURL('https://example.test/',{...params,generator:'wilson',braidMode:'difficulty',mask:'heart',startIcon:null,goalIcon:null});
+  expect(parseFromURL(new URL(url).search)).toMatchObject({generator:'wilson',braidMode:'difficulty',mask:'heart'});
 });
 test('freeform topology controls survive settings and versioned share links',()=>{
   const freeform={topology:'freeform' as const,regionDensity:.45,irregularity:.8};

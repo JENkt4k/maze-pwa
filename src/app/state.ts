@@ -1,4 +1,4 @@
-import { normalizeMarker, type GeneratorId, type MazeParams, type MazeTopology } from './maze';
+import { normalizeMarker, type BraidMode, type GeneratorId, type MazeParams, type MazeTopology } from './maze';
 import type { SolverId } from '../maze/solvers';
 import type { AnimationMode } from '../maze/animation';
 import { CUSTOM_MASK_SIZE, type CustomMask, type MaskId } from '../maze/masks';
@@ -48,6 +48,7 @@ export function validateSettings(value: unknown): Partial<Settings> {
   for (const key of ['controlsOpen', 'lockSize', 'animateDFS', 'solverEnabled','gameBreadcrumbs','mouseShowWalls','mouseShowFlood','mouseShowRoute']) if (typeof value[key] === 'boolean') out[key] = value[key];
   if (['dfs', 'bfs', 'dijkstra', 'astar'].includes(String(value.solverAlgorithm))) out.solverAlgorithm = value.solverAlgorithm;
   if (['dfs', 'prim', 'kruskal', 'wilson'].includes(String(value.generator))) out.generator = value.generator as GeneratorId;
+  if(['random','difficulty'].includes(String(value.braidMode)))out.braidMode=value.braidMode as BraidMode;
   if(['grid','freeform'].includes(String(value.topology)))out.topology=value.topology as MazeTopology;
   if (['rectangle','ellipse','diamond','heart','star','cup','brain','moose','custom'].includes(String(value.mask))) out.mask=value.mask as MaskId;
   if(['classic','rounded','organic'].includes(String(value.wallStyle)))out.wallStyle=value.wallStyle as WallStyle;
@@ -91,6 +92,7 @@ export function parseFromURL(search: string): Partial<Settings> {
     if (raw !== null && raw.trim() !== '') values[key] = Number(raw);
   }
   if (q.has('gen')) values.generator = q.get('gen');
+  if(q.has('bm'))values.braidMode=q.get('bm');else if(q.has('v'))values.braidMode='random';
   if(q.has('top'))values.topology=q.get('top');
   if(q.has('rd'))values.regionDensity=Number(q.get('rd'));
   if(q.has('irr'))values.irregularity=Number(q.get('irr'));
@@ -115,6 +117,7 @@ export function buildShareURL(base: string, p: MazeParams & Markers): string {
   u.searchParams.set('v', p.topology==='freeform'?'3':'2');
   for (const [query, key] of [['w', 'width'], ['h', 'height'], ['seed', 'seed'], ['g', 'g'], ['b', 'b'], ['tau', 'tau']] as const) u.searchParams.set(query, String(p[key]));
   if (p.generator && p.generator !== 'dfs') u.searchParams.set('gen', p.generator); else u.searchParams.delete('gen');
+  if(p.braidMode==='difficulty')u.searchParams.set('bm','difficulty');else u.searchParams.delete('bm');
   if(p.topology==='freeform')u.searchParams.set('top','freeform');else u.searchParams.delete('top');
   if(p.topology==='freeform'&&p.regionDensity!==undefined)u.searchParams.set('rd',String(p.regionDensity));else u.searchParams.delete('rd');
   if(p.topology==='freeform'&&p.irregularity!==undefined)u.searchParams.set('irr',String(p.irregularity));else u.searchParams.delete('irr');
