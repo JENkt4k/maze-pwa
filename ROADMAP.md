@@ -11,18 +11,14 @@
 - Micromouse simulation with search, return, and speed-run phases.
 - Play history with exact local attempt restoration.
 - Per-maze local leaderboards with time and move rankings.
+- Difficulty 2.0 analysis, search, Wilson generation, adversarial braiding, and Giant mode.
 
 ## Backlog
 
-1. **Difficulty 2.0**
-   - Replace the coarse structural score with a deterministic, human-oriented
-     analysis of wrong branches, trap depth, decision entropy, and goal deception.
-   - Preserve the legacy score, generation output, saved mazes, and share links.
-   - Follow the incremental phases in [DIFFICULTY_2_PLAN.md](DIFFICULTY_2_PLAN.md),
-     beginning with pure graph analysis and synthetic ordering tests.
-
-2. **Shared online leaderboard**
-   - Add identity, moderation, and a backend only as a separate opt-in stage.
+1. **Shared online leaderboard**
+   - Client contract and explicit opt-in integration: in progress.
+   - Add the verifying, rate-limited backend as a separate deployment stage.
+   - Follow [SHARED_LEADERBOARD_API.md](SHARED_LEADERBOARD_API.md).
 
 ## Ordering decision
 

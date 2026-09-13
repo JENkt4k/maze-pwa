@@ -429,7 +429,7 @@ export default function App() {
           seekPhase:phase=>{const index=micromouse?.events.findIndex(event=>event.type==='phase'&&event.phase===phase)??-1;if(index>=0){setMicromouseActive(true);mousePlayback.seek(index+1);}},
           competitionPreset:()=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);setEndpointMode(null);setStartCell({x:0,y:height-1});setGoalCell({x:Math.floor(width/2),y:Math.floor(height/2)});}}}
         history={{entries:history,onOpen:openHistory,onDelete:deleteHistory,onClear:clearHistory}}
-        leaderboard={{entries:history,currentMazeId:mazeId}}
+        leaderboard={{entries:history,currentMazeId:mazeId,sharedEndpoint:import.meta.env.VITE_SHARED_LEADERBOARD_URL}}
 
         animation={{
           mode: animationMode,

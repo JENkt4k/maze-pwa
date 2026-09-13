@@ -87,6 +87,10 @@ label { display: grid; gap: 6px; font-size: 12px; color: #3c4557; }
 .leaderboard table { width:100%;border-collapse:collapse;font-size:13px;text-align:right; }
 .leaderboard th,.leaderboard td { padding:7px 5px;border-bottom:1px solid #e6e9ef; }
 .leaderboard th:first-child,.leaderboard td:first-child { text-align:left; }
+.shared-leaderboard { display:grid;gap:10px;border-top:1px solid var(--panel-border);padding-top:12px; }
+.shared-consent { display:flex;grid-template-columns:none;align-items:center;gap:8px; }
+.shared-submit { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px; }
+.shared-error { margin:0;color:#b91c1c;font-size:12px; }
 .robot-benchmark { display:grid;gap:6px;padding:9px;border:1px solid #fde68a;border-radius:10px;background:#fffbeb; }
 .mouse-discovered rect { fill:#fef3c7;opacity:.72; }
 .mouse-route { fill:none;stroke:#f59e0b;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke; }
