@@ -1,6 +1,6 @@
 export type Cell = { x:number; y:number; n:1|0; s:1|0; e:1|0; w:1|0 };
 export type CarveStep = { x:number; y:number; nx:number; ny:number };
-export type GeneratorId = 'dfs' | 'prim' | 'kruskal';
+export type GeneratorId = 'dfs' | 'prim' | 'kruskal' | 'wilson';
 export type MazeTopology = 'grid' | 'freeform';
 export type MazePoint={x:number;y:number};
 export type MazeParams = { width:number;height:number;seed:number;g:number;b:number;tau:number;generator?:GeneratorId;topology?:MazeTopology;regionDensity?:number;irregularity?:number;mask?:MaskId;customMask?:CustomMask;startCell?:MazePoint;goalCell?:MazePoint;wallStyle?:WallStyle;wallThickness?:number;cornerRadius?:number };
@@ -12,6 +12,7 @@ export const GENERATORS: Readonly<Record<GeneratorId, { id:GeneratorId; name:str
   dfs: { id:'dfs', name:'Randomized DFS', description:'Carves long passages with an iterative depth-first backtracker.' },
   prim: { id:'prim', name:'Randomized Prim', description:'Grows outward from the start with a randomized frontier.' },
   kruskal: { id:'kruskal', name:'Randomized Kruskal', description:'Joins random cell regions until the entire maze is connected.' },
+  wilson: { id:'wilson', name:'Wilson', description:'Uses loop-erased random walks to create an unbiased spanning-tree maze.' },
 };
 
 export type MazeResult = {
@@ -101,6 +102,14 @@ export function createMaze(params: MazeParams): MazeResult {
       const a=root(edge.y*W+edge.x), z=root(ny*W+nx);
       if(a===z) continue;
       parent[a]=z; carve(edge.x,edge.y,edge.d);
+    }
+  } else if(generator==='wilson'){
+    const points=active,indexByKey=new Map(points.map((point,index)=>[key(point.x,point.y),index]));
+    const adjacency=points.map(point=>DIRS.flatMap(d=>{const index=indexByKey.get(key(point.x+d.dx,point.y+d.dy));return index===undefined?[]:[index];}));
+    const root=indexByKey.get(key(buildStart.x,buildStart.y))??0;
+    for(const edge of wilsonTree(adjacency,rnd,root)){
+      const from=points[edge.from],to=points[edge.to],d=DIRS.find(direction=>from.x+direction.dx===to.x&&from.y+direction.dy===to.y)!;
+      carve(from.x,from.y,d);
     }
   }
 
@@ -349,3 +358,4 @@ import { createMask, type CustomMask, type MaskId } from '../maze/masks';
 import { pathData, wallPaths, type WallStyle } from '../maze/walls';
 import { createFreeformMaze } from '../maze/freeform';
 import type { MazeGraph } from '../maze/graph';
+import { wilsonTree } from '../maze/generators/wilson';

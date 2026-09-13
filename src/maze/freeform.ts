@@ -2,6 +2,7 @@ import { Delaunay } from 'd3-delaunay';
 import type { Cell, CarveStep, GeneratorId, GeometrySegment, MazeParams, MazePoint, MazeResult, Stats } from '../app/maze';
 import type { MazeGraph, MazeNode, NodeId } from './graph';
 import { createMask } from './masks';
+import { wilsonTree } from './generators/wilson';
 
 type Site={id:NodeId;x:number;y:number};
 type Edge={a:number;b:number};
@@ -41,6 +42,10 @@ function largestComponent(sites:Site[],edges:Edge[]):{sites:Site[];edges:Edge[]}
 
 function spanningEdges(sites:Site[],edges:Edge[],generator:GeneratorId,rnd:()=>number,g:number,tau:number):Edge[]{
   const adjacency=Array.from({length:sites.length},()=>[] as Edge[]);for(const edge of edges){adjacency[edge.a].push(edge);adjacency[edge.b].push(edge);}
+  if(generator==='wilson'){
+    const neighbors=adjacency.map((items,node)=>items.map(edge=>edge.a===node?edge.b:edge.a).sort((a,b)=>a-b));
+    return wilsonTree(neighbors,rnd).map(({from,to})=>({a:from,b:to}));
+  }
   if(generator==='kruskal'){
     const parent=sites.map((_,i)=>i),root=(i:number):number=>parent[i]===i?i:(parent[i]=root(parent[i]));
     const tree:Edge[]=[];for(const edge of shuffle([...edges],rnd)){const a=root(edge.a),b=root(edge.b);if(a===b)continue;parent[a]=b;tree.push(edge);}return tree;

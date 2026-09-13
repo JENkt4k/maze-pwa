@@ -37,7 +37,7 @@ test.each([7, 19, 41])('connected, symmetric mazes with closed boundaries at siz
   }
 });
 
-test.each(['dfs','prim','kruskal'] as const)('%s generation is deterministic, connected, and records a spanning tree', generator => {
+test.each(['dfs','prim','kruskal','wilson'] as const)('%s generation is deterministic, connected, and records a spanning tree', generator => {
   const first=createMaze({...baseline,generator,b:0});
   const second=createMaze({...baseline,generator,b:0});
   expect(first).toEqual(second);
@@ -45,7 +45,7 @@ test.each(['dfs','prim','kruskal'] as const)('%s generation is deterministic, co
   expect(first.stats.L).toBeGreaterThan(0);
 });
 
-test.each(['dfs','prim','kruskal'] as const)('%s freeform generation is deterministic, connected, and solvable',generator=>{
+test.each(['dfs','prim','kruskal','wilson'] as const)('%s freeform generation is deterministic, connected, and solvable',generator=>{
   const params={...baseline,topology:'freeform' as const,mask:'brain' as const,generator,b:0,regionDensity:.45,irregularity:.8};
   const first=createMaze(params),second=createMaze(params),graph=mazeToGraph(first);
   expect(first).toEqual(second);
@@ -94,7 +94,7 @@ test('endpoint strategies return distinct active cells and invalid positions rem
   expect(remapped.start).not.toEqual(remapped.goal);
 });
 
-test.each((['ellipse','diamond','heart','star','cup','brain','moose'] as const).flatMap(mask=>(['dfs','prim','kruskal'] as const).map(generator=>({mask,generator}))))('$mask mask works with $generator generation',({mask,generator})=>{
+test.each((['ellipse','diamond','heart','star','cup','brain','moose'] as const).flatMap(mask=>(['dfs','prim','kruskal','wilson'] as const).map(generator=>({mask,generator}))))('$mask mask works with $generator generation',({mask,generator})=>{
     const result=createMaze({...baseline,mask,generator,b:.2});
     const active=result.mask.flat().filter(Boolean).length;
     expect(result.treeSteps).toHaveLength(active-1);

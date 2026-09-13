@@ -47,7 +47,7 @@ export function validateSettings(value: unknown): Partial<Settings> {
   }
   for (const key of ['controlsOpen', 'lockSize', 'animateDFS', 'solverEnabled','gameBreadcrumbs','mouseShowWalls','mouseShowFlood','mouseShowRoute']) if (typeof value[key] === 'boolean') out[key] = value[key];
   if (['dfs', 'bfs', 'dijkstra', 'astar'].includes(String(value.solverAlgorithm))) out.solverAlgorithm = value.solverAlgorithm;
-  if (['dfs', 'prim', 'kruskal'].includes(String(value.generator))) out.generator = value.generator as GeneratorId;
+  if (['dfs', 'prim', 'kruskal', 'wilson'].includes(String(value.generator))) out.generator = value.generator as GeneratorId;
   if(['grid','freeform'].includes(String(value.topology)))out.topology=value.topology as MazeTopology;
   if (['rectangle','ellipse','diamond','heart','star','cup','brain','moose','custom'].includes(String(value.mask))) out.mask=value.mask as MaskId;
   if(['classic','rounded','organic'].includes(String(value.wallStyle)))out.wallStyle=value.wallStyle as WallStyle;

@@ -307,7 +307,7 @@ test('animation independently switches generation and solving algorithms', async
   const generator=page.getByLabel('Generation algorithm');
   const solver=page.getByLabel('Solving algorithm');
   await expect(generator).toHaveValue('dfs');
-  await expect(generator.locator('option')).toHaveText(['Randomized DFS','Randomized Prim','Randomized Kruskal']);
+  await expect(generator.locator('option')).toHaveText(['Randomized DFS','Randomized Prim','Randomized Kruskal','Wilson']);
   await expect(solver).toHaveValue('dfs');
   await expect(solver.locator('option')).toHaveText(['DFS','BFS','Dijkstra','A*']);
   await expect(page.locator('.generation-overlay-svg')).toBeVisible();
@@ -322,6 +322,8 @@ test('animation independently switches generation and solving algorithms', async
   const originalMaze=await page.locator('#print-maze-only .walls').innerHTML();
   await generator.selectOption('prim');
   await expect.poll(()=>page.locator('#print-maze-only .walls').innerHTML()).not.toBe(originalMaze);
+  await generator.selectOption('wilson');
+  await expect(page.getByText('Uses loop-erased random walks to create an unbiased spanning-tree maze.')).toBeVisible();
   await solver.selectOption('astar');
   await expect(page.getByText(/straight-line distance/)).toBeVisible();
   await expect(page.getByText(/^Path$/).locator('..')).toContainText('steps');
