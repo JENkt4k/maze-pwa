@@ -1,8 +1,10 @@
 ﻿import { createHash } from 'node:crypto';
-import { createMaze, findMaxDifficulty, normalizeMarker, toSVG, type MazeParams } from '@src/app/maze';
+import { createMaze, normalizeMarker, toSVG, type MazeParams } from '@src/app/maze';
 import { mazeFingerprint, mazeToGraph } from '@src/maze/graph';
 import { chooseEndpoints } from '@src/maze/endpoints';
 import { solveMaze } from '@src/maze/solvers';
+import { analyzeDifficultyV2 } from '@src/maze/difficulty';
+import { deriveDifficultyCandidate, searchDifficultyV2 } from '@src/app/difficultySearch';
 
 const baseline: MazeParams = { width:19, height:19, seed:42, g:.3, b:.15, tau:.4 };
 
@@ -168,12 +170,21 @@ test.each([
   expect(() => createMaze({...baseline,...invalid})).toThrow(RangeError);
 });
 
-test('difficulty selection preserves seed, size and never worsens the current score', () => {
-  const params = {...baseline,width:7,height:9,g:.31,tau:.41};
-  const best = findMaxDifficulty(params);
-  expect(best).toMatchObject({seed:params.seed,width:7,height:9});
-  expect(createMaze(best).stats.D).toBeGreaterThanOrEqual(createMaze(params).stats.D);
+test('Difficulty 2 candidate search is deterministic and never returns a worse maze',()=>{
+  const params={...baseline,width:7,height:9,g:.31,tau:.41};
+  const best=searchDifficultyV2(params,250),again=searchDifficultyV2(params,250);
+  expect(again).toEqual(best);
+  expect(best.bestParams).toMatchObject({seed:params.seed,width:params.width,height:params.height});
+  expect(best.bestScore).toBeGreaterThanOrEqual(analyzeDifficultyV2(mazeToGraph(createMaze(params))).score);
+  expect(best.completed).toBe(250);
   expect(params).toEqual({...baseline,width:7,height:9,g:.31,tau:.41});
+});
+
+test('Difficulty 2 candidates preserve fixed maze inputs and vary controls deterministically',()=>{
+  const first=deriveDifficultyCandidate(baseline,17),second=deriveDifficultyCandidate(baseline,17);
+  expect(second).toEqual(first);
+  expect(first).toMatchObject({width:baseline.width,height:baseline.height,seed:baseline.seed});
+  expect({g:first.g,b:first.b,tau:first.tau}).not.toEqual({g:baseline.g,b:baseline.b,tau:baseline.tau});
 });
 
 test('marker markup is escaped and only bounded raster data is accepted', () => {

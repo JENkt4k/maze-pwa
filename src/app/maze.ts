@@ -262,19 +262,6 @@ function computeStats(maze: Cell[][], start: {x:number;y:number}, goal: {x:numbe
   return { L, T, J, E, D: +D.toFixed(3) };
 }
 
-/** Search a bounded parameter grid; include the current maze and preserve its seed. */
-export function findMaxDifficulty(params: MazeParams): MazeParams {
-  let best = { ...params }, score = createMaze(best).stats.D;
-  for (const g of [0, .2, .4, .6, .8, 1])
-    for (const b of [0, .1, .2, .3, .4, .5])
-      for (const tau of [0, .2, .4, .6, .8, 1]) {
-        const candidate = { ...params, g, b, tau };
-        const next = createMaze(candidate).stats.D;
-        if (next > score) { best = candidate; score = next; }
-      }
-  return best;
-}
-
 const RASTER_DATA = /^data:image\/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/]+={0,2}$/i;
 /** Only bounded plain text or base64 raster images may be persisted/rendered. */
 export function normalizeMarker(value: unknown): string | null {

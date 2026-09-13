@@ -240,7 +240,7 @@ export default function App() {
   }, []);
 
   const mazeParams={width,height,seed,g,b,tau,generator,topology,regionDensity,irregularity,mask,customMask:mask==='custom'?customMask:undefined,startCell,goalCell};
-  const { search: findMaxDifficulty, searching, error: searchError } = useDifficultySearch(mazeParams, best => {
+  const { search: runDifficultySearch, cancel:cancelDifficultySearch, searching, error: searchError, budget:difficultyBudget, setBudget:setDifficultyBudget, progress:difficultyProgress } = useDifficultySearch(mazeParams, best => {
     setG(best.g); setB(best.b); setTau(best.tau); setSeed(best.seed);
   });
   const newMaze = () => setSeed(s => (s + 1) | 0);
@@ -383,8 +383,12 @@ export default function App() {
         /* Actions */
         onNew={newMaze}
         onPrint={() => handlePrint(currentSVG)}
-        onMaxDifficulty={findMaxDifficulty}
+        onMaxDifficulty={runDifficultySearch}
+        onCancelDifficulty={cancelDifficultySearch}
         searching={searching}
+        difficultyBudget={difficultyBudget}
+        setDifficultyBudget={setDifficultyBudget}
+        difficultyProgress={difficultyProgress}
 
         /* Save/Load */
         saveName={saveName}
