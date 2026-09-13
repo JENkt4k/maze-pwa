@@ -198,6 +198,9 @@ test('local leaderboard ranks completed attempts and shows robot benchmark',asyn
   await expect(board.getByRole('row').nth(1)).toContainText('0:07.0');
   await expect(board.getByRole('row').nth(1)).toContainText('8');
   await expect(board.getByRole('region',{name:'Micromouse benchmark'})).toContainText('8 cells');
+  const shared=page.getByRole('region',{name:'Shared leaderboard'});
+  await expect(shared.getByLabel('Enable online scores')).not.toBeChecked();
+  await expect(shared.getByText('Online scores are not configured for this deployment.')).toBeVisible();
 });
 
 test('giant maze mode exposes larger sizes and pan and zoom controls',async({page})=>{

@@ -10,3 +10,6 @@ declare module '@emoji-mart/react' {
   }>;
   export default Picker;
 }
+
+interface ImportMetaEnv { readonly VITE_SHARED_LEADERBOARD_URL?:string }
+interface ImportMeta { readonly env:ImportMetaEnv }

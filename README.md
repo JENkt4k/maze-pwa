@@ -151,13 +151,28 @@ Remove-Item Env:VITE_BASE, Env:TEST_BASE
 The workflow checks pull requests to main and validates main builds before
 publishing to GitHub Pages. No deployment occurs for pull requests.
 
+## Optional shared leaderboard
+
+Local play history and rankings work offline and remain the default. To expose the
+opt-in shared leaderboard UI, set the public API base URL at build time:
+
+```powershell
+$env:VITE_SHARED_LEADERBOARD_URL = 'https://scores.example/'
+npm.cmd run build
+```
+
+The client does not contact this endpoint until the player enables online scores.
+The versioned request/response format, verification rules, privacy boundary, rate
+limits, and moderation requirements are defined in
+[SHARED_LEADERBOARD_API.md](SHARED_LEADERBOARD_API.md).
+
 The completed stabilization checklist and verification evidence are recorded in
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The solver playback architecture
 and verification are recorded in [SOLVER_PLAYBACK_PLAN.md](SOLVER_PLAYBACK_PLAN.md).
 Play history records local human attempts with exact maze restoration. Per-maze
 leaderboards rank completed runs by time or moves and compare them with a stored
-Micromouse benchmark. Difficulty 2.0 and drawing persistence remain planned; see
-[ROADMAP.md](ROADMAP.md).
+Micromouse benchmark. Difficulty 2.0 and Giant mode are complete; see
+[ROADMAP.md](ROADMAP.md) for the remaining hosted leaderboard work.
 The unified animation replays maze construction first and then continues into
 solver exploration using separate colors, independent algorithm selectors, and
 shared playback controls.
