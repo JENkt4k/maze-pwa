@@ -13,8 +13,8 @@
 - **Phase 5 — Wilson generator:** implemented and validated on
   `feature/wilson-generator`; merged.
 - **Phase 6 — Adversarial braiding:** implemented and validated on
-  `feature/adversarial-braiding`; pending merge.
-- **Phase 7:** backlog.
+  `feature/adversarial-braiding`; merged.
+- **Phase 7 — Giant mode:** implemented on `feature/giant-maze-mode`; pending merge.
 
 > **Purpose:** Implementation specification for Codex / coding agents working on `JENkt4k/maze-pwa` (InfiMaze).
 >
@@ -1371,6 +1371,13 @@ Add topology-aware braid selection.
 Add 43–101 display mode with pan/zoom.
 
 Treat separately from scoring.
+
+Implementation notes:
+
+- Standard mode keeps odd dimensions from 7 through 41; Giant mode uses 43 through 101.
+- Giant mazes render inside a clipped SVG viewport with wheel, button, and pinch zoom.
+- The drawing toolbar's Scroll mode enables drag panning, preventing a pan gesture from adding a drawing stroke.
+- Fit and reset controls restore the complete-maze view without changing maze data or difficulty scoring.
 
 ---
 

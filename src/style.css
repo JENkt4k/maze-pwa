@@ -46,6 +46,14 @@ label { display: grid; gap: 6px; font-size: 12px; color: #3c4557; }
 .draw-toolbar label { flex: 1 1 100px; max-width: 200px; }
 .maze-frame { position: relative; width: 100%; }
 .maze-frame svg { display: block; width: 100%; height: auto; }
+.giant-maze-shell { display:grid;gap:8px; }
+.maze-viewport-toolbar { display:flex;align-items:center;flex-wrap:wrap;gap:6px; }
+.maze-viewport-toolbar output { min-width:3.5em;text-align:center;font-weight:700;font-size:12px; }
+.maze-viewport-hint { color:#586174;font-size:12px;margin-left:4px; }
+.giant-maze-viewport { position:relative;height:clamp(420px,68vh,820px);overflow:hidden;border:1px solid #d1d7e0;border-radius:12px;background:#fff;touch-action:none; }
+.giant-maze-viewport.is-pannable { cursor:grab; }
+.giant-maze-viewport.is-pannable:active { cursor:grabbing; }
+.giant-maze-stage { width:100%;transform-origin:0 0;will-change:transform; }
 .draw-canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; z-index: 3; }
 .generation-overlay-svg, .solver-overlay-svg, .micromouse-overlay-svg { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
 .endpoint-overlay { position:absolute; inset:0; z-index:4; }
@@ -122,9 +130,12 @@ label { display: grid; gap: 6px; font-size: 12px; color: #3c4557; }
   .main { order: 1; }
   .controls { order: 2; }
   .main > header { flex-wrap: wrap; }
+  .giant-maze-viewport { height:60dvh;min-height:360px; }
+  .maze-viewport-hint { flex-basis:100%; }
 }
 @media print {
   body * { visibility: hidden !important; }
+  .giant-maze-shell, .giant-maze-viewport, .giant-maze-stage { position:static !important;height:auto !important;overflow:visible !important;transform:none !important; }
   #print-maze-only, #print-maze-only * { visibility: visible !important; }
   #print-maze-only { position: fixed !important; inset: 0 !important; margin: 0 !important; padding: 0 !important; background: #fff !important; }
   #print-maze-only svg { width: 100% !important; height: auto !important; max-height: 100vh !important; }

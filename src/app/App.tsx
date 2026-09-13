@@ -8,8 +8,9 @@ import Fab from "./components/Fab";
 import { usePWAInstall } from "./hooks/usePWAInstall";
 import { useResizeObserver } from "./hooks/useResizeObserver";
 import "../style.css";
-import DrawingCanvas from "./components/DrawingCanvas";
+import DrawingCanvas, { type DrawingMode } from "./components/DrawingCanvas";
 import MazeView from "./components/MazeView";
+import MazeViewport from "./components/MazeViewport";
 
 import { buildShareURL, parseFromURL, parseSettings, parseSaved, SETTINGS_KEY, STORAGE_KEY, type SavedMaze } from "./state";
 import { handlePrint } from "./print";
@@ -79,6 +80,8 @@ export default function App() {
   const [mouseShowRoute,setMouseShowRoute]=useState(persisted.mouseShowRoute??true);
   const [controlsOpen, setControlsOpen] = useState(persisted.controlsOpen ?? !window.matchMedia("(max-width: 840px)").matches);
   const [lockSize, setLockSize]         = useState((persisted.lockSize ?? false) && width === height);
+  const giantMode=width>41||height>41;
+  const [drawingMode,setDrawingMode]=useState<DrawingMode>('draw');
 
   // Markers/emoji:
   const [startIcon, setStartIcon] = useState<string | null>(fromURL.startIcon !== undefined ? fromURL.startIcon : persisted.startIcon !== undefined ? persisted.startIcon : DEFAULT_START);
@@ -169,6 +172,10 @@ export default function App() {
   // keep odd dims if needed and lock together
   const setWidth  = (w:number) => { const odd = w%2? w : w+1; setWidthRaw(odd); if (lockSize) setHeightRaw(odd); };
   const setHeight = (h:number) => { const odd = h%2? h : h+1; setHeightRaw(odd); if (lockSize) setWidthRaw(odd); };
+  const setGiantMode=(giant:boolean)=>{
+    const bound=(value:number)=>giant?Math.max(43,value):Math.min(41,value);
+    setWidthRaw(bound(width));setHeightRaw(lockSize?bound(width):bound(height));
+  };
 
   // Solver playback preferences. Legacy animation settings provide migration defaults.
   const [solverEnabled, setSolverEnabled] = useState(persisted.solverEnabled ?? persisted.animateDFS ?? true);
@@ -342,7 +349,7 @@ export default function App() {
         <section className="stack">
           {/* Maze, solver playback, and drawing share one generated maze snapshot. */}
           <div className="draw-wrap">
-            <MazeView
+            <MazeViewport giant={giantMode} navigationEnabled={drawingMode==='scroll'&&endpointMode===null&&!gameActive&&!micromouseActive}><MazeView
               hostRef={svgHostRef}
               data={mazeData}
               graph={mazeGraph}
@@ -361,9 +368,9 @@ export default function App() {
               onEndpointSelect={selectEndpoint}
               gameplay={gameActive&&gameStateMatchesMaze?{state:game.state,breadcrumbs:gameBreadcrumbs,move:game.move}:null}
               micromouse={micromouseActive&&micromouse?{events:micromouse.events,eventIndex:mousePlayback.state.index,showWalls:mouseShowWalls,showFlood:mouseShowFlood,showRoute:mouseShowRoute}:null}
-            />
+            /></MazeViewport>
             <DrawingCanvas hostRef={svgHostRef} mazeKey={mazeKey} disabled={endpointMode!==null||gameActive||micromouseActive} playActive={gameActive}
-              onPlay={startGameplay} onExitPlay={()=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);}}/>
+              onPlay={startGameplay} onModeChange={setDrawingMode} onExitPlay={()=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);}}/>
           </div>
 
           <StatsCard stats={mazeData.stats} difficulty={difficultyV2} />
@@ -376,7 +383,7 @@ export default function App() {
         onInstall={install}
 
         /* Size & difficulty */
-        width={width} height={height} g={g} b={b} tau={tau} braidMode={braidMode} setBraidMode={setBraidMode}
+        width={width} height={height} giantMode={giantMode} setGiantMode={setGiantMode} g={g} b={b} tau={tau} braidMode={braidMode} setBraidMode={setBraidMode}
         topology={topology} setTopology={value=>{setTopology(value);setStartCell(undefined);setGoalCell(undefined);setEndpointMode(null);}}
         regionDensity={regionDensity} setRegionDensity={setRegionDensity} irregularity={irregularity} setIrregularity={setIrregularity}
         setWidth={setWidth} setHeight={setHeight} setG={setG} setB={setB} setTau={setTau}

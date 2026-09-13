@@ -22,7 +22,7 @@ test('image markers remain local and cannot inflate shared links', () => {
 });
 test('settings validate types, solver preferences, and numeric bounds', () => {
   expect(validateSettings({width:1000,height:8.8,g:'oops',b:Infinity,tau:-4,seed:42.5,controlsOpen:'yes',lockSize:true,animateDFS:false,dfsSegMs:0,lingerMs:1e9,solverEnabled:true,solverAlgorithm:'astar',solverStepMs:999,generator:'prim',animationMode:'build-solve',generationColor:'#7C3AED',generationOpacity:9,solverColor:'#C026D3',solverOpacity:0}))
-    .toEqual({width:41,height:9,tau:0,seed:42,dfsSegMs:10,lingerMs:5000,solverStepMs:250,generationOpacity:1,solverOpacity:.1,lockSize:true,animateDFS:false,solverEnabled:true,solverAlgorithm:'astar',generator:'prim',animationMode:'build-solve',generationColor:'#7c3aed',solverColor:'#c026d3'});
+    .toEqual({width:101,height:9,tau:0,seed:42,dfsSegMs:10,lingerMs:5000,solverStepMs:250,generationOpacity:1,solverOpacity:.1,lockSize:true,animateDFS:false,solverEnabled:true,solverAlgorithm:'astar',generator:'prim',animationMode:'build-solve',generationColor:'#7c3aed',solverColor:'#c026d3'});
   expect(validateSettings({solverAlgorithm:'wall-follower'})).toEqual({});
   expect(parseSettings('{')).toEqual({});
   expect(parseSettings('null')).toEqual({});

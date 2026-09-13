@@ -200,6 +200,26 @@ test('local leaderboard ranks completed attempts and shows robot benchmark',asyn
   await expect(board.getByRole('region',{name:'Micromouse benchmark'})).toContainText('8 cells');
 });
 
+test('giant maze mode exposes larger sizes and pan and zoom controls',async({page})=>{
+  await page.goto('./');
+  await page.getByText('Adjust size',{exact:true}).click();
+  const mode=page.getByLabel('Maze size mode');
+  await mode.selectOption('giant');
+  await expect(page.getByLabel(/^Width:/)).toHaveValue('43');
+  await expect(page.getByLabel(/^Height:/)).toHaveValue('43');
+  const viewport=page.getByRole('region',{name:'Giant maze viewport'});
+  await expect(viewport).toBeVisible();
+  await viewport.getByRole('button',{name:'Zoom in'}).click();
+  await expect(viewport.getByLabel('Maze zoom level')).toHaveText('125%');
+  await page.getByRole('group',{name:'Drawing tools'}).getByRole('button',{name:'Scroll'}).click();
+  await expect(page.locator('.giant-maze-viewport')).toHaveClass(/is-pannable/);
+  await viewport.getByRole('button',{name:'Fit',exact:true}).click();
+  await expect(viewport.getByLabel('Maze zoom level')).toHaveText('100%');
+  await mode.selectOption('standard');
+  await expect(page.getByLabel(/^Width:/)).toHaveValue('41');
+  await expect(viewport).toBeHidden();
+});
+
 test('Difficulty 2 score is labeled as estimated and retains the legacy score',async({page})=>{
   await page.goto('./');
   const stats=page.getByText('Stats',{exact:true}).locator('..');
