@@ -44,7 +44,7 @@ type Props = {
   setGoalIcon: (v: string | null) => void;
   startCell:MazePoint; goalCell:MazePoint; endpointMode:'start'|'goal'|null;
   setEndpointMode:(mode:'start'|'goal'|null)=>void; onPlaceEndpoints:(strategy:EndpointStrategy)=>void;
-  gameplay:{active:boolean;state:MazeGameState;breadcrumbs:boolean;setBreadcrumbs:(value:boolean)=>void;start:()=>void;pause:()=>void;restart:()=>void;hint:()=>void;newMaze:()=>void;difficulty:number;personalBestMs?:number};
+  gameplay:{active:boolean;state:MazeGameState;breadcrumbs:boolean;setBreadcrumbs:(value:boolean)=>void;start:()=>void;pause:()=>void;restart:()=>void;hint:()=>void;newMaze:()=>void;shareChallenge:()=>void;difficulty:number;personalBestMs?:number};
   micromouse:MicromouseControlsProps;
   history:PlayHistoryProps;
   leaderboard:LeaderboardProps;
