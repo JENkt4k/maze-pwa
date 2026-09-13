@@ -9,7 +9,7 @@ export type MicromouseBenchmark=Readonly<{totalTimeMs:number;speedTimeMs:number;
 export type PlayHistoryEntry=Readonly<{
   version:1;id:string;mazeId:string;gameKey:string;params:HistoryMazeParams;
   startedAt:number;updatedAt:number;completedAt?:number;status:HistoryStatus;
-  elapsedMs:number;moves:number;revisits:number;route:readonly string[];micromouse?:MicromouseBenchmark;
+  elapsedMs:number;moves:number;revisits:number;hints?:number;route:readonly string[];micromouse?:MicromouseBenchmark;
 }>;
 
 const record=(value:unknown):value is Record<string,unknown>=>typeof value==='object'&&value!==null&&!Array.isArray(value);
@@ -26,18 +26,18 @@ export function parsePlayHistory(raw:string|null):PlayHistoryEntry[]{
       const candidateMouse=entry.micromouse;
       const mouse=record(candidateMouse)&&['totalTimeMs','speedTimeMs','speedCells','exploredPercent','turns'].every(key=>finiteNonnegative(candidateMouse[key]))?candidateMouse as MicromouseBenchmark:undefined;
       ids.add(entry.id);
-      return[{version:1,id:entry.id,mazeId:entry.mazeId,gameKey:entry.gameKey,params:params as HistoryMazeParams,startedAt:entry.startedAt,updatedAt:entry.updatedAt,completedAt:finiteNonnegative(entry.completedAt)?entry.completedAt:undefined,status:entry.status==='playing'?'paused':entry.status as HistoryStatus,elapsedMs:entry.elapsedMs,moves:entry.moves,revisits:entry.revisits,route:entry.route as string[],micromouse:mouse}];
+      return[{version:1,id:entry.id,mazeId:entry.mazeId,gameKey:entry.gameKey,params:params as HistoryMazeParams,startedAt:entry.startedAt,updatedAt:entry.updatedAt,completedAt:finiteNonnegative(entry.completedAt)?entry.completedAt:undefined,status:entry.status==='playing'?'paused':entry.status as HistoryStatus,elapsedMs:entry.elapsedMs,moves:entry.moves,revisits:entry.revisits,hints:finiteNonnegative(entry.hints)?Math.trunc(entry.hints):0,route:entry.route as string[],micromouse:mouse}];
     }).sort((a,b)=>b.startedAt-a.startedAt).slice(0,HISTORY_LIMIT);
   }catch{return[];}
 }
 
 export function createHistoryEntry(mazeId:string,gameKey:string,params:HistoryMazeParams,state:MazeGameState,now=Date.now(),id:string=crypto.randomUUID(),micromouse?:MicromouseBenchmark):PlayHistoryEntry{
-  return{version:1,id,mazeId,gameKey,params,startedAt:now,updatedAt:now,status:'playing',elapsedMs:state.elapsedMs,moves:state.moves,revisits:state.revisits,route:state.route,micromouse};
+  return{version:1,id,mazeId,gameKey,params,startedAt:now,updatedAt:now,status:'playing',elapsedMs:state.elapsedMs,moves:state.moves,revisits:state.revisits,hints:state.hints??0,route:state.route,micromouse};
 }
 
 export function updateHistoryEntry(entry:PlayHistoryEntry,state:MazeGameState,now=Date.now()):PlayHistoryEntry{
   const status:HistoryStatus=state.status==='complete'?'completed':state.status==='paused'?'paused':'playing';
-  return{...entry,updatedAt:now,completedAt:status==='completed'?(entry.completedAt??now):undefined,status,elapsedMs:state.elapsedMs,moves:state.moves,revisits:state.revisits,route:state.route};
+  return{...entry,updatedAt:now,completedAt:status==='completed'?(entry.completedAt??now):undefined,status,elapsedMs:state.elapsedMs,moves:state.moves,revisits:state.revisits,hints:state.hints??0,route:state.route};
 }
 
 export function abandonHistoryEntry(entry:PlayHistoryEntry,now=Date.now()):PlayHistoryEntry{
@@ -45,5 +45,5 @@ export function abandonHistoryEntry(entry:PlayHistoryEntry,now=Date.now()):PlayH
 }
 
 export function historyGameState(entry:PlayHistoryEntry):MazeGameState{
-  return{key:entry.gameKey,current:entry.route.at(-1)!,route:[...entry.route],moves:entry.moves,revisits:entry.revisits,elapsedMs:entry.elapsedMs,status:entry.status==='completed'?'complete':'paused'};
+  return{key:entry.gameKey,current:entry.route.at(-1)!,route:[...entry.route],moves:entry.moves,revisits:entry.revisits,hints:entry.hints??0,elapsedMs:entry.elapsedMs,status:entry.status==='completed'?'complete':'paused'};
 }

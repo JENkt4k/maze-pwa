@@ -2,10 +2,10 @@ import { useEffect, useRef, type KeyboardEvent, type PointerEvent } from 'react'
 import type { MazeGraph, NodeId } from '../../maze/graph';
 import type { MazeGameState } from '../hooks/useMazeGame';
 
-type Props={graph:MazeGraph;state:MazeGameState;cell:number;margin:number;width:number;height:number;breadcrumbs:boolean;move:(target:NodeId)=>void;freeform?:boolean};
+type Props={graph:MazeGraph;state:MazeGameState;hintNode?:NodeId|null;cell:number;margin:number;width:number;height:number;breadcrumbs:boolean;move:(target:NodeId)=>void;freeform?:boolean};
 const directions:Record<string,[number,number]>={ArrowRight:[1,0],d:[1,0],D:[1,0],ArrowLeft:[-1,0],a:[-1,0],A:[-1,0],ArrowDown:[0,1],s:[0,1],S:[0,1],ArrowUp:[0,-1],w:[0,-1],W:[0,-1]};
 
-export default function GameplayOverlay({graph,state,cell,margin,width,height,breadcrumbs,move,freeform}:Props){
+export default function GameplayOverlay({graph,state,hintNode,cell,margin,width,height,breadcrumbs,move,freeform}:Props){
   const ref=useRef<HTMLDivElement>(null),pointer=useRef<{x:number;y:number}|null>(null);
   const totalWidth=width*cell+2*margin,totalHeight=height*cell+2*margin;
   const current=graph.nodes.get(state.current)!;
@@ -22,7 +22,7 @@ export default function GameplayOverlay({graph,state,cell,margin,width,height,br
   const player=center(state.current);
   return <div ref={ref} className="gameplay-overlay" role="application" aria-label="Maze gameplay area" tabIndex={0} onKeyDown={keyDown} onPointerDown={down} onPointerUp={up}>
     {breadcrumbs&&state.route.length>1&&<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points={route} vectorEffect="non-scaling-stroke"/></svg>}
-    {current.neighbors.map(id=>{const p=center(id),point=graph.nodes.get(id)!.position;return<button key={id} type="button" aria-label={freeform?`Move to adjacent region ${id.slice(2)}`:`Move to column ${point.x+1}, row ${point.y+1}`} onClick={()=>move(id)} style={{left:`${p.x}%`,top:`${p.y}%`}}/>;})}
+    {current.neighbors.map(id=>{const p=center(id),point=graph.nodes.get(id)!.position;return<button key={id} type="button" className={id===hintNode?'hint-move':undefined} aria-label={freeform?`Move to adjacent region ${id.slice(2)}`:`Move to column ${point.x+1}, row ${point.y+1}`} onClick={()=>move(id)} style={{left:`${p.x}%`,top:`${p.y}%`}}/>;})}
     <span className="game-player" style={{left:`${player.x}%`,top:`${player.y}%`}} aria-hidden="true"/>
   </div>;
 }

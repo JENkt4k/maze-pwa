@@ -5,7 +5,7 @@ const params={width:7,height:7,seed:42,g:.3,b:.15,tau:.4,topology:'grid' as cons
 const entry=(id:string,mazeId:string,elapsedMs:number,moves:number,revisits=0,completedAt=1000):PlayHistoryEntry=>({version:1,id,mazeId,gameKey:`key-${mazeId}`,params,startedAt:0,updatedAt:completedAt,completedAt,status:'completed',elapsedMs,moves,revisits,route:['0,0','1,0']});
 
 test('leaderboard ranks only completed attempts for one maze',()=>{
-  const entries=[entry('slow','maze-a',9000,8),entry('fast','maze-a',5000,12),entry('efficient','maze-a',7000,7),{...entry('paused','maze-a',1000,1),status:'paused' as const},entry('other','maze-b',1000,1)];
+  const entries=[entry('slow','maze-a',9000,8),entry('fast','maze-a',5000,12),entry('efficient','maze-a',7000,7),{...entry('assisted','maze-a',1000,1),hints:1},{...entry('paused','maze-a',1000,1),status:'paused' as const},entry('other','maze-b',1000,1)];
   expect(rankAttempts(entries,'maze-a','time').map(item=>item.id)).toEqual(['fast','efficient','slow']);
   expect(rankAttempts(entries,'maze-a','moves').map(item=>item.id)).toEqual(['efficient','slow','fast']);
 });

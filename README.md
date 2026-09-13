@@ -171,7 +171,10 @@ The completed stabilization checklist and verification evidence are recorded in
 and verification are recorded in [SOLVER_PLAYBACK_PLAN.md](SOLVER_PLAYBACK_PLAN.md).
 Play history records local human attempts with exact maze restoration. Per-maze
 leaderboards rank completed runs by time or moves and compare them with a stored
-Micromouse benchmark. Difficulty 2.0 and Giant mode are complete; see
+Micromouse benchmark. Visual hints identify the next shortest-path move; runs that
+use hints remain in history but are excluded from competitive rankings. Completed
+runs show time, movement metrics, difficulty, and personal-best comparison.
+Difficulty 2.0 and Giant mode are complete; see
 [ROADMAP.md](ROADMAP.md) for the remaining hosted leaderboard work.
 The unified animation replays maze construction first and then continues into
 solver exploration using separate colors, independent algorithm selectors, and

@@ -4,7 +4,7 @@ export type LeaderboardSort='time'|'moves';
 export type MazeLeaderboard=Readonly<{mazeId:string;label:string;attempts:readonly PlayHistoryEntry[]}>;
 
 export function rankAttempts(entries:readonly PlayHistoryEntry[],mazeId:string,sort:LeaderboardSort):PlayHistoryEntry[]{
-  return entries.filter(entry=>entry.mazeId===mazeId&&entry.status==='completed').sort((a,b)=>sort==='time'
+  return entries.filter(entry=>entry.mazeId===mazeId&&entry.status==='completed'&&(entry.hints??0)===0).sort((a,b)=>sort==='time'
     ?a.elapsedMs-b.elapsedMs||a.moves-b.moves||a.revisits-b.revisits||(a.completedAt??a.updatedAt)-(b.completedAt??b.updatedAt)
     :a.moves-b.moves||a.elapsedMs-b.elapsedMs||a.revisits-b.revisits||(a.completedAt??a.updatedAt)-(b.completedAt??b.updatedAt));
 }

@@ -12,6 +12,7 @@
 - Play history with exact local attempt restoration.
 - Per-maze local leaderboards with time and move rankings.
 - Difficulty 2.0 analysis, search, Wilson generation, adversarial braiding, and Giant mode.
+- Gameplay hints, assisted-run tracking, and completion results with personal-best comparison.
 
 ## Backlog
 

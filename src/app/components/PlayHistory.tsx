@@ -15,7 +15,7 @@ export default function PlayHistory({entries,onOpen,onDelete,onClear}:PlayHistor
     {!visible.length?<p className="muted">{entries.length?'No attempts match this filter.':'Play a maze to start your history.'}</p>:<ol className="history-list">
       {visible.map(entry=><li key={entry.id}>
         <div className="history-heading"><strong>{entry.status[0].toUpperCase()+entry.status.slice(1)}</strong><time dateTime={new Date(entry.startedAt).toISOString()}>{new Date(entry.startedAt).toLocaleString()}</time></div>
-        <div className="history-metrics"><span>{duration(entry.elapsedMs)}</span><span>{entry.moves} moves</span><span>{entry.revisits} revisits</span></div>
+        <div className="history-metrics"><span>{duration(entry.elapsedMs)}</span><span>{entry.moves} moves</span><span>{entry.revisits} revisits</span>{!!entry.hints&&<span>{entry.hints} hints · assisted</span>}</div>
         <div className="history-maze">{entry.params.width}×{entry.params.height} · seed {entry.params.seed}</div>
         <div className="hstack"><button type="button" className="btn btn-sm" onClick={()=>onOpen(entry.id)}>Reopen</button><button type="button" className="btn btn-sm btn-danger" onClick={()=>onDelete(entry.id)}>Delete</button></div>
       </li>)}
