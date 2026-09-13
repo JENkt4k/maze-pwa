@@ -3,6 +3,7 @@ import type { Cell, CarveStep, GeneratorId, GeometrySegment, MazeParams, MazePoi
 import type { MazeGraph, MazeNode, NodeId } from './graph';
 import { createMask } from './masks';
 import { wilsonTree } from './generators/wilson';
+import { analyzeDifficultyV2 } from './difficulty';
 
 type Site={id:NodeId;x:number;y:number};
 type Edge={a:number;b:number};
@@ -71,6 +72,16 @@ function graphFor(sites:Site[],passages:Edge[],start:number,goal:number):MazeGra
 }
 
 function graphDistances(graph:MazeGraph,start:NodeId){const distances=new Map<NodeId,number>([[start,0]]),queue=[start];for(let i=0;i<queue.length;i++)for(const next of graph.nodes.get(queue[i])!.neighbors)if(!distances.has(next)){distances.set(next,distances.get(queue[i])!+1);queue.push(next);}return{distances,queue};}
+function difficultyBraids(sites:Site[],edges:Edge[],tree:Edge[],intensity:number):Edge[]{
+  const passages=[...tree],open=new Set(tree.map(edge=>edgeKey(edge.a,edge.b))),left=sites.reduce((best,site,index)=>site.x<sites[best].x?index:best,0),treeGraph=graphFor(sites,tree,left,left),farthest=graphDistances(treeGraph,sites[left].id).queue.at(-1)!,goal=sites.findIndex(site=>site.id===farthest);
+  const score=()=>analyzeDifficultyV2(graphFor(sites,passages,left,goal)).score,target=Math.min(8,Math.round(edges.length*intensity*.18));let baseline=score();
+  for(let iteration=0;iteration<target;iteration++){
+    const current=graphFor(sites,passages,left,goal),ranked=edges.filter(edge=>!open.has(edgeKey(edge.a,edge.b))).map(edge=>({edge,distance:graphDistances(current,sites[edge.a].id).distances.get(sites[edge.b].id)??0})).sort((a,b)=>b.distance-a.distance||a.edge.a-b.edge.a||a.edge.b-b.edge.b).slice(0,8);let chosen:Edge|undefined,nextScore=baseline;
+    for(const {edge} of ranked){passages.push(edge);const candidate=score();passages.pop();if(candidate>nextScore||candidate===nextScore&&!chosen){chosen=edge;nextScore=candidate;}}
+    if(!chosen)break;passages.push(chosen);open.add(edgeKey(chosen.a,chosen.b));baseline=nextScore;
+  }
+  return passages.slice(tree.length);
+}
 function statsFor(graph:MazeGraph):Stats{
   const parents=new Map<NodeId,NodeId|null>([[graph.start,null]]),queue=[graph.start];
   for(let i=0;i<queue.length&&!parents.has(graph.goals[0]);i++)for(const next of graph.nodes.get(queue[i])!.neighbors)if(!parents.has(next)){parents.set(next,queue[i]);queue.push(next);}
@@ -115,7 +126,8 @@ export function createFreeformMaze(params:MazeParams):MazeResult{
   let sites=sitesFor(mask,seed,density,irregularity),delaunay=Delaunay.from(sites,site=>site.x,site=>site.y),edges=candidateEdges(delaunay,sites,mask);
   ({sites,edges}=largestComponent(sites,edges));delaunay=Delaunay.from(sites,site=>site.x,site=>site.y);
   const rnd=random(seed^0x7f4a7c15),tree=spanningEdges(sites,edges,params.generator??'dfs',rnd,params.g,params.tau),passages=[...tree],open=new Set(tree.map(edge=>edgeKey(edge.a,edge.b)));
-  if((params.b??0)>0)for(const edge of shuffle([...edges],rnd))if(!open.has(edgeKey(edge.a,edge.b))&&rnd()<(params.b??0)*.18){open.add(edgeKey(edge.a,edge.b));passages.push(edge);}
+  if((params.b??0)>0&&params.braidMode==='difficulty')passages.push(...difficultyBraids(sites,edges,tree,params.b??0));
+  else if((params.b??0)>0)for(const edge of shuffle([...edges],rnd))if(!open.has(edgeKey(edge.a,edge.b))&&rnd()<(params.b??0)*.18){open.add(edgeKey(edge.a,edge.b));passages.push(edge);}
   const left=sites.reduce((best,site,index)=>site.x<sites[best].x?index:best,0),preGraph=graphFor(sites,passages,left,left),reachable=graphDistances(preGraph,sites[left].id).queue,farthest=reachable[reachable.length-1],right=sites.findIndex(site=>site.id===farthest);
   const nearest=(requested:MazePoint|undefined,fallback:number,exclude=-1)=>requested?sites.reduce((best,site,index)=>index===exclude?best:distance(site,requested)<distance(sites[best],requested)?index:best,fallback):fallback;
   const startIndex=nearest(params.startCell,left),goalIndex=nearest(params.goalCell,right,startIndex),graph=graphFor(sites,passages,startIndex,goalIndex);

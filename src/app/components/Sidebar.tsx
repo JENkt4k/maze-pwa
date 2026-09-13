@@ -8,7 +8,7 @@ import { MASKS, type MaskId } from '../../maze/masks';
 import type { CustomMask } from '../../maze/masks';
 import CustomMaskControls from './CustomMaskControls';
 import type { EndpointStrategy } from '../../maze/endpoints';
-import type { MazePoint, MazeTopology } from '../maze';
+import type { BraidMode, MazePoint, MazeTopology } from '../maze';
 import type { WallStyle } from '../../maze/walls';
 import GameplayControls from './GameplayControls';
 import type { MazeGameState } from '../hooks/useMazeGame';
@@ -20,7 +20,7 @@ import type { DifficultySearchBudget, DifficultySearchProgress } from '../diffic
 type Props = {
   canInstall: boolean;
   onInstall: () => void;
-  width: number; height: number; g: number; b: number; tau: number;
+  width: number; height: number; g: number; b: number; tau: number;braidMode:BraidMode;setBraidMode:(mode:BraidMode)=>void;
   topology:MazeTopology;setTopology:(value:MazeTopology)=>void;regionDensity:number;setRegionDensity:(value:number)=>void;irregularity:number;setIrregularity:(value:number)=>void;
   setWidth: (n:number)=>void; setHeight:(n:number)=>void; setG:(n:number)=>void; setB:(n:number)=>void; setTau:(n:number)=>void;
   onNew: () => void; onPrint: () => void;
@@ -344,6 +344,12 @@ export default function Sidebar(props: Props){
           </label>
           <label>Braid b: {b.toFixed(2)}
             <input type="range" min={0} max={0.5} step={0.01} value={b} onChange={e=>setB(parseFloat(e.target.value))}/>
+          </label>
+          <label>Braid strategy
+            <select name="braid-strategy" value={props.braidMode} disabled={b===0} onChange={event=>props.setBraidMode(event.target.value as BraidMode)}>
+              <option value="random">Random dead ends</option>
+              <option value="difficulty">Difficulty-aware</option>
+            </select>
           </label>
           <label>Turn penalty τ: {tau.toFixed(2)}
             <input type="range" min={0} max={1} step={0.01} value={tau} onChange={e=>setTau(parseFloat(e.target.value))}/>

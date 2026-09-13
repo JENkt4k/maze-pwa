@@ -9,12 +9,12 @@ export function useDifficultySearch(params: MazeParams, apply: (params: MazePara
   const [budget,setBudget]=useState<DifficultySearchBudget>(250);
   const [progress,setProgress]=useState<DifficultySearchProgress|null>(null);
   const progressRef=useRef<DifficultySearchProgress|null>(null);
-  const { width, height, seed, g, b, tau, generator, topology, regionDensity, irregularity, mask, customMask, startCell, goalCell } = params;
+  const { width, height, seed, g, b, tau, generator, braidMode, topology, regionDensity, irregularity, mask, customMask, startCell, goalCell } = params;
   useEffect(() => {
     setSearching(false);
     setError(null);
     return () => { workerRef.current?.terminate(); workerRef.current = null; };
-  }, [width,height,seed,g,b,tau,generator,topology,regionDensity,irregularity,mask,customMask,startCell,goalCell]);
+  }, [width,height,seed,g,b,tau,generator,braidMode,topology,regionDensity,irregularity,mask,customMask,startCell,goalCell]);
 
   function search() {
     workerRef.current?.terminate();

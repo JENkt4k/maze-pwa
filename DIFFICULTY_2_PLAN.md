@@ -11,8 +11,10 @@
 - **Phase 4 — Max Difficulty V2:** implemented and validated on
   `feature/difficulty-v2-search`; merged.
 - **Phase 5 — Wilson generator:** implemented and validated on
-  `feature/wilson-generator`; pending merge.
-- **Phases 6–7:** backlog.
+  `feature/wilson-generator`; merged.
+- **Phase 6 — Adversarial braiding:** implemented and validated on
+  `feature/adversarial-braiding`; pending merge.
+- **Phase 7:** backlog.
 
 > **Purpose:** Implementation specification for Codex / coding agents working on `JENkt4k/maze-pwa` (InfiMaze).
 >
