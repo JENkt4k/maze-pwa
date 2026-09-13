@@ -3,12 +3,13 @@ import { createPortal } from "react-dom";
 
 type Point = { x: number; y: number };
 type Stroke = { mode: "draw" | "erase"; width: number; points: Point[] };
-type Props = { hostRef: RefObject<HTMLDivElement>; mazeKey: string; disabled?:boolean;playActive?:boolean;onPlay?:()=>void;onExitPlay?:()=>void };
+export type DrawingMode="draw"|"erase"|"scroll";
+type Props = { hostRef: RefObject<HTMLDivElement>; mazeKey: string; disabled?:boolean;playActive?:boolean;onPlay?:()=>void;onExitPlay?:()=>void;onModeChange?:(mode:DrawingMode)=>void };
 
-export default function DrawingCanvas({ hostRef, mazeKey, disabled=false,playActive=false,onPlay,onExitPlay }: Props) {
+export default function DrawingCanvas({ hostRef, mazeKey, disabled=false,playActive=false,onPlay,onExitPlay,onModeChange }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [host, setHost] = useState<HTMLDivElement | null>(null);
-  const [mode, setMode] = useState<"draw" | "erase" | "scroll">("draw");
+  const [mode, setMode] = useState<DrawingMode>("draw");
   const [pen, setPen] = useState(5);
   const strokes = useRef<Stroke[]>([]);
   const activePointer = useRef<number | null>(null);
@@ -44,8 +45,7 @@ export default function DrawingCanvas({ hostRef, mazeKey, disabled=false,playAct
     const resize = () => {
       const cv = canvasRef.current;
       if (!cv) return;
-      const rect = host.getBoundingClientRect();
-      size.current = { width: Math.max(1, rect.width), height: Math.max(1, rect.height) };
+      size.current = { width: Math.max(1, host.offsetWidth), height: Math.max(1, host.offsetHeight) };
       const dpr = Math.max(1, window.devicePixelRatio || 1);
       cv.width = Math.round(size.current.width * dpr);
       cv.height = Math.round(size.current.height * dpr);
@@ -93,7 +93,7 @@ export default function DrawingCanvas({ hostRef, mazeKey, disabled=false,playAct
       <button type="button" className={`btn btn-sm${playActive?' btn-primary':''}`} aria-pressed={playActive} onClick={onPlay}>Play</button>
       {(["draw", "erase", "scroll"] as const).map(value => <button key={value} type="button"
         className={`btn btn-sm${!playActive&&mode === value ? " btn-primary" : ""}`} aria-pressed={!playActive&&mode === value}
-        onClick={() => { activePointer.current = null;onExitPlay?.();setMode(value); }}>{value === "draw" ? "Draw" : value === "erase" ? "Erase" : "Scroll"}</button>)}
+        onClick={() => { activePointer.current = null;onExitPlay?.();setMode(value);onModeChange?.(value); }}>{value === "draw" ? "Draw" : value === "erase" ? "Erase" : "Scroll"}</button>)}
       <label className="hstack">Pen<input type="range" min={2} max={24} step={1} value={pen}
         onChange={event => setPen(Number(event.target.value))} /></label>
       <button type="button" className="btn btn-sm" onClick={() => { strokes.current = []; activePointer.current = null; repaint(); }}>Clear</button>

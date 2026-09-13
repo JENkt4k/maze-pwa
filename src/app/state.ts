@@ -31,7 +31,7 @@ export type Settings = MazeParams & Markers & {
 };
 export type SavedMaze = { id: string; name: string; params: MazeParams & Partial<Markers>; createdAt: number };
 const record = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
-const ranges = { width: [7, 41], height: [7, 41], seed: [-2147483648, 2147483647], g: [0, 1], b: [0, .5], tau: [0, 1],regionDensity:[.15,1],irregularity:[0,1], dfsSegMs: [10, 250], lingerMs: [0, 5000], solverStepMs: [10, 250],micromouseSpeed:[10,250], generationOpacity: [.1, 1], solverOpacity: [.1, 1],wallThickness:[1,8],cornerRadius:[0,.5] } as const;
+const ranges = { width: [7, 101], height: [7, 101], seed: [-2147483648, 2147483647], g: [0, 1], b: [0, .5], tau: [0, 1],regionDensity:[.15,1],irregularity:[0,1], dfsSegMs: [10, 250], lingerMs: [0, 5000], solverStepMs: [10, 250],micromouseSpeed:[10,250], generationOpacity: [.1, 1], solverOpacity: [.1, 1],wallThickness:[1,8],cornerRadius:[0,.5] } as const;
 
 export function validateSettings(value: unknown): Partial<Settings> {
   if (!record(value)) return {};

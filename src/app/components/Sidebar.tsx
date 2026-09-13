@@ -20,7 +20,7 @@ import type { DifficultySearchBudget, DifficultySearchProgress } from '../diffic
 type Props = {
   canInstall: boolean;
   onInstall: () => void;
-  width: number; height: number; g: number; b: number; tau: number;braidMode:BraidMode;setBraidMode:(mode:BraidMode)=>void;
+  width: number; height: number; giantMode:boolean;setGiantMode:(value:boolean)=>void;g: number; b: number; tau: number;braidMode:BraidMode;setBraidMode:(mode:BraidMode)=>void;
   topology:MazeTopology;setTopology:(value:MazeTopology)=>void;regionDensity:number;setRegionDensity:(value:number)=>void;irregularity:number;setIrregularity:(value:number)=>void;
   setWidth: (n:number)=>void; setHeight:(n:number)=>void; setG:(n:number)=>void; setB:(n:number)=>void; setTau:(n:number)=>void;
   onNew: () => void; onPrint: () => void;
@@ -118,6 +118,11 @@ export default function Sidebar(props: Props){
               {Object.values(MASKS).map(mask=><option key={mask.id} value={mask.id}>{mask.name}</option>)}
             </select>
           </label>
+          <label>Maze size mode
+            <select name="maze-size-mode" value={props.giantMode?'giant':'standard'} onChange={e=>props.setGiantMode(e.target.value==='giant')}>
+              <option value="standard">Standard (7–41)</option><option value="giant">Giant (43–101)</option>
+            </select>
+          </label>
           <label>Maze topology
             <select name="maze-topology" value={props.topology} onChange={e=>props.setTopology(e.target.value as MazeTopology)}>
               <option value="grid">Grid cells</option><option value="freeform">Freeform regions</option>
@@ -135,7 +140,7 @@ export default function Sidebar(props: Props){
 
           <label>Width: {width}
             <input
-              type="range" min={7} max={41} step={2}
+              name="maze-width" type="range" min={props.giantMode?43:7} max={props.giantMode?101:41} step={2}
               value={width}
               onChange={e=>props.setWidth(parseInt(e.target.value))}
             />
@@ -143,7 +148,7 @@ export default function Sidebar(props: Props){
 
           <label>Height: {height}
             <input
-              type="range" min={7} max={41} step={2}
+              name="maze-height" type="range" min={props.giantMode?43:7} max={props.giantMode?101:41} step={2}
               value={height}
               onChange={e=>props.setHeight(parseInt(e.target.value))}
               disabled={props.lockSize}
