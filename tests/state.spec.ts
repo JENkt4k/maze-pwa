@@ -1,6 +1,12 @@
-﻿import { buildShareURL, parseFromURL, parseSaved, parseSettings, validateSettings } from '@src/app/state';
+﻿import { buildChallengeURL, buildShareURL, parseFromURL, parseSaved, parseSettings, validateSettings } from '@src/app/state';
 
 const params = {width:19,height:13,seed:42,g:.301,b:.15,tau:.4};
+test('challenge links preserve the maze and ordinary shares clear challenge mode',()=>{
+  const challenge=buildChallengeURL('https://example.test/?unrelated=ok',{...params,startIcon:null,goalIcon:null});
+  expect(new URL(challenge).searchParams.get('challenge')).toBe('1');
+  expect(parseFromURL(new URL(challenge).search)).toMatchObject(params);
+  expect(new URL(buildShareURL(challenge,{...params,startIcon:null,goalIcon:null})).searchParams.has('challenge')).toBe(false);
+});
 test.each(['%', '%25', '%E0%A4%A', '%FF', ''])('malformed marker %s never crashes startup', marker => {
   expect(() => parseFromURL('?start=' + marker)).not.toThrow();
 });
@@ -28,7 +34,6 @@ test('settings validate types, solver preferences, and numeric bounds', () => {
   expect(parseSettings('null')).toEqual({});
   expect(parseSettings('[]')).toEqual({});
 });
-
 test('non-default generators survive shared links', () => {
   const url=buildShareURL('https://example.test/',{...params,generator:'wilson',braidMode:'difficulty',mask:'heart',startIcon:null,goalIcon:null});
   expect(parseFromURL(new URL(url).search)).toMatchObject({generator:'wilson',braidMode:'difficulty',mask:'heart'});

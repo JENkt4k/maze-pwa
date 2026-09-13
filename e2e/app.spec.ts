@@ -147,6 +147,15 @@ test('gameplay moves through passages and restores progress paused',async({page}
   await expect(gameControls.getByText('Moves',{exact:true}).locator('..')).toContainText('2');
 });
 
+test('challenge links open the exact maze directly in gameplay',async({page})=>{
+  await page.goto('./?v=2&w=7&h=9&seed=77&g=.3&b=.15&tau=.4&start=&goal=&challenge=1');
+  await expect(page.getByRole('application',{name:'Maze gameplay area'})).toBeFocused();
+  await expect(page.getByRole('group',{name:'Gameplay controls'}).getByText('Playing',{exact:true})).toBeVisible();
+  await expect(page.getByLabel(/^Width:/)).toHaveValue('7');
+  await expect(page.getByLabel(/^Height:/)).toHaveValue('9');
+  await expect(page.getByText('seed 77',{exact:true})).toBeVisible();
+});
+
 test('hints highlight a shortest-path move and completion shows assisted results',async({page})=>{
   await page.emulateMedia({reducedMotion:'reduce'});
   await page.goto('./');

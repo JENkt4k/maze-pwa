@@ -114,6 +114,7 @@ export function parseFromURL(search: string): Partial<Settings> {
 }
 export function buildShareURL(base: string, p: MazeParams & Markers): string {
   const u = new URL(base);
+  u.searchParams.delete('challenge');
   u.searchParams.set('v', p.topology==='freeform'?'3':'2');
   for (const [query, key] of [['w', 'width'], ['h', 'height'], ['seed', 'seed'], ['g', 'g'], ['b', 'b'], ['tau', 'tau']] as const) u.searchParams.set(query, String(p[key]));
   if (p.generator && p.generator !== 'dfs') u.searchParams.set('gen', p.generator); else u.searchParams.delete('gen');
@@ -135,3 +136,4 @@ export function buildShareURL(base: string, p: MazeParams & Markers): string {
   for (const [query, marker] of [['start', p.startIcon], ['goal', p.goalIcon]] as const) u.searchParams.set(query, /^data:/i.test(marker ?? '') ? '' : marker ?? '');
   return u.toString();
 }
+export function buildChallengeURL(base:string,p:MazeParams&Markers):string{const u=new URL(buildShareURL(base,p));u.searchParams.set('challenge','1');return u.toString();}

@@ -1,6 +1,6 @@
 import type { MazeGameState } from '../hooks/useMazeGame';
 
-type Props={active:boolean;state:MazeGameState;breadcrumbs:boolean;setBreadcrumbs:(value:boolean)=>void;start:()=>void;pause:()=>void;restart:()=>void;hint:()=>void;newMaze:()=>void;difficulty:number;personalBestMs?:number};
+type Props={active:boolean;state:MazeGameState;breadcrumbs:boolean;setBreadcrumbs:(value:boolean)=>void;start:()=>void;pause:()=>void;restart:()=>void;hint:()=>void;newMaze:()=>void;shareChallenge:()=>void;difficulty:number;personalBestMs?:number};
 const time=(ms:number)=>`${Math.floor(ms/60000)}:${String(Math.floor(ms/1000)%60).padStart(2,'0')}`;
 
 export default function GameplayControls(props:Props){
@@ -20,7 +20,7 @@ export default function GameplayControls(props:Props){
       <strong>Maze complete!</strong>
       <dl className="solver-metrics"><div><dt>Time</dt><dd>{time(props.state.elapsedMs)}</dd></div><div><dt>Difficulty</dt><dd>{props.difficulty}/100</dd></div><div><dt>Moves</dt><dd>{props.state.moves}</dd></div><div><dt>Revisits</dt><dd>{props.state.revisits}</dd></div></dl>
       <p>{props.state.hints?'Assisted completion':props.personalBestMs===undefined?'First ranked completion':props.state.elapsedMs<props.personalBestMs?'New personal best!':`Personal best: ${time(props.personalBestMs)}`}</p>
-      <div className="hstack"><button type="button" className="btn btn-primary" onClick={props.restart}>Play again</button><button type="button" className="btn" onClick={props.newMaze}>New maze</button></div>
+      <div className="hstack"><button type="button" className="btn btn-primary" onClick={props.restart}>Play again</button><button type="button" className="btn" onClick={props.shareChallenge}>Share challenge</button><button type="button" className="btn" onClick={props.newMaze}>New maze</button></div>
     </section>}
     <p>Use arrow keys or WASD, swipe, or select a highlighted adjacent cell.</p>
   </div>;

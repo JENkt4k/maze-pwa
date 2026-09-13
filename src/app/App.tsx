@@ -12,7 +12,7 @@ import DrawingCanvas, { type DrawingMode } from "./components/DrawingCanvas";
 import MazeView from "./components/MazeView";
 import MazeViewport from "./components/MazeViewport";
 
-import { buildShareURL, parseFromURL, parseSettings, parseSaved, SETTINGS_KEY, STORAGE_KEY, type SavedMaze } from "./state";
+import { buildChallengeURL, buildShareURL, parseFromURL, parseSettings, parseSaved, SETTINGS_KEY, STORAGE_KEY, type SavedMaze } from "./state";
 import { handlePrint } from "./print";
 import { createMaze, type BraidMode, type GeneratorId, type MazeTopology } from "./maze";
 import { useDifficultySearch } from "./hooks/useDifficultySearch";
@@ -141,12 +141,12 @@ export default function App() {
     if (selectedId === id) setSelectedId(null);
   };
 
-  const handleShare = async () => {
-    const url = buildShareURL(window.location.href, { width, height, seed, g, b, tau, generator,braidMode,topology,regionDensity,irregularity, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, wallStyle, wallThickness, cornerRadius, startIcon, goalIcon });
+  const sharedParams={ width, height, seed, g, b, tau, generator,braidMode,topology,regionDensity,irregularity, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, wallStyle, wallThickness, cornerRadius, startIcon, goalIcon };
+  const shareURL = async (url:string,title:string,text:string) => {
     try {
       // Native share on mobile; clipboard elsewhere
       if (navigator.share && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)) {
-        await navigator.share({ title: "Maze", text: "Check out this maze!", url });
+        await navigator.share({ title, text, url });
       } else {
         await navigator.clipboard.writeText(url);
         alert("Share link copied to clipboard!");
@@ -157,6 +157,8 @@ export default function App() {
       prompt("Copy this link:", url);
     }
   };
+  const handleShare=()=>shareURL(buildShareURL(window.location.href,sharedParams),'Maze','Check out this maze!');
+  const handleChallengeShare=()=>shareURL(buildChallengeURL(window.location.href,sharedParams),'InfiMaze challenge','Can you beat my InfiMaze score?');
 
   /* Responsive cell */
   const { ref: svgHostRef, rect: hostRect } = useResizeObserver<HTMLDivElement>();
@@ -279,6 +281,7 @@ export default function App() {
     if(storeHistory([entry,...historyRef.current]))activeAttemptId.current=entry.id;
     setEndpointMode(null);setMicromouseActive(false);mousePlayback.pause();playback.pause();setGameActive(true);game.restart();
   };
+  const challengeStarted=useRef(false);
   const openHistory=(id:string)=>{
     const entry=historyRef.current.find(item=>item.id===id);if(!entry)return;
     abandonActiveAttempt();const restored=historyGameState(entry);
@@ -295,7 +298,10 @@ export default function App() {
     const pending=historyRef.current.find(entry=>entry.id===pendingHistoryId.current);
     if(pending?.gameKey===gameKey){activeAttemptId.current=pending.id;pendingHistoryId.current=null;setGameActive(true);}
   },[gameKey]);
+  useEffect(()=>{if(!challengeStarted.current&&new URLSearchParams(window.location.search).get('challenge')==='1'){challengeStarted.current=true;restartGameplay();}},[gameKey]);
+  useEffect(()=>{if(challengeStarted.current&&game.state.status==='playing'&&gameStateMatchesMaze)setGameActive(true);},[game.state.status,game.state.key,game.state.current,gameKey,gameStateMatchesMaze]);
   const historyElapsedSecond=Math.floor(game.state.elapsedMs/1000);
+  const challengePlaying=challengeStarted.current&&game.state.status==='playing';
   useEffect(()=>{
     if(game.state.status==='idle')return;
     const entry=historyRef.current.find(item=>item.id===activeAttemptId.current&&item.gameKey===gameKey);if(!entry)return;
@@ -366,10 +372,10 @@ export default function App() {
               onSVGChange={setCurrentSVG}
               endpointMode={endpointMode}
               onEndpointSelect={selectEndpoint}
-              gameplay={gameActive&&gameStateMatchesMaze?{state:game.state,hintNode:game.hintNode,breadcrumbs:gameBreadcrumbs,move:game.move}:null}
+              gameplay={(gameActive&&gameStateMatchesMaze)||challengePlaying?{state:game.state,hintNode:game.hintNode,breadcrumbs:gameBreadcrumbs,move:game.move}:null}
               micromouse={micromouseActive&&micromouse?{events:micromouse.events,eventIndex:mousePlayback.state.index,showWalls:mouseShowWalls,showFlood:mouseShowFlood,showRoute:mouseShowRoute}:null}
             /></MazeViewport>
-            <DrawingCanvas hostRef={svgHostRef} mazeKey={mazeKey} disabled={endpointMode!==null||gameActive||micromouseActive} playActive={gameActive}
+            <DrawingCanvas hostRef={svgHostRef} mazeKey={mazeKey} disabled={endpointMode!==null||gameActive||challengePlaying||micromouseActive} playActive={gameActive||challengePlaying}
               onPlay={startGameplay} onModeChange={setDrawingMode} onExitPlay={()=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);}}/>
           </div>
 
@@ -424,7 +430,7 @@ export default function App() {
         setEndpointMode={mode=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);setEndpointMode(mode);}} onPlaceEndpoints={placeEndpoints}
         gameplay={{active:gameActive,state:game.state,breadcrumbs:gameBreadcrumbs,setBreadcrumbs:setGameBreadcrumbs,
           start:startGameplay,pause:game.pause,restart:restartGameplay,hint:game.hint,newMaze,difficulty:difficultyV2.score,
-          personalBestMs:history.filter(entry=>entry.mazeId===mazeId&&entry.status==='completed'&&(entry.hints??0)===0&&entry.id!==activeAttemptId.current).sort((a,b)=>a.elapsedMs-b.elapsedMs)[0]?.elapsedMs}}
+          personalBestMs:history.filter(entry=>entry.mazeId===mazeId&&entry.status==='completed'&&(entry.hints??0)===0&&entry.id!==activeAttemptId.current).sort((a,b)=>a.elapsedMs-b.elapsedMs)[0]?.elapsedMs,shareChallenge:handleChallengeShare}}
         micromouse={{available:topology==='grid',active:micromouseActive,reason:'Micromouse physics requires grid topology.',failureReason:micromouse?.reason,state:mousePlayback.state,phase:mousePhase,eventCount:micromouse?.events.length??0,speed:micromouseSpeed,setSpeed:setMicromouseSpeed,showWalls:mouseShowWalls,setShowWalls:setMouseShowWalls,showFlood:mouseShowFlood,setShowFlood:setMouseShowFlood,showRoute:mouseShowRoute,setShowRoute:setMouseShowRoute,metrics:micromouse?.metrics,
           start:()=>{game.pause();playback.pause();setGameActive(false);setEndpointMode(null);setMicromouseActive(true);},play:mousePlayback.play,pause:mousePlayback.pause,restart:()=>{game.pause();playback.pause();setGameActive(false);setEndpointMode(null);setMicromouseActive(true);mousePlayback.restart();},step:mousePlayback.step,seek:mousePlayback.seek,
           seekPhase:phase=>{const index=micromouse?.events.findIndex(event=>event.type==='phase'&&event.phase===phase)??-1;if(index>=0){setMicromouseActive(true);mousePlayback.seek(index+1);}},

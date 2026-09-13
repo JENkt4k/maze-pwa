@@ -173,7 +173,8 @@ Play history records local human attempts with exact maze restoration. Per-maze
 leaderboards rank completed runs by time or moves and compare them with a stored
 Micromouse benchmark. Visual hints identify the next shortest-path move; runs that
 use hints remain in history but are excluded from competitive rankings. Completed
-runs show time, movement metrics, difficulty, and personal-best comparison.
+runs show time, movement metrics, difficulty, and personal-best comparison. A
+challenge link opens the same deterministic maze directly in gameplay mode.
 Difficulty 2.0 and Giant mode are complete; see
 [ROADMAP.md](ROADMAP.md) for the remaining hosted leaderboard work.
 The unified animation replays maze construction first and then continues into
