@@ -1,4 +1,4 @@
-﻿import { buildChallengeURL, buildShareURL, parseFromURL, parseSaved, parseSettings, validateSettings } from '@src/app/state';
+import { buildBenchmarkURL, buildChallengeURL, buildShareURL, parseFromURL, parseSaved, parseSettings, validateSettings } from '@src/app/state';
 
 const params = {width:19,height:13,seed:42,g:.301,b:.15,tau:.4};
 test('challenge links preserve the maze and ordinary shares clear challenge mode',()=>{
@@ -6,6 +6,11 @@ test('challenge links preserve the maze and ordinary shares clear challenge mode
   expect(new URL(challenge).searchParams.get('challenge')).toBe('1');
   expect(parseFromURL(new URL(challenge).search)).toMatchObject(params);
   expect(new URL(buildShareURL(challenge,{...params,startIcon:null,goalIcon:null})).searchParams.has('challenge')).toBe(false);
+});
+test('benchmark links preserve robot, realism, strategy, and run-count settings',()=>{
+  const settings={motion:{maxSpeedMps:2.5,accelerationMps2:7.5,turn90Ms:55},realism:{sensorRangeCells:3,sensorNoise:.12,correctionMs:25,collisionMs:750,diagonalSpeedRuns:true,tractionLimitMps2:6.5},strategy:'tremaux' as const,count:25 as const};
+  const url=buildBenchmarkURL('https://example.test/',{...params,startIcon:null,goalIcon:null},settings);
+  expect(parseFromURL(new URL(url).search)).toMatchObject({benchmarkShared:true,mouseBatchCount:25,mouseStrategy:'tremaux',mouseMaxSpeedMps:2.5,mouseAccelerationMps2:7.5,mouseTurn90Ms:55,mouseSensorRangeCells:3,mouseSensorNoise:.12,mouseCorrectionMs:25,mouseCollisionMs:750,mouseDiagonalSpeedRuns:true,mouseTractionLimitMps2:6.5});
 });
 test.each(['%', '%25', '%E0%A4%A', '%FF', ''])('malformed marker %s never crashes startup', marker => {
   expect(() => parseFromURL('?start=' + marker)).not.toThrow();
