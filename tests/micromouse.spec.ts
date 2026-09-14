@@ -1,6 +1,6 @@
 import { createMaze, openMazePassages } from '@src/app/maze';
 import { mazeToGraph } from '@src/maze/graph';
-import { applyKnowledge, compareMicromouseStrategies, DEFAULT_MOUSE_PHYSICS, floodDistances, simulateMicromouse } from '@src/maze/micromouse';
+import { applyKnowledge, compareMicromouseStrategies, DEFAULT_MOUSE_PHYSICS, DEFAULT_MOUSE_REALISM, floodDistances, simulateMicromouse } from '@src/maze/micromouse';
 import { MICROMOUSE_FORMATS, matchingMicromouseFormat, micromouseEndpoints, micromouseFootprintMeters, micromouseGoalCells, micromouseGoalPassages } from '@src/maze/micromouseFormats';
 import { matchingMouseProfile, MOUSE_PROFILES } from '@src/maze/micromouseProfiles';
 import { solveMaze } from '@src/maze/solvers';
@@ -28,6 +28,29 @@ test('wall knowledge starts partial and flood fill uses observed walls',()=>{
   const distances=floodDistances(maze,knowledge,maze.goals[0]);
   expect(distances.get(maze.goals[0])).toBe(0);
   expect(distances.has(maze.start)).toBe(true);
+});
+
+test('sensor range reveals visible corridor walls beyond the current cell',()=>{
+  const nodes=new Map(Array.from({length:5},(_,x)=>{const id=`${x},0`,neighbors=[x>0?`${x-1},0`:null,x<4?`${x+1},0`:null].filter((value):value is string=>value!==null);return[id,{id,position:{x,y:0},neighbors}] as const;})),maze={nodes,start:'0,0',goals:['4,0']};
+  const near=simulateMicromouse(maze,DEFAULT_MOUSE_PHYSICS,'flood-fill',{...DEFAULT_MOUSE_REALISM,sensorRangeCells:1}),far=simulateMicromouse(maze,DEFAULT_MOUSE_PHYSICS,'flood-fill',{...DEFAULT_MOUSE_REALISM,sensorRangeCells:4});
+  const first=(result:typeof near)=>result.events.findIndex(event=>event.type==='sense')+1;
+  expect(applyKnowledge(near.events,first(near)).size).toBe(2);
+  expect(applyKnowledge(far.events,first(far)).size).toBe(5);
+});
+
+test('seeded sensor noise creates repeatable collisions and recovery penalties',()=>{
+  const nodes=new Map([
+    ['0,0',{id:'0,0',position:{x:0,y:0},neighbors:['1,0']}],
+    ['1,0',{id:'1,0',position:{x:1,y:0},neighbors:['0,0','1,1']}],
+    ['0,1',{id:'0,1',position:{x:0,y:1},neighbors:['1,1']}],
+    ['1,1',{id:'1,1',position:{x:1,y:1},neighbors:['1,0','0,1']}],
+  ]),maze={nodes,start:'0,0',goals:['1,1']},noisy={...DEFAULT_MOUSE_REALISM,sensorNoise:1,collisionMs:500};
+  const result=simulateMicromouse(maze,DEFAULT_MOUSE_PHYSICS,'flood-fill',noisy,7),repeat=simulateMicromouse(maze,DEFAULT_MOUSE_PHYSICS,'flood-fill',noisy,7);
+  expect(result).toEqual(repeat);
+  expect(result.metrics.collisions).toBeGreaterThan(0);
+  expect(result.events.some(event=>event.type==='collision')).toBe(true);
+  const slower=simulateMicromouse(maze,DEFAULT_MOUSE_PHYSICS,'flood-fill',{...noisy,collisionMs:1000},7);
+  expect(slower.metrics.totalTimeMs-result.metrics.totalTimeMs).toBe(result.metrics.collisions*500);
 });
 
 test('physics configuration changes simulated time without changing decisions',()=>{

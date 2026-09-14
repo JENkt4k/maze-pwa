@@ -50,6 +50,7 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
   and deterministic simplified physics times. Each preset places the start in a
   corner, targets the center, and scales distances and timing to its physical cell pitch.
   Explorer, Balanced, Sprint, and custom robot physics settings support motion comparisons offline.
+  Configure deterministic sensor range/noise, per-cell position correction, and collision recovery penalties.
   Classic full-size mazes open and visibly mark a true 2×2 center area; simulations accept any of its four cells.
   Switch among Flood Fill, Trémaux, and Right-Wall exploration to compare robot behavior.
   An on-demand table benchmarks every strategy against the same maze and robot settings. Multi-seed batch results and same-maze comparisons can be downloaded as CSV or JSON for offline analysis.

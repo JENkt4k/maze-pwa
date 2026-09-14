@@ -21,13 +21,12 @@
 - Selectable Micromouse Flood Fill, Trémaux, and Right-Wall exploration strategies.
 - On-demand Micromouse strategy comparison across search and speed-run metrics.
 - Multi-seed Micromouse batch benchmarks with downloadable CSV and JSON results.
+- Deterministic Micromouse sensor range/noise with collision recovery and position-correction timing.
 - Cancellable worker-based Micromouse batch benchmarks across multiple seeds.
 
 ## Backlog
 
 1. **Micromouse sensor and motion realism**
-   - Configurable sensor range and noise.
-   - Collision and correction penalties.
    - Diagonal speed runs and optional traction or battery constraints.
 2. **Maze collections and export**
    - Named folders and tags, backups, and printable maze packs.
