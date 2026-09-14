@@ -18,6 +18,7 @@ import Leaderboard, { type LeaderboardProps } from './Leaderboard';
 import type { DifficultySearchBudget, DifficultySearchProgress } from '../difficultySearch';
 import MazeCollection from './MazeCollection';
 import type { PrintPackOptions } from '../print';
+import { VISUAL_PALETTES, type VisualPaletteId } from '../palettes';
 
 type Props = {
   canInstall: boolean;
@@ -52,6 +53,7 @@ type Props = {
   history:PlayHistoryProps;
   leaderboard:LeaderboardProps;
   animation: AnimationControlsProps;
+  visualPalette:VisualPaletteId; setVisualPalette:(palette:VisualPaletteId)=>void;
   onShare: () => void;
 };
 
@@ -124,7 +126,7 @@ export default function Sidebar(props: Props){
 
       <nav className="control-nav" aria-label="Control categories">
         <div role="tablist" aria-label="Maze control pages">{(['build','play','robot','analyze','library'] as const).map((page,index,pages)=><button id={`${page}-controls-tab`} key={page} type="button" role="tab" data-control-tab={page} aria-controls={pagePanelIds[page]} tabIndex={controlPage===page?0:-1} aria-selected={controlPage===page} className={controlPage===page?'active':''} onClick={()=>setControlPage(page)} onKeyDown={event=>{let next=index;if(event.key==='ArrowRight')next=(index+1)%pages.length;else if(event.key==='ArrowLeft')next=(index-1+pages.length)%pages.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=pages.length-1;else return;event.preventDefault();const target=pages[next];setControlPage(target);requestAnimationFrame(()=>controlsRef.current?.querySelector<HTMLButtonElement>(`[data-control-tab="${target}"]`)?.focus());}}>{page[0].toUpperCase()+page.slice(1)}</button>)}</div>
-        <div className="control-nav-tools"><button type="button" className="btn btn-sm" onClick={()=>controlsRef.current?.querySelectorAll('.control-page:not([hidden]) details[open]').forEach(details=>details.removeAttribute('open'))}>Collapse all</button><label className="contrast-toggle"><input name="high-contrast" type="checkbox" checked={highContrast} onChange={event=>setHighContrast(event.target.checked)}/>High contrast</label></div>
+        <div className="control-nav-tools"><button type="button" className="btn btn-sm" onClick={()=>controlsRef.current?.querySelectorAll('.control-page:not([hidden]) details[open]').forEach(details=>details.removeAttribute('open'))}>Collapse all</button><label className="palette-select">Data colors<select name="visual-palette" value={props.visualPalette} onChange={event=>props.setVisualPalette(event.target.value as VisualPaletteId)}>{Object.entries(VISUAL_PALETTES).map(([id,palette])=><option key={id} value={id}>{palette.name}</option>)}</select></label><label className="contrast-toggle"><input name="high-contrast" type="checkbox" checked={highContrast} onChange={event=>setHighContrast(event.target.checked)}/>High contrast</label></div>
       </nav>
 
       <div id="build-controls-panel" role="tabpanel" aria-labelledby="build-controls-tab" className="control-page" hidden={controlPage!=='build'} aria-label="Build controls">
