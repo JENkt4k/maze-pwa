@@ -19,6 +19,8 @@ import type { DifficultySearchBudget, DifficultySearchProgress } from '../diffic
 import MazeCollection from './MazeCollection';
 import type { PrintPackOptions } from '../print';
 import { VISUAL_PALETTES, type VisualPaletteId } from '../palettes';
+import PerformanceMetrics from './PerformanceMetrics';
+import type { MazePerformanceMetrics } from '../performance';
 
 type Props = {
   canInstall: boolean;
@@ -54,6 +56,7 @@ type Props = {
   leaderboard:LeaderboardProps;
   animation: AnimationControlsProps;
   visualPalette:VisualPaletteId; setVisualPalette:(palette:VisualPaletteId)=>void;
+  performanceMetrics:MazePerformanceMetrics;
   onShare: () => void;
 };
 
@@ -424,6 +427,10 @@ export default function Sidebar(props: Props){
             <progress aria-label="Difficulty search progress" max={props.difficultyProgress.budget} value={props.difficultyProgress.completed} style={{width:'100%'}}/>
           </div>}
         </details>
+      </fieldset>
+      <fieldset>
+        <legend>Performance</legend>
+        <details><summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>Current maze costs</summary><PerformanceMetrics metrics={props.performanceMetrics}/></details>
       </fieldset>
       </div>
 

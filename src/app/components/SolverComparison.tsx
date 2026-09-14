@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { MazeGraph } from '../../maze/graph';
-import { SOLVERS, solveMaze, type SolverEvent, type SolverId, type SolverRun } from '../../maze/solvers';
+import { SOLVERS, solveMaze, type SolverId, type SolverRun } from '../../maze/solvers';
 import type { MazeParams } from '../maze';
 import { useSolverSeedAnalysis } from '../hooks/useSolverSeedAnalysis';
 import type { SolverSeedAggregate, SolverSeedCount } from '../solverSeedAnalysis';
@@ -8,20 +8,16 @@ import type { SolverSeedAggregate, SolverSeedCount } from '../solverSeedAnalysis
 type Props={graph:MazeGraph;params:MazeParams;initial:SolverId};
 type Snapshot={discovered:number;expanded:number;path:number};
 const ids=Object.keys(SOLVERS) as SolverId[];
-const snapshot=(run:SolverRun,progress:number):Snapshot=>run.events.slice(0,Math.ceil(run.events.length*progress/100)).reduce((value,event:SolverEvent)=>{
-  if(event.type==='discover')value.discovered++;
-  else if(event.type==='expand')value.expanded++;
-  else if(event.type==='path')value.path++;
-  return value;
-},{discovered:0,expanded:0,path:0});
+const timeline=(run:SolverRun):Snapshot[]=>{const result:Snapshot[]=[{discovered:0,expanded:0,path:0}];for(const event of run.events){const previous=result[result.length-1],next={...previous};if(event.type==='discover')next.discovered++;else if(event.type==='expand')next.expanded++;else if(event.type==='path')next.path++;result.push(next);}return result;};
 
 export default function SolverComparison({graph,params,initial}:Props){
   const [left,setLeft]=useState<SolverId>(initial),[right,setRight]=useState<SolverId>(initial==='astar'?'bfs':'astar');
   const [progress,setProgress]=useState(0),[playing,setPlaying]=useState(false),[speed,setSpeed]=useState(40);
   const runs=useMemo(()=>({left:solveMaze(graph,left),right:solveMaze(graph,right)}),[graph,left,right]);
+  const timelines=useMemo(()=>({left:timeline(runs.left),right:timeline(runs.right)}),[runs]);
   useEffect(()=>{setProgress(0);setPlaying(false);},[graph,left,right]);
   useEffect(()=>{if(!playing)return;const timer=window.setTimeout(()=>setProgress(value=>{const next=Math.min(100,value+2);if(next===100)setPlaying(false);return next;}),speed);return()=>window.clearTimeout(timer);},[playing,progress,speed]);
-  const snapshots={left:snapshot(runs.left,progress),right:snapshot(runs.right,progress)};
+  const snapshots={left:timelines.left[Math.ceil(runs.left.events.length*progress/100)],right:timelines.right[Math.ceil(runs.right.events.length*progress/100)]};
   const batch=useSolverSeedAnalysis(params);
   return <section className="solver-comparison" aria-label="Side-by-side solver playback">
     <div className="solver-compare-selectors">

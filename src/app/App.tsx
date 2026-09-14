@@ -33,6 +33,7 @@ import { analyzeDifficultyV2 } from '../maze/difficulty';
 import { abandonHistoryEntry, createHistoryEntry, HISTORY_LIMIT, HISTORY_STORAGE_KEY, historyGameState, parsePlayHistory, updateHistoryEntry, type HistoryMazeParams, type PlayHistoryEntry } from './history';
 import { mergeCollections, normalizeFolder, normalizeTags, parseCollectionBackup } from './mazeCollection';
 import { loadVisualPalette, VISUAL_PALETTES, type VisualPaletteId } from './palettes';
+import { measure, type MazePerformanceMetrics } from './performance';
 
 const DEFAULT_START = "\u{1f680}";
 const DEFAULT_GOAL = "\u{1f3c1}";
@@ -288,6 +289,7 @@ export default function App() {
 
   // print: keep the latest svg string from MazeView
   const [currentSVG, setCurrentSVG] = useState<string>("");
+  const [svgRenderMs,setSvgRenderMs]=useState(0);
 
   // Track the breakpoint without overwriting the user's controls preference.
   const [isMobile, setIsMobile] = useState(false);
@@ -307,10 +309,14 @@ export default function App() {
   const mazeKey = `${topology}:${regionDensity}:${irregularity}:${generator}:${braidMode==='difficulty'?'difficulty:':''}${mask}:${customMask?.pixels??''}:${customMask?.threshold??''}:${customMask?.invert??''}:${width}:${height}:${seed}:${g}:${b}:${tau}`;
   const micromouseFormat=matchingMicromouseFormat(width,height);
   const requestedCompetitionGoal=micromouseFormat&&goalCell&&goalCell.x===micromouseEndpoints(micromouseFormat).goal.x&&goalCell.y===micromouseEndpoints(micromouseFormat).goal.y;
-  const mazeData = useMemo(() => {const generated=createMaze(mazeParams);return requestedCompetitionGoal&&micromouseFormat?.id==='classic'?openMazePassages(generated,micromouseGoalPassages(micromouseFormat)):generated;}, [width,height,seed,g,b,tau,generator,braidMode,topology,regionDensity,irregularity,mask,customMask,startCell,goalCell,micromouseFormat,requestedCompetitionGoal]);
-  const mazeGraph = useMemo(() => mazeToGraph(mazeData), [mazeData]);
-  const difficultyV2=useMemo(()=>analyzeDifficultyV2(mazeGraph),[mazeGraph]);
-  const mazeId=useMemo(()=>mazeFingerprint(mazeGraph),[mazeGraph]);
+  const mazeBuild = useMemo(() => measure(()=>{const generated=createMaze(mazeParams);return requestedCompetitionGoal&&micromouseFormat?.id==='classic'?openMazePassages(generated,micromouseGoalPassages(micromouseFormat)):generated;}), [width,height,seed,g,b,tau,generator,braidMode,topology,regionDensity,irregularity,mask,customMask,startCell,goalCell,micromouseFormat,requestedCompetitionGoal]);
+  const mazeData=mazeBuild.value;
+  const graphBuild = useMemo(() => measure(()=>mazeToGraph(mazeData)), [mazeData]);
+  const mazeGraph=graphBuild.value;
+  const difficultyBuild=useMemo(()=>measure(()=>analyzeDifficultyV2(mazeGraph)),[mazeGraph]);
+  const difficultyV2=difficultyBuild.value;
+  const identityBuild=useMemo(()=>measure(()=>mazeFingerprint(mazeGraph)),[mazeGraph]);
+  const mazeId=identityBuild.value;
   const gameKey=`${mazeKey}:${mazeId}`;
   const game=useMazeGame(mazeGraph,gameKey);
   const gameStateMatchesMaze=game.state.key===gameKey&&mazeGraph.nodes.has(game.state.current)&&game.state.route.every(node=>mazeGraph.nodes.has(node));
@@ -373,7 +379,9 @@ export default function App() {
   const toggleMouseComparison=()=>{if(comparisonRun?.key===mouseScenarioKey&&comparisonRun.visible){setComparisonRun({...comparisonRun,visible:false});return;}const started=performance.now(),rows=compareMicromouseStrategies(micromouseGraph,{...DEFAULT_MOUSE_PHYSICS,...mouseMotion,cellMeters:(micromouseFormat?.cellPitchCm??18)/100},mouseRealism,seed);setComparisonRun({key:mouseScenarioKey,rows,costMs:Math.max(0,Math.round(performance.now()-started)),visible:true});};
   const mousePlayback=useSolverPlayback(micromouse?.events.length??0,`mouse:${mouseScenarioKey}`,micromouseActive,micromouseSpeed);
   const mousePhase:MousePhase|'ready'|'complete'=!micromouseActive||!micromouse?'ready':mousePlayback.state.finished?'complete':([...micromouse.events.slice(0,mousePlayback.state.index)].reverse().find(event=>event.type==='phase')?.phase??'search');
-  const solverRun = useMemo(() => solveMaze(mazeGraph, solverAlgorithm), [mazeGraph, solverAlgorithm]);
+  const solverBuild = useMemo(() => measure(()=>solveMaze(mazeGraph, solverAlgorithm)), [mazeGraph, solverAlgorithm]);
+  const solverRun=solverBuild.value;
+  const mazePerformance:MazePerformanceMetrics={cells:mazeGraph.nodes.size,generationMs:mazeBuild.durationMs,graphMs:graphBuild.durationMs,difficultyMs:difficultyBuild.durationMs,identityMs:identityBuild.durationMs,solverMs:solverBuild.durationMs,svgMs:svgRenderMs};
   const buildEventCount = mazeData.treeSteps.length + mazeData.braidEdits.length;
   const includesBuild = animationMode !== 'solve';
   const includesSolve = animationMode !== 'build';
@@ -432,6 +440,7 @@ export default function App() {
               solverOpacity={solverOpacity}
               render={{ cell, margin, stroke, wallStyle, cornerRadius, startIcon, goalIcon, iconScale: 0.7 }}
               onSVGChange={setCurrentSVG}
+              onRenderCost={setSvgRenderMs}
               endpointMode={endpointMode}
               onEndpointSelect={selectEndpoint}
               gameplay={(gameActive&&gameStateMatchesMaze)||challengePlaying?{state:game.state,hintNode:game.hintNode,breadcrumbs:gameBreadcrumbs,move:game.move}:null}
@@ -540,6 +549,7 @@ export default function App() {
         }}
         visualPalette={visualPalette}
         setVisualPalette={setVisualPalette}
+        performanceMetrics={mazePerformance}
 
         /* Share */
         onShare={handleShare}
