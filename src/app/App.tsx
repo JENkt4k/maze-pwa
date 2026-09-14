@@ -292,6 +292,7 @@ export default function App() {
     if(storeHistory([entry,...historyRef.current]))activeAttemptId.current=entry.id;
     setEndpointMode(null);setMicromouseActive(false);mousePlayback.pause();playback.pause();setGameActive(true);game.restart();
   };
+  const quitGameplay=()=>{game.pause();setGameActive(false);};
   const challengeStarted=useRef(false);
   const openHistory=(id:string)=>{
     const entry=historyRef.current.find(item=>item.id===id);if(!entry)return;
@@ -445,6 +446,7 @@ export default function App() {
         startCell={mazeData.start} goalCell={mazeData.goal} endpointMode={endpointMode}
         setEndpointMode={mode=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);setEndpointMode(mode);}} onPlaceEndpoints={placeEndpoints}
         gameplay={{active:gameActive,state:game.state,breadcrumbs:gameBreadcrumbs,setBreadcrumbs:setGameBreadcrumbs,
+          quit:quitGameplay,
           start:startGameplay,pause:game.pause,restart:restartGameplay,hint:game.hint,newMaze,difficulty:difficultyV2.score,
           personalBestMs:history.filter(entry=>entry.mazeId===mazeId&&entry.status==='completed'&&(entry.hints??0)===0&&entry.id!==activeAttemptId.current).sort((a,b)=>a.elapsedMs-b.elapsedMs)[0]?.elapsedMs,shareChallenge:handleChallengeShare}}
         micromouse={{available:topology==='grid',active:micromouseActive,reason:'Micromouse physics requires grid topology.',failureReason:micromouse?.reason,state:mousePlayback.state,phase:mousePhase,eventCount:micromouse?.events.length??0,speed:micromouseSpeed,setSpeed:setMicromouseSpeed,showWalls:mouseShowWalls,setShowWalls:setMouseShowWalls,showFlood:mouseShowFlood,setShowFlood:setMouseShowFlood,showRoute:mouseShowRoute,setShowRoute:setMouseShowRoute,metrics:micromouse?.metrics,format:micromouseFormat,motion:mouseMotion,setMotion:setMouseMotion,strategy:mouseStrategy,setStrategy:setMouseStrategy,comparisons:mouseComparisons,toggleComparison:()=>setMouseComparisonOpen(value=>!value),

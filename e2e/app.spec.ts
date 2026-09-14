@@ -147,6 +147,21 @@ test('gameplay moves through passages and restores progress paused',async({page}
   await expect(gameControls.getByText('Moves',{exact:true}).locator('..')).toContainText('2');
 });
 
+test('gameplay can quit to the maze and resume the preserved attempt',async({page})=>{
+  await page.goto('./');
+  await page.getByRole('button',{name:'Play',exact:true}).first().click();
+  const controls=page.getByRole('group',{name:'Gameplay controls'});
+  const game=page.getByRole('application',{name:'Maze gameplay area'});
+  await game.getByRole('button').first().click();
+  await controls.getByRole('button',{name:'Quit',exact:true}).click();
+  await expect(game).toHaveCount(0);
+  await expect(controls.getByText('Paused',{exact:true})).toBeVisible();
+  await expect(controls.getByRole('button',{name:'Resume',exact:true})).toBeVisible();
+  await controls.getByRole('button',{name:'Resume',exact:true}).click();
+  await expect(page.getByRole('application',{name:'Maze gameplay area'})).toBeFocused();
+  await expect(controls.getByText('Moves',{exact:true}).locator('..')).toContainText('1');
+});
+
 test('challenge links open the exact maze directly in gameplay',async({page})=>{
   await page.goto('./?v=2&w=7&h=9&seed=77&g=.3&b=.15&tau=.4&start=&goal=&challenge=1');
   await expect(page.getByRole('application',{name:'Maze gameplay area'})).toBeFocused();

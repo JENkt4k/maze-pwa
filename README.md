@@ -42,7 +42,7 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
 - Render walls in classic, rounded, or subtly organic styles with adjustable thickness
   and corner radius. Appearance is preserved in settings, saved mazes, shared links, and printing.
 - Play mazes with arrow keys, WASD, adjacent-cell taps, or swipes. Gameplay rejects
-  wall crossings, tracks time, moves and revisits, supports optional breadcrumbs, and restores unfinished progress as paused.
+  wall crossings, tracks time, moves and revisits, supports optional breadcrumbs, and restores unfinished progress as paused. Quit exits play mode while preserving the attempt for Resume.
 - Run a grid-based Micromouse simulation whose robot initially knows only its start,
   goal, and sensed walls. Apply full-size 16×16 (18 cm pitch) and half-size 32×32
   (9 cm pitch) competition presets. Replay its flood-fill search, return, and learned-map
