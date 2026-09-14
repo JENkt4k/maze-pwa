@@ -34,11 +34,12 @@
 - Server-free share links for reproducible Micromouse benchmark configurations.
 - Synchronized side-by-side playback and live metric charts for two solver algorithms.
 - Worker-based aggregate solver charts across multiple maze seeds.
+- Persistent color-blind-safe visualization palette with distinct line patterns.
 
 ## Backlog
 
 1. **Accessibility and release polish**
-   - Color-blind-safe data palettes and large-maze profiling.
+   - Large-maze profiling.
 2. **Shared online leaderboard — deferred**
    - Client contract and explicit opt-in integration: in progress.
    - Add the verifying, rate-limited backend as a separate deployment stage.

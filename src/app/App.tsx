@@ -32,6 +32,7 @@ import { useMicromouseBatch } from './hooks/useMicromouseBatch';
 import { analyzeDifficultyV2 } from '../maze/difficulty';
 import { abandonHistoryEntry, createHistoryEntry, HISTORY_LIMIT, HISTORY_STORAGE_KEY, historyGameState, parsePlayHistory, updateHistoryEntry, type HistoryMazeParams, type PlayHistoryEntry } from './history';
 import { mergeCollections, normalizeFolder, normalizeTags, parseCollectionBackup } from './mazeCollection';
+import { loadVisualPalette, VISUAL_PALETTES, type VisualPaletteId } from './palettes';
 
 const DEFAULT_START = "\u{1f680}";
 const DEFAULT_GOAL = "\u{1f3c1}";
@@ -216,6 +217,16 @@ export default function App() {
   const [generationOpacity, setGenerationOpacity] = useState(persisted.generationOpacity ?? .35);
   const [solverColor, setSolverColor] = useState(persisted.solverColor ?? '#2563eb');
   const [solverOpacity, setSolverOpacity] = useState(persisted.solverOpacity ?? .65);
+  const [visualPalette,setVisualPaletteState]=useState<VisualPaletteId>(loadVisualPalette);
+  const setVisualPalette=(palette:VisualPaletteId)=>{
+    setVisualPaletteState(palette);
+    setGenerationColor(VISUAL_PALETTES[palette].build);
+    setSolverColor(VISUAL_PALETTES[palette].solver);
+  };
+  useEffect(()=>{
+    document.documentElement.dataset.palette=visualPalette;
+    try{localStorage.setItem('ui:palette:v1',visualPalette);}catch{}
+  },[visualPalette]);
 
   // persist settings
   useEffect(() => {
@@ -527,6 +538,8 @@ export default function App() {
           graph: mazeGraph,
           mazeParams,
         }}
+        visualPalette={visualPalette}
+        setVisualPalette={setVisualPalette}
 
         /* Share */
         onShare={handleShare}

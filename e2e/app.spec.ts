@@ -39,7 +39,7 @@ test('markers are escaped; malformed URLs do not crash; desktop/mobile controls 
   expect(errors).toEqual([]);
 });
 
-test('control pages limit the visible sidebar and persist high contrast mode',async({page})=>{
+test('control pages and accessible visual preferences persist',async({page})=>{
   await page.goto('./');
   await expect(page.getByRole('tab',{name:'Build',exact:true})).toHaveAttribute('aria-selected','true');
   await expect(page.getByRole('tab',{name:'Build',exact:true})).toHaveAttribute('aria-controls',/build-controls-panel/);
@@ -54,9 +54,16 @@ test('control pages limit the visible sidebar and persist high contrast mode',as
   await expect(page.locator('#robot-controls-panel details[open]')).toHaveCount(0);
   await page.getByLabel('High contrast').check();
   await expect(page.locator('html')).toHaveAttribute('data-contrast','high');
+  await page.getByLabel('Data colors').selectOption('colorblind');
+  await expect(page.locator('html')).toHaveAttribute('data-palette','colorblind');
+  await openControlPage(page,'Build');
+  await expect(page.getByLabel('Build animation color')).toHaveValue('#b35c00');
+  await expect(page.getByLabel('Solver animation color')).toHaveValue('#0072b2');
   await page.reload();
   await expect(page.getByLabel('High contrast')).toBeChecked();
   await expect(page.locator('html')).toHaveAttribute('data-contrast','high');
+  await expect(page.getByLabel('Data colors')).toHaveValue('colorblind');
+  await expect(page.locator('html')).toHaveAttribute('data-palette','colorblind');
 });
 
 test('maze size changes remain staged until applied and can be reset',async({page})=>{
