@@ -96,6 +96,10 @@ label { display: grid; gap: 6px; font-size: 12px; color: #3c4557; }
 .mouse-controls p { margin:0;color:#586174;font-size:12px; }
 .robot-settings-actions{position:sticky;bottom:8px;z-index:5;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px;border:1px solid #d7b46a;border-radius:12px;background:#fffaf0;box-shadow:0 5px 18px rgba(7,23,47,.14)}
 .robot-settings-actions span{grid-column:1/-1;color:#7c4700;font-size:12px;font-weight:700}
+.maze-size-actions{position:sticky;bottom:8px;z-index:5;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px;border:1px solid #d7b46a;border-radius:12px;background:#fffaf0;box-shadow:0 5px 18px rgba(7,23,47,.14)}
+.maze-size-actions span{grid-column:1/-1;color:#7c4700;font-size:12px;font-weight:700}
+.calculation-policy{display:grid;gap:6px;padding:10px;border:1px solid var(--panel-border);border-radius:10px;background:#f8fafc}
+.calculation-policy p{margin:0;color:var(--muted);font-size:12px}
 .competition-spec { display:grid;gap:3px;padding:9px 10px;border:1px solid #dbe4f0;border-radius:10px;background:#f8fafc;font-size:12px;color:#475569; }
 .competition-spec strong { color:#17233b;font-size:13px; }
 .mouse-physics { display:grid;gap:8px;margin:0;padding:10px;border:1px solid #dbe4f0;border-radius:10px; }

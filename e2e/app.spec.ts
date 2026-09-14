@@ -59,10 +59,27 @@ test('control pages limit the visible sidebar and persist high contrast mode',as
   await expect(page.locator('html')).toHaveAttribute('data-contrast','high');
 });
 
+test('maze size changes remain staged until applied and can be reset',async({page})=>{
+  await page.goto('./');
+  await page.getByText('Adjust size',{exact:true}).click();
+  const width=page.getByLabel(/^Width:/);
+  await width.fill('11');
+  await expect(page.getByText('Size change not applied; current maze remains 7×7.')).toBeVisible();
+  await page.getByRole('button',{name:'Reset size',exact:true}).click();
+  await expect(width).toHaveValue('7');
+  await width.fill('11');
+  await page.getByRole('button',{name:'Apply size',exact:true}).click();
+  await expect(page.getByText('Size change not applied',{exact:false})).toHaveCount(0);
+  await page.reload();
+  await page.getByText('Adjust size',{exact:true}).click();
+  await expect(page.getByLabel(/^Width:/)).toHaveValue('11');
+});
+
 test('saved rectangular maze and markers restore despite square lock; empty markers persist', async ({page}) => {
   await page.goto('./');
   await page.getByText('Adjust size',{exact:true}).click();
   await page.getByLabel(/^Height:/).fill('9');
+  await page.getByRole('button',{name:'Apply size',exact:true}).click();
   await page.getByLabel('Start marker',{exact:true}).fill('???????????');
   await page.getByLabel('Goal marker',{exact:true}).fill('');
   await openControlPage(page,'Library');
@@ -361,10 +378,14 @@ test('Micromouse explores, exposes phases, and disables physics for freeform maz
   await page.goto('./');
   await openControlPage(page,'Robot');
   const controls=page.locator('.mouse-controls');
+  const calculationPolicy=controls.getByRole('region',{name:'Calculation policy'});
+  await expect(calculationPolicy).toContainText('Robot simulations run only when you press Start, Compare, or Run benchmark.');
+  await expect(calculationPolicy.getByText('Simulation',{exact:true}).locator('..')).toContainText('Not run');
   await controls.getByLabel('Competition format').selectOption('classic');
   await controls.getByLabel('Exploration strategy').selectOption('tremaux');
   await expect(controls.getByText(/least-visited passage/)).toBeVisible();
   await controls.getByRole('button',{name:'Compare all strategies'}).click();
+  await expect(calculationPolicy.getByText('Comparison',{exact:true}).locator('..')).toContainText(/\d+ ms/);
   const comparison=controls.getByRole('region',{name:'Strategy comparison'});
   await expect(comparison.getByRole('row')).toHaveCount(4);
   await expect(comparison).toContainText('Flood Fill');
@@ -410,6 +431,7 @@ test('Micromouse explores, exposes phases, and disables physics for freeform maz
   await expect(controls.getByText('Changes not applied',{exact:true})).toHaveCount(0);
   await controls.getByLabel(/^Playback speed:/).fill('250');
   await controls.getByRole('button',{name:'Start',exact:true}).click();
+  await expect(calculationPolicy.getByText('Simulation',{exact:true}).locator('..')).toContainText(/\d+ ms/);
   await expect(page.locator('.micromouse-overlay-svg')).toBeVisible();
   await expect(page.locator('.mouse-goal-zone rect')).toHaveCount(4);
   await controls.getByRole('button',{name:'Pause',exact:true}).click();
