@@ -1,7 +1,7 @@
-import { createMaze } from '@src/app/maze';
+import { createMaze, openMazePassages } from '@src/app/maze';
 import { mazeToGraph } from '@src/maze/graph';
 import { applyKnowledge, compareMicromouseStrategies, DEFAULT_MOUSE_PHYSICS, floodDistances, simulateMicromouse } from '@src/maze/micromouse';
-import { MICROMOUSE_FORMATS, matchingMicromouseFormat, micromouseEndpoints, micromouseFootprintMeters, micromouseGoalCells } from '@src/maze/micromouseFormats';
+import { MICROMOUSE_FORMATS, matchingMicromouseFormat, micromouseEndpoints, micromouseFootprintMeters, micromouseGoalCells, micromouseGoalPassages } from '@src/maze/micromouseFormats';
 import { matchingMouseProfile, MOUSE_PROFILES } from '@src/maze/micromouseProfiles';
 import { solveMaze } from '@src/maze/solvers';
 
@@ -64,6 +64,16 @@ test('competition formats preserve the standard footprint and endpoints',()=>{
   expect(micromouseGoalCells(MICROMOUSE_FORMATS.half)).toHaveLength(1);
   expect(matchingMicromouseFormat(16,16)?.id).toBe('classic');
   expect(matchingMicromouseFormat(19,19)).toBeUndefined();
+});
+
+test('classic competition goal cells form one open 2x2 area',()=>{
+  const format=MICROMOUSE_FORMATS.classic,endpoints=micromouseEndpoints(format);
+  const opened=openMazePassages(createMaze({width:16,height:16,seed:111,g:.3,b:0,tau:.4,startCell:endpoints.start,goalCell:endpoints.goal}),micromouseGoalPassages(format));
+  const [topLeft,topRight,bottomLeft,bottomRight]=micromouseGoalCells(format).map(point=>opened.maze[point.y][point.x]);
+  expect(topLeft.e).toBe(0);expect(topRight.w).toBe(0);
+  expect(topLeft.s).toBe(0);expect(bottomLeft.n).toBe(0);
+  expect(topRight.s).toBe(0);expect(bottomRight.n).toBe(0);
+  expect(bottomLeft.e).toBe(0);expect(bottomRight.w).toBe(0);
 });
 
 test('Micromouse chooses a reachable goal from a goal zone',()=>{

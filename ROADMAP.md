@@ -16,7 +16,7 @@
 - Server-free challenge links that open fixed mazes directly in gameplay.
 - Micromouse full-size and half-size competition presets with physical dimensions and scaled timing.
 - Offline Micromouse robot profiles with adjustable speed, acceleration, and turn timing.
-- Classic Micromouse four-cell center goal zones with nearest-goal flood-fill behavior.
+- Classic Micromouse open four-cell center goal zones with persistent visual marking and nearest-goal flood-fill behavior.
 - Selectable Micromouse Flood Fill, Trémaux, and Right-Wall exploration strategies.
 - On-demand Micromouse strategy comparison across search and speed-run metrics.
 

@@ -274,6 +274,7 @@ test('Micromouse explores, exposes phases, and disables physics for freeform maz
   await expect(controls.getByRole('region',{name:'Competition dimensions'})).toContainText('2.88×2.88 m nominal');
   await expect(page.locator('.endpoint-controls > span')).toContainText('Start: 1,16');
   await expect(page.locator('.endpoint-controls > span')).toContainText('Goal: 8,8');
+  await expect(page.getByLabel('4-cell goal zone')).toBeVisible();
   await controls.getByLabel('Competition format').selectOption('half');
   await expect(page.getByLabel(/^Width:/)).toHaveValue('32');
   await expect(page.getByLabel(/^Height:/)).toHaveValue('32');

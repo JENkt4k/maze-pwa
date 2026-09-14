@@ -23,6 +23,17 @@ export function micromouseGoalCells(format:MicromouseFormat):readonly {x:number;
   return format.id==='classic'?[goal,{x:goal.x+1,y:goal.y},{x:goal.x,y:goal.y+1},{x:goal.x+1,y:goal.y+1}]:[goal];
 }
 
+export function micromouseGoalPassages(format:MicromouseFormat):readonly {x:number;y:number;nx:number;ny:number}[]{
+  if(format.id!=='classic')return[];
+  const [topLeft,topRight,bottomLeft,bottomRight]=micromouseGoalCells(format);
+  return[
+    {x:topLeft.x,y:topLeft.y,nx:topRight.x,ny:topRight.y},
+    {x:topLeft.x,y:topLeft.y,nx:bottomLeft.x,ny:bottomLeft.y},
+    {x:topRight.x,y:topRight.y,nx:bottomRight.x,ny:bottomRight.y},
+    {x:bottomLeft.x,y:bottomLeft.y,nx:bottomRight.x,ny:bottomRight.y},
+  ];
+}
+
 export function matchingMicromouseFormat(width:number,height:number):MicromouseFormat|undefined{
   return Object.values(MICROMOUSE_FORMATS).find(format=>format.width===width&&format.height===height);
 }

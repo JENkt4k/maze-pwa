@@ -17,7 +17,6 @@ export default function MicromouseOverlay({graph,events,eventIndex,cell,margin,w
   const center=(id:NodeId)=>{const point=graph.nodes.get(id)!.position;return{x:margin+(point.x+.5)*cell,y:margin+(point.y+.5)*cell};};
   const points=frame.route.map(id=>{const point=center(id);return`${point.x},${point.y}`;}).join(' '),current=center(frame.node);
   return <svg className="micromouse-overlay-svg" viewBox={`0 0 ${width*cell+margin*2} ${height*cell+margin*2}`} aria-label={`Micromouse ${frame.phase} visualization`}>
-    <g className="mouse-goal-zone">{graph.goals.map(id=>{const p=graph.nodes.get(id)!.position;return <rect key={id} x={margin+p.x*cell+2} y={margin+p.y*cell+2} width={cell-4} height={cell-4} rx={cell*.18}/>;})}</g>
     <g className="mouse-discovered">{[...frame.discovered].map(id=>{const p=graph.nodes.get(id)!.position;return<rect key={id} x={margin+p.x*cell} y={margin+p.y*cell} width={cell} height={cell}/>;})}</g>
     {showRoute&&points&&<polyline className="mouse-route" points={points}/>}
     {showFlood&&<g className="mouse-flood-values">{[...frame.discovered].map(id=>{const p=center(id),value=frame.distances.get(id);return value===undefined?null:<text key={id} x={p.x} y={p.y}>{value}</text>;})}</g>}
