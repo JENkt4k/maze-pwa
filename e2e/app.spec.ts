@@ -10,6 +10,10 @@ test.beforeEach(async ({page}) => {
 async function openControls(page: Page) {
   if (!await page.locator('#controls-panel').isVisible()) await page.getByRole('button', {name:'Show Controls',exact:true}).click();
 }
+async function openControlPage(page:Page,name:'Build'|'Play'|'Robot'|'Analyze'|'Library'){
+  await openControls(page);
+  await page.getByRole('tab',{name,exact:true}).click();
+}
 async function alphaAt(page: Page, x:number, y:number) {
   return page.locator('canvas.draw-canvas').evaluate((canvas:HTMLCanvasElement, p) =>
     canvas.getContext('2d')!.getImageData(Math.round(canvas.width*p.x),Math.round(canvas.height*p.y),1,1).data[3], {x,y});
@@ -35,12 +39,31 @@ test('markers are escaped; malformed URLs do not crash; desktop/mobile controls 
   expect(errors).toEqual([]);
 });
 
+test('control pages limit the visible sidebar and persist high contrast mode',async({page})=>{
+  await page.goto('./');
+  await expect(page.getByRole('tab',{name:'Build',exact:true})).toHaveAttribute('aria-selected','true');
+  await expect(page.getByLabel('Build controls')).toBeVisible();
+  await expect(page.getByLabel('Robot controls')).toBeHidden();
+  await page.getByRole('tab',{name:'Build',exact:true}).press('ArrowRight');
+  await expect(page.getByRole('tab',{name:'Play',exact:true})).toBeFocused();
+  await openControlPage(page,'Robot');
+  await expect(page.getByLabel('Robot controls')).toBeVisible();
+  await page.getByRole('button',{name:'Collapse all',exact:true}).click();
+  await expect(page.getByLabel('Robot controls').locator('details[open]')).toHaveCount(0);
+  await page.getByLabel('High contrast').check();
+  await expect(page.locator('html')).toHaveAttribute('data-contrast','high');
+  await page.reload();
+  await expect(page.getByLabel('High contrast')).toBeChecked();
+  await expect(page.locator('html')).toHaveAttribute('data-contrast','high');
+});
+
 test('saved rectangular maze and markers restore despite square lock; empty markers persist', async ({page}) => {
   await page.goto('./');
   await page.getByText('Adjust size',{exact:true}).click();
   await page.getByLabel(/^Height:/).fill('9');
   await page.getByLabel('Start marker',{exact:true}).fill('???????????');
   await page.getByLabel('Goal marker',{exact:true}).fill('');
+  await openControlPage(page,'Library');
   await page.getByLabel('Maze name').fill('Rectangle');
   await page.getByLabel('Maze folder').fill('Favorites');
   await page.getByLabel('Maze tags').fill('rectangular, hard');
@@ -49,9 +72,11 @@ test('saved rectangular maze and markers restore despite square lock; empty mark
   await expect(page.getByLabel('Tags for Rectangle')).toContainText('#rectangular #hard');
   await page.getByLabel('Filter by tag').selectOption('hard');
   await expect(page.getByLabel('Tags for Rectangle')).toBeVisible();
+  await openControlPage(page,'Build');
   await page.getByLabel('Lock width & height (square)').check();
   await expect(page.getByLabel(/^Height:/)).toHaveValue('7');
   await page.getByLabel('Start marker',{exact:true}).fill('X');
+  await openControlPage(page,'Library');
   await page.getByRole('button',{name:'Load',exact:true}).click();
   await expect(page.getByLabel(/^Height:/)).toHaveValue('9');
   await expect(page.getByLabel('Lock width & height (square)')).not.toBeChecked();
@@ -60,11 +85,13 @@ test('saved rectangular maze and markers restore despite square lock; empty mark
   await page.reload();
   await expect(page.getByLabel('Start marker',{exact:true})).toHaveValue('???????????');
   await expect(page.getByLabel('Goal marker',{exact:true})).toHaveValue('');
+  await openControlPage(page,'Library');
   await expect(page.getByRole('button',{name:'Load',exact:true})).toBeVisible();
 });
 
 test('maze collection exports and restores a versioned JSON backup',async({page})=>{
   await page.goto('./');
+  await openControlPage(page,'Library');
   const backup={kind:'infimaze-maze-collection',version:1,exportedAt:1,mazes:[{id:'imported',name:'Imported maze',folder:'Archive',tags:['practice'],createdAt:1,params:{width:7,height:9,seed:77,g:.3,b:.15,tau:.4}}]};
   await page.getByLabel('Collection backup file').setInputFiles({name:'backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(backup))});
   await expect(page.getByRole('status').filter({hasText:'Imported 1 maze.'})).toBeVisible();
@@ -77,6 +104,7 @@ test('maze collection exports and restores a versioned JSON backup',async({page}
 test('selected saved mazes print as a configurable multi-maze pack',async({page})=>{
   await page.addInitScript(()=>{window.print=()=>{const main=window.top as Window&{printCount?:number;printedMarkup?:string};main.printCount=(main.printCount??0)+1;main.printedMarkup=document.body.innerHTML;window.dispatchEvent(new Event('afterprint'));};});
   await page.goto('./');
+  await openControlPage(page,'Library');
   for(const name of ['First puzzle','Second puzzle']){await page.getByLabel('Maze name').fill(name);await page.getByRole('button',{name:'Save current',exact:true}).click();}
   await page.getByText('Printable pack',{exact:true}).click();
   await page.getByRole('button',{name:'Select shown',exact:true}).click();
@@ -168,6 +196,7 @@ test('wall styles update rendered and printable maze appearance',async({page})=>
 
 test('gameplay moves through passages and restores progress paused',async({page})=>{
   await page.goto('./');
+  await openControlPage(page,'Play');
   await page.getByRole('button',{name:'Play',exact:true}).first().click();
   const game=page.getByRole('application',{name:'Maze gameplay area'});
   const gameControls=page.getByRole('group',{name:'Gameplay controls'});
@@ -178,12 +207,14 @@ test('gameplay moves through passages and restores progress paused',async({page}
   await expect(gameControls.getByText('Revisits',{exact:true}).locator('..')).toContainText('1');
   await gameControls.getByRole('button',{name:'Pause',exact:true}).click();
   await page.reload();
+  await openControlPage(page,'Play');
   await expect(gameControls.getByText('Paused',{exact:true})).toBeVisible();
   await expect(gameControls.getByText('Moves',{exact:true}).locator('..')).toContainText('2');
 });
 
 test('gameplay can quit to the maze and resume the preserved attempt',async({page})=>{
   await page.goto('./');
+  await openControlPage(page,'Play');
   await page.getByRole('button',{name:'Play',exact:true}).first().click();
   const controls=page.getByRole('group',{name:'Gameplay controls'});
   const game=page.getByRole('application',{name:'Maze gameplay area'});
@@ -227,6 +258,7 @@ test('play history records, restores, abandons, and clears attempts',async({page
   const pageErrors:string[]=[];
   page.on('pageerror',error=>pageErrors.push(error.message));
   await page.goto('./');
+  await openControlPage(page,'Play');
   const history=page.getByRole('region',{name:'Play history'});
   await expect(history.getByText('Play a maze to start your history.')).toBeVisible();
   await page.getByRole('button',{name:'Play',exact:true}).first().click();
@@ -239,8 +271,10 @@ test('play history records, restores, abandons, and clears attempts',async({page
   await expect(history.getByText('No attempts match this filter.')).toBeVisible();
   await history.getByRole('button',{name:'All',exact:true}).click();
   await page.reload();
+  await openControlPage(page,'Build');
   await page.getByText('Adjust size',{exact:true}).click();
   await page.getByLabel('Maze topology').selectOption('freeform');
+  await openControlPage(page,'Play');
   await history.getByRole('button',{name:'Reopen',exact:true}).click();
   await expect(page.getByRole('group',{name:'Gameplay controls'}).getByRole('status')).toContainText('Paused');
   await expect(page.getByRole('group',{name:'Gameplay controls'}).getByText('Moves',{exact:true}).locator('..')).toContainText('1');
@@ -267,6 +301,7 @@ test('local leaderboard ranks completed attempts and shows robot benchmark',asyn
     ]));
   });
   await page.goto('./');
+  await openControlPage(page,'Play');
   const board=page.getByRole('region',{name:'Local leaderboard'});
   await expect(board.getByRole('row').nth(1)).toContainText('0:05.0');
   await expect(board.getByRole('row').nth(1)).toContainText('12');
@@ -309,6 +344,7 @@ test('Difficulty 2 score is labeled as estimated and retains the legacy score',a
 
 test('Micromouse explores, exposes phases, and disables physics for freeform mazes',async({page})=>{
   await page.goto('./');
+  await openControlPage(page,'Robot');
   const controls=page.locator('.mouse-controls');
   await controls.getByLabel('Competition format').selectOption('classic');
   await controls.getByLabel('Exploration strategy').selectOption('tremaux');
@@ -364,14 +400,17 @@ test('Micromouse explores, exposes phases, and disables physics for freeform maz
   await expect(controls.getByText('Speed run')).toBeVisible();
   await expect(controls.getByText('Diagonal cuts')).toBeVisible();
   await expect(controls.getByText('Effective acceleration',{exact:true})).toBeVisible();
+  await openControlPage(page,'Build');
   await page.getByText('Adjust size',{exact:true}).click();
   await page.getByLabel('Maze topology').selectOption('freeform');
+  await openControlPage(page,'Robot');
   await expect(controls.getByText('Micromouse physics requires grid topology.')).toBeVisible();
   await expect(page.locator('.micromouse-overlay-svg')).toHaveCount(0);
 });
 
 test('storage failure does not pretend to save a maze', async ({page}) => {
   await page.goto('./');
+  await openControlPage(page,'Library');
   await page.evaluate(() => {
     const original = Storage.prototype.setItem;
     Storage.prototype.setItem = function(key,value) {
@@ -437,6 +476,7 @@ test('emoji picker stays in viewport and returns focus after Escape', async ({pa
 
 test('animation independently switches generation and solving algorithms', async ({page}) => {
   await page.goto('./');
+  await openControlPage(page,'Analyze');
   await expect(page.getByText('Animation Algorithms',{exact:true})).toBeVisible();
   await expect(page.getByLabel('Animation mode')).toHaveValue('build-solve');
   const generator=page.getByLabel('Generation algorithm');
@@ -483,7 +523,7 @@ test('animation independently switches generation and solving algorithms', async
 
 test('difficulty search preserves the seed', async ({page}) => {
   await page.goto('./');
-  await openControls(page);
+  await openControlPage(page,'Analyze');
   await page.getByText('Adjust difficulty',{exact:true}).click();
   await expect(page.getByLabel('Braid strategy')).toHaveValue('random');
   await page.getByLabel('Braid strategy').selectOption('difficulty');
@@ -527,6 +567,7 @@ test('production service worker supports offline reload, picker and difficulty w
   await page.getByRole('button',{name:'Pick emoji',exact:true}).first().click();
   await expect(page.locator('em-emoji-picker')).toBeVisible();
   await page.keyboard.press('Escape');
+  await openControlPage(page,'Analyze');
   await page.getByText('Adjust difficulty',{exact:true}).click();
   await page.getByRole('button',{name:'Max difficulty',exact:true}).click();
   await expect(page.getByRole('button',{name:'Max difficulty',exact:true})).toBeEnabled();
