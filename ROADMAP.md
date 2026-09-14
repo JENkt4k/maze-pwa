@@ -31,11 +31,12 @@
 - Staged Micromouse physics and sensor edits with Apply/Reset controls and mobile-safe slider scrolling.
 - Accessibility pass for control tabs, form names, slider touch targets, and forced-color rendering.
 - Server-free share links for reproducible Micromouse benchmark configurations.
+- Synchronized side-by-side playback and live metric charts for two solver algorithms.
 
 ## Backlog
 
 1. **Algorithm analysis**
-   - Side-by-side playback and charts across multiple seeds.
+   - Aggregate charts comparing solver algorithms across multiple seeds.
 2. **Accessibility and release polish**
    - Color-blind-safe data palettes and large-maze profiling.
 3. **Shared online leaderboard — deferred**

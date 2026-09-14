@@ -148,6 +148,15 @@ label { display: grid; gap: 6px; font-size: 12px; color: #3c4557; }
 .solver-metrics div { display: flex; justify-content: space-between; gap: 8px; }
 .solver-metrics dt { color: #586174; }
 .solver-metrics dd { margin: 0; font-weight: 700; }
+.solver-comparison{display:grid;gap:12px;padding:12px;border:1px solid var(--panel-border);border-radius:12px;background:#f8fafc}
+.solver-compare-selectors,.solver-compare-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.solver-compare-cards article{display:grid;gap:9px;padding:10px;border:1px solid #d7dee9;border-radius:10px;background:#fff;min-width:0}
+.solver-live-bars{display:grid;gap:7px}
+.solver-live-bars>div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 6px;font-size:11px}
+.solver-live-bars .metric-track{grid-column:1/-1;height:8px;overflow:hidden;border-radius:999px;background:#dbe4f0}
+.solver-live-bars .metric-track span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#174f9b,#d97706)}
+.solver-live-bars output{font-variant-numeric:tabular-nums;font-weight:700}
+@media (max-width:520px){.solver-compare-selectors,.solver-compare-cards{grid-template-columns:1fr}}
 @media (prefers-reduced-motion: reduce) {
   .generation-overlay-svg, .solver-overlay-svg, .micromouse-overlay-svg, .goal-zone-overlay-svg { display: none; }
   .gameplay-overlay button.hint-move { animation:none; }

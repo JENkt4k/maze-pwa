@@ -517,6 +517,7 @@ export default function App() {
           restart: playback.restart,
           step: playback.step,
           seek: playback.seek,
+          graph: mazeGraph,
         }}
 
         /* Share */

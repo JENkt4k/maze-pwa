@@ -541,6 +541,17 @@ test('animation independently switches generation and solving algorithms', async
   await page.getByLabel('Solver animation opacity').fill('80');
   await expect(page.locator('.solver-expanded circle').first()).toHaveAttribute('fill','#c026d3');
   await expect(page.locator('.solver-expanded circle').first()).toHaveAttribute('opacity','0.8');
+  await page.getByRole('button',{name:'Compare solvers side by side'}).click();
+  const comparison=page.getByRole('region',{name:'Side-by-side solver playback'});
+  await expect(comparison.getByLabel('A* playback')).toBeVisible();
+  await expect(comparison.getByLabel('BFS playback')).toBeVisible();
+  await comparison.getByLabel('Left solver').selectOption('dfs');
+  await expect(comparison.getByLabel('DFS playback')).toBeVisible();
+  const comparisonControls=comparison.getByRole('group',{name:'Comparison playback controls'});
+  await comparisonControls.getByRole('button',{name:'Step',exact:true}).click();
+  await expect(comparison.getByLabel(/^Shared progress/)).toHaveValue('2');
+  await comparison.getByLabel(/^Shared progress/).fill('100');
+  await expect(comparison.getByLabel('DFS live search metrics')).toContainText(/Discovered.*\/\d+/);
 });
 
 test('difficulty search preserves the seed', async ({page}) => {
