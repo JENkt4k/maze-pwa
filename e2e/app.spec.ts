@@ -271,6 +271,10 @@ test('Micromouse explores, exposes phases, and disables physics for freeform maz
   await expect(page.getByLabel(/^Height:/)).toHaveValue('32');
   await expect(controls.getByRole('region',{name:'Competition dimensions'})).toContainText('9 cm cell pitch');
   await controls.getByLabel('Competition format').selectOption('classic');
+  await controls.getByLabel('Robot profile').selectOption('sprint');
+  await expect(controls.getByLabel(/^Maximum speed:/)).toHaveValue('3');
+  await controls.getByLabel(/^90° turn:/).fill('55');
+  await expect(controls.getByLabel('Robot profile')).toHaveValue('custom');
   await controls.getByLabel(/^Playback speed:/).fill('250');
   await controls.getByRole('button',{name:'Start',exact:true}).click();
   await expect(page.locator('.micromouse-overlay-svg')).toBeVisible();

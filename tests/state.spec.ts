@@ -63,7 +63,7 @@ test('wall appearance survives validated settings and sharing',()=>{
   expect(parseFromURL(new URL(url).search)).toMatchObject(appearance);
 });
 test('Micromouse display preferences are bounded and persisted',()=>{
-  expect(validateSettings({micromouseSpeed:999,mouseShowWalls:true,mouseShowFlood:false,mouseShowRoute:true})).toEqual({micromouseSpeed:250,mouseShowWalls:true,mouseShowFlood:false,mouseShowRoute:true});
+  expect(validateSettings({micromouseSpeed:999,mouseShowWalls:true,mouseShowFlood:false,mouseShowRoute:true,mouseMaxSpeedMps:99,mouseAccelerationMps2:.1,mouseTurn90Ms:90.8})).toEqual({micromouseSpeed:250,mouseMaxSpeedMps:5,mouseAccelerationMps2:.5,mouseTurn90Ms:90,mouseShowWalls:true,mouseShowFlood:false,mouseShowRoute:true});
   expect(validateSettings({width:16,height:32})).toEqual({width:16,height:32});
 });
 test('saved records preserve markers and accept legacy records while dropping corrupt entries', () => {

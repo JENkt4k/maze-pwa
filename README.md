@@ -49,6 +49,7 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
   speed run; inspect discovered walls, flood values, route, exploration metrics,
   and deterministic simplified physics times. Each preset places the start in a
   corner, targets the center, and scales distances and timing to its physical cell pitch.
+  Explorer, Balanced, Sprint, and custom robot physics settings support motion comparisons offline.
 - Draw, erase, and clear a freehand path. Drawing stays aligned when the viewport
   changes and clears when the maze changes. Select **Scroll** to scroll by touch
   over the maze. Drawing is session-only and is not a validated solution.

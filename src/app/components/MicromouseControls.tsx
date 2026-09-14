@@ -1,12 +1,13 @@
 import type { PlaybackState } from '../hooks/useSolverPlayback';
 import type { MicromouseMetrics, MousePhase } from '../../maze/micromouse';
 import { MICROMOUSE_FORMATS, micromouseFootprintMeters, type MicromouseFormat, type MicromouseFormatId } from '../../maze/micromouseFormats';
+import { matchingMouseProfile, MOUSE_PROFILES, type MouseMotion, type MouseProfileId } from '../../maze/micromouseProfiles';
 
-export type MicromouseControlsProps={available:boolean;active:boolean;reason?:string;failureReason?:string;state:PlaybackState;phase:MousePhase|'ready'|'complete';eventCount:number;speed:number;setSpeed:(value:number)=>void;showWalls:boolean;setShowWalls:(value:boolean)=>void;showFlood:boolean;setShowFlood:(value:boolean)=>void;showRoute:boolean;setShowRoute:(value:boolean)=>void;metrics?:MicromouseMetrics;format?:MicromouseFormat;applyFormat:(id:MicromouseFormatId)=>void;start:()=>void;play:()=>void;pause:()=>void;restart:()=>void;step:()=>void;seek:(index:number)=>void;seekPhase:(phase:MousePhase)=>void};
+export type MicromouseControlsProps={available:boolean;active:boolean;reason?:string;failureReason?:string;state:PlaybackState;phase:MousePhase|'ready'|'complete';eventCount:number;speed:number;setSpeed:(value:number)=>void;showWalls:boolean;setShowWalls:(value:boolean)=>void;showFlood:boolean;setShowFlood:(value:boolean)=>void;showRoute:boolean;setShowRoute:(value:boolean)=>void;metrics?:MicromouseMetrics;format?:MicromouseFormat;applyFormat:(id:MicromouseFormatId)=>void;motion:MouseMotion;setMotion:(motion:MouseMotion)=>void;start:()=>void;play:()=>void;pause:()=>void;restart:()=>void;step:()=>void;seek:(index:number)=>void;seekPhase:(phase:MousePhase)=>void};
 const seconds=(ms:number)=>`${(ms/1000).toFixed(2)} s`;
 
 export default function MicromouseControls(props:MicromouseControlsProps){
-  const progress=props.eventCount?Math.round(props.state.index/props.eventCount*100):0,label=props.phase==='ready'?'Ready':props.phase==='complete'?'Complete':props.phase[0].toUpperCase()+props.phase.slice(1);
+  const progress=props.eventCount?Math.round(props.state.index/props.eventCount*100):0,label=props.phase==='ready'?'Ready':props.phase==='complete'?'Complete':props.phase[0].toUpperCase()+props.phase.slice(1),profileId=matchingMouseProfile(props.motion);
   return <div className="mouse-controls" role="group" aria-label="Micromouse controls">
     <label>Competition format
       <select name="micromouse-format" value={props.format?.id??'custom'} onChange={e=>{if(e.target.value!=='custom')props.applyFormat(e.target.value as MicromouseFormatId)}}>
@@ -15,6 +16,15 @@ export default function MicromouseControls(props:MicromouseControlsProps){
       </select>
     </label>
     {props.format&&<CompetitionDimensions format={props.format} speedCells={props.metrics?.speed.cells}/>}
+    <fieldset className="mouse-physics"><legend>Robot physics</legend>
+      <label>Robot profile<select name="micromouse-profile" value={profileId} onChange={e=>{if(e.target.value!=='custom')props.setMotion(MOUSE_PROFILES[e.target.value as MouseProfileId].motion)}}>
+        {Object.entries(MOUSE_PROFILES).map(([id,profile])=><option key={id} value={id}>{profile.name}</option>)}<option value="custom">Custom</option>
+      </select></label>
+      <p>{profileId==='custom'?'Custom robot motion settings.':MOUSE_PROFILES[profileId].description}</p>
+      <label>Maximum speed: {props.motion.maxSpeedMps.toFixed(2)} m/s<input name="mouse-max-speed" type="range" min="0.2" max="5" step="0.05" value={props.motion.maxSpeedMps} onChange={e=>props.setMotion({...props.motion,maxSpeedMps:Number(e.target.value)})}/></label>
+      <label>Acceleration: {props.motion.accelerationMps2.toFixed(1)} m/s²<input name="mouse-acceleration" type="range" min="0.5" max="20" step="0.5" value={props.motion.accelerationMps2} onChange={e=>props.setMotion({...props.motion,accelerationMps2:Number(e.target.value)})}/></label>
+      <label>90° turn: {props.motion.turn90Ms} ms<input name="mouse-turn-time" type="range" min="20" max="500" step="5" value={props.motion.turn90Ms} onChange={e=>props.setMotion({...props.motion,turn90Ms:Number(e.target.value)})}/></label>
+    </fieldset>
     {!props.available?<p>{props.reason}</p>:<>
       <div className="game-status" role="status"><strong>{label}</strong><span>{progress}%</span></div>
       {props.failureReason&&<p role="alert">Simulation stopped: {props.failureReason}</p>}
