@@ -55,23 +55,23 @@ export default function AnimationControls(props:AnimationControlsProps){
     {props.mode!=='build'&&<p className="solver-description">{SOLVERS[props.solver].description}</p>}
     {props.mode!=='build'&&<>
       <label className="color-control">Solver color
-        <input aria-label="Solver animation color" type="color" value={props.solverColor} onChange={event=>props.setSolverColor(event.target.value)}/>
+        <input name="solver-animation-color" aria-label="Solver animation color" type="color" value={props.solverColor} onChange={event=>props.setSolverColor(event.target.value)}/>
       </label>
       <label>Solver opacity: {Math.round(props.solverOpacity*100)}%
-        <input aria-label="Solver animation opacity" type="range" min={10} max={100} step={5} value={Math.round(props.solverOpacity*100)} onChange={event=>props.setSolverOpacity(Number(event.target.value)/100)}/>
+        <input name="solver-animation-opacity" aria-label="Solver animation opacity" type="range" min={10} max={100} step={5} value={Math.round(props.solverOpacity*100)} onChange={event=>props.setSolverOpacity(Number(event.target.value)/100)}/>
       </label>
     </>}
     {props.mode!=='solve'&&<>
       <label className="color-control">Build color
-        <input aria-label="Build animation color" type="color" value={props.generationColor} onChange={event=>props.setGenerationColor(event.target.value)}/>
+        <input name="build-animation-color" aria-label="Build animation color" type="color" value={props.generationColor} onChange={event=>props.setGenerationColor(event.target.value)}/>
       </label>
       <label>Build opacity: {Math.round(props.generationOpacity*100)}%
-        <input aria-label="Build animation opacity" type="range" min={10} max={100} step={5} value={Math.round(props.generationOpacity*100)} onChange={event=>props.setGenerationOpacity(Number(event.target.value)/100)}/>
+        <input name="build-animation-opacity" aria-label="Build animation opacity" type="range" min={10} max={100} step={5} value={Math.round(props.generationOpacity*100)} onChange={event=>props.setGenerationOpacity(Number(event.target.value)/100)}/>
       </label>
     </>}
-    <label className="hstack"><input type="checkbox" checked={props.enabled} onChange={event=>props.setEnabled(event.target.checked)}/>Show animation overlay</label>
+    <label className="hstack"><input name="show-animation-overlay" type="checkbox" checked={props.enabled} onChange={event=>props.setEnabled(event.target.checked)}/>Show animation overlay</label>
     <label>Playback speed: {props.speed} ms/event
-      <input type="range" min={10} max={250} step={10} value={props.speed} onChange={event=>props.setSpeed(Number(event.target.value))} disabled={!props.enabled}/>
+      <input name="animation-speed" type="range" min={10} max={250} step={10} value={props.speed} onChange={event=>props.setSpeed(Number(event.target.value))} disabled={!props.enabled}/>
     </label>
     <div className="solver-buttons" role="group" aria-label="Animation playback controls">
       <button className="btn btn-sm" type="button" onClick={props.state.playing?props.pause:props.play} disabled={!props.enabled}>{props.state.playing?'Pause':props.state.finished?'Replay':'Play'}</button>
@@ -79,7 +79,7 @@ export default function AnimationControls(props:AnimationControlsProps){
       <button className="btn btn-sm" type="button" onClick={props.step} disabled={!props.enabled||props.state.finished}>Step</button>
     </div>
     <label>{props.phase} — {progress}%
-      <input aria-label="Animation progress" type="range" min={0} max={props.eventCount} value={props.state.index} onChange={event=>props.seek(Number(event.target.value))} disabled={!props.enabled}/>
+      <input name="animation-progress" aria-label="Animation progress" type="range" min={0} max={props.eventCount} value={props.state.index} onChange={event=>props.seek(Number(event.target.value))} disabled={!props.enabled}/>
     </label>
     {props.mode!=='build'&&<dl className="solver-metrics">
       <div><dt>Discovered</dt><dd>{props.metrics.discovered}</dd></div>

@@ -44,7 +44,7 @@ export default function Leaderboard({entries,currentMazeId,sharedEndpoint}:Leade
     </>}
     <section className="shared-leaderboard" aria-label="Shared leaderboard">
       <div className="history-heading"><strong>Shared leaderboard</strong><span className="muted">Optional</span></div>
-      <label className="shared-consent"><input type="checkbox" checked={sharedEnabled} onChange={event=>toggleShared(event.target.checked)}/><span>Enable online scores</span></label>
+      <label className="shared-consent"><input name="enable-online-scores" type="checkbox" checked={sharedEnabled} onChange={event=>toggleShared(event.target.checked)}/><span>Enable online scores</span></label>
       {!sharedEndpoint?<p className="muted">Online scores are not configured for this deployment.</p>:sharedEnabled&&<>
         <p className="muted">Shares your display name, maze settings, time, moves, and revisits. Routes and drawings stay on this device.</p>
         <div className="shared-submit"><label>Display name<input className="input" name="shared-display-name" maxLength={24} value={name} onChange={event=>setName(event.target.value)} placeholder="Player"/></label><button type="button" className="btn btn-primary" disabled={!latest||!name.trim()||sharedStatus!=='idle'} onClick={submit}>Submit best local score</button></div>

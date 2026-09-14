@@ -64,7 +64,7 @@ export default function MicromouseControls(props:MicromouseControlsProps){
         <button type="button" className="btn btn-sm" onClick={props.step} disabled={!props.active||props.state.finished}>Step</button>
       </div>
       <label>Playback speed: {props.speed} ms/event<input name="micromouse-speed" type="range" min="10" max="250" step="10" value={props.speed} onChange={e=>props.setSpeed(Number(e.target.value))}/></label>
-      <label>{label} — {progress}%<input aria-label="Micromouse progress" type="range" min="0" max={props.eventCount} value={props.state.index} onChange={e=>props.seek(Number(e.target.value))}/></label>
+      <label>{label} — {progress}%<input name="micromouse-progress" aria-label="Micromouse progress" type="range" min="0" max={props.eventCount} value={props.state.index} onChange={e=>props.seek(Number(e.target.value))}/></label>
       <div className="grid-3" role="group" aria-label="Micromouse phases">{(['search','return','speed'] as const).map(phase=><button key={phase} type="button" className="btn btn-sm" disabled={!props.active} onClick={()=>props.seekPhase(phase)}>{phase[0].toUpperCase()+phase.slice(1)}</button>)}</div>
       <div className="mouse-layer-toggles">
         <label><input name="mouse-walls" type="checkbox" checked={props.showWalls} onChange={e=>props.setShowWalls(e.target.checked)}/>Known walls</label>
