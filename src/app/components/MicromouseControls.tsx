@@ -35,6 +35,8 @@ export default function MicromouseControls(props:MicromouseControlsProps){
       <label>Maximum speed: {props.motion.maxSpeedMps.toFixed(2)} m/s<input name="mouse-max-speed" type="range" min="0.2" max="5" step="0.05" value={props.motion.maxSpeedMps} onChange={e=>props.setMotion({...props.motion,maxSpeedMps:Number(e.target.value)})}/></label>
       <label>Acceleration: {props.motion.accelerationMps2.toFixed(1)} m/s²<input name="mouse-acceleration" type="range" min="0.5" max="20" step="0.5" value={props.motion.accelerationMps2} onChange={e=>props.setMotion({...props.motion,accelerationMps2:Number(e.target.value)})}/></label>
       <label>90° turn: {props.motion.turn90Ms} ms<input name="mouse-turn-time" type="range" min="20" max="500" step="5" value={props.motion.turn90Ms} onChange={e=>props.setMotion({...props.motion,turn90Ms:Number(e.target.value)})}/></label>
+      <label className="hstack"><input name="mouse-diagonal-speed" type="checkbox" checked={props.realism.diagonalSpeedRuns} onChange={e=>props.setRealism({...props.realism,diagonalSpeedRuns:e.target.checked})}/>Allow diagonal speed-run cornering</label>
+      <p>Diagonal mode cuts across learned 90° corners without changing the search route.</p>
     </fieldset>
     <fieldset className="mouse-sensors"><legend>Sensors and correction</legend>
       <label>Sensor range: {props.realism.sensorRangeCells} {props.realism.sensorRangeCells===1?'cell':'cells'}<input name="mouse-sensor-range" type="range" min="1" max="4" step="1" value={props.realism.sensorRangeCells} onChange={e=>props.setRealism({...props.realism,sensorRangeCells:Number(e.target.value)})}/></label>
@@ -64,6 +66,7 @@ export default function MicromouseControls(props:MicromouseControlsProps){
         <div><dt>Speed run</dt><dd>{seconds(props.metrics.speed.timeMs)}</dd></div><div><dt>Total</dt><dd>{seconds(props.metrics.totalTimeMs)}</dd></div>
         <div><dt>Explored</dt><dd>{props.metrics.exploredPercent}%</dd></div><div><dt>Revisits</dt><dd>{props.metrics.revisits}</dd></div>
         <div><dt>Speed route</dt><dd>{props.metrics.speed.cells} cells</dd></div><div><dt>Route quality</dt><dd>{props.metrics.speedRouteQuality.toFixed(2)}×</dd></div>
+        <div><dt>Speed distance</dt><dd>{props.metrics.speedDistanceCells.toFixed(2)} cells</dd></div><div><dt>Diagonal cuts</dt><dd>{props.metrics.speedDiagonalCuts}</dd></div>
         <div><dt>Collisions</dt><dd>{props.metrics.collisions}</dd></div>
       </dl>}
     </>}

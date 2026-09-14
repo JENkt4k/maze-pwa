@@ -62,6 +62,18 @@ test('physics configuration changes simulated time without changing decisions',(
   expect(half.metrics.totalTimeMs).toBeLessThan(normal.metrics.totalTimeMs);
 });
 
+test('diagonal speed mode cuts learned corners and reduces speed-run time',()=>{
+  const nodes=new Map([
+    ['0,0',{id:'0,0',position:{x:0,y:0},neighbors:['1,0']}],
+    ['1,0',{id:'1,0',position:{x:1,y:0},neighbors:['0,0','1,1']}],
+    ['1,1',{id:'1,1',position:{x:1,y:1},neighbors:['1,0']}],
+  ]),maze={nodes,start:'0,0',goals:['1,1']},standard=simulateMicromouse(maze),diagonal=simulateMicromouse(maze,DEFAULT_MOUSE_PHYSICS,'flood-fill',{...DEFAULT_MOUSE_REALISM,diagonalSpeedRuns:true});
+  expect(diagonal.routes.speed).toEqual(standard.routes.speed);
+  expect(diagonal.metrics.speedDiagonalCuts).toBe(1);
+  expect(diagonal.metrics.speedDistanceCells).toBeLessThan(standard.metrics.speedDistanceCells);
+  expect(diagonal.metrics.speed.timeMs).toBeLessThan(standard.metrics.speed.timeMs);
+});
+
 test('disconnected courses stop with a bounded failure result',()=>{
   const nodes=new Map([
     ['0,0',{id:'0,0',position:{x:0,y:0},neighbors:[]}],
