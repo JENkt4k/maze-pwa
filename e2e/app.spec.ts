@@ -269,6 +269,10 @@ test('Micromouse explores, exposes phases, and disables physics for freeform maz
   await expect(comparison).toContainText('Flood Fill');
   await expect(comparison).toContainText('Trémaux');
   await expect(comparison).toContainText('Right-Wall');
+  await controls.getByText('Batch benchmark',{exact:true}).click();
+  await controls.getByRole('button',{name:'Run batch benchmark'}).click();
+  await expect(controls.getByText('Benchmark complete — 10 seeds')).toBeVisible();
+  await expect(controls.getByRole('table',{name:'Batch benchmark results'}).getByRole('row')).toHaveCount(4);
   await expect(page.getByLabel(/^Width:/)).toHaveValue('16');
   await expect(page.getByLabel(/^Height:/)).toHaveValue('16');
   await expect(controls.getByRole('region',{name:'Competition dimensions'})).toContainText('2.88×2.88 m nominal');

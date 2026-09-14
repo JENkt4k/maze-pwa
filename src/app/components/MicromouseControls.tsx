@@ -2,8 +2,10 @@ import type { PlaybackState } from '../hooks/useSolverPlayback';
 import type { MicromouseComparison, MicromouseMetrics, MousePhase, MouseStrategyId } from '../../maze/micromouse';
 import { MICROMOUSE_FORMATS, micromouseFootprintMeters, type MicromouseFormat, type MicromouseFormatId } from '../../maze/micromouseFormats';
 import { matchingMouseProfile, MOUSE_PROFILES, type MouseMotion, type MouseProfileId } from '../../maze/micromouseProfiles';
+import type { BatchSeedCount, MicromouseBatchResult } from '../micromouseBatch';
 
-export type MicromouseControlsProps={available:boolean;active:boolean;reason?:string;failureReason?:string;state:PlaybackState;phase:MousePhase|'ready'|'complete';eventCount:number;speed:number;setSpeed:(value:number)=>void;showWalls:boolean;setShowWalls:(value:boolean)=>void;showFlood:boolean;setShowFlood:(value:boolean)=>void;showRoute:boolean;setShowRoute:(value:boolean)=>void;metrics?:MicromouseMetrics;format?:MicromouseFormat;applyFormat:(id:MicromouseFormatId)=>void;motion:MouseMotion;setMotion:(motion:MouseMotion)=>void;strategy:MouseStrategyId;setStrategy:(strategy:MouseStrategyId)=>void;comparisons?:readonly MicromouseComparison[];toggleComparison:()=>void;start:()=>void;play:()=>void;pause:()=>void;restart:()=>void;step:()=>void;seek:(index:number)=>void;seekPhase:(phase:MousePhase)=>void};
+export type MicromouseBatchControls={count:BatchSeedCount;setCount:(count:BatchSeedCount)=>void;running:boolean;result:MicromouseBatchResult|null;error:string|null;run:()=>void;cancel:()=>void};
+export type MicromouseControlsProps={available:boolean;active:boolean;reason?:string;failureReason?:string;state:PlaybackState;phase:MousePhase|'ready'|'complete';eventCount:number;speed:number;setSpeed:(value:number)=>void;showWalls:boolean;setShowWalls:(value:boolean)=>void;showFlood:boolean;setShowFlood:(value:boolean)=>void;showRoute:boolean;setShowRoute:(value:boolean)=>void;metrics?:MicromouseMetrics;format?:MicromouseFormat;applyFormat:(id:MicromouseFormatId)=>void;motion:MouseMotion;setMotion:(motion:MouseMotion)=>void;strategy:MouseStrategyId;setStrategy:(strategy:MouseStrategyId)=>void;comparisons?:readonly MicromouseComparison[];toggleComparison:()=>void;batch:MicromouseBatchControls;start:()=>void;play:()=>void;pause:()=>void;restart:()=>void;step:()=>void;seek:(index:number)=>void;seekPhase:(phase:MousePhase)=>void};
 const seconds=(ms:number)=>`${(ms/1000).toFixed(2)} s`;
 const strategyNames:Record<MouseStrategyId,string>={'flood-fill':'Flood Fill',tremaux:'Trémaux','right-wall':'Right-Wall'};
 
@@ -23,6 +25,7 @@ export default function MicromouseControls(props:MicromouseControlsProps){
     <p>{props.strategy==='flood-fill'?'Heads toward the lowest estimated distance.':props.strategy==='tremaux'?'Prefers the least-visited passage while using the goal distance as a tie-breaker.':'Keeps the right wall; reliable on perfect mazes but may loop in braided mazes.'}</p>
     <button type="button" className="btn btn-sm" disabled={!props.available} aria-expanded={Boolean(props.comparisons)} onClick={props.toggleComparison}>{props.comparisons?'Hide strategy comparison':'Compare all strategies'}</button>
     {props.comparisons&&<StrategyComparison rows={props.comparisons} selected={props.strategy}/>}
+    <BatchBenchmark batch={props.batch} available={props.available}/>
     <fieldset className="mouse-physics"><legend>Robot physics</legend>
       <label>Robot profile<select name="micromouse-profile" value={profileId} onChange={e=>{if(e.target.value!=='custom')props.setMotion(MOUSE_PROFILES[e.target.value as MouseProfileId].motion)}}>
         {Object.entries(MOUSE_PROFILES).map(([id,profile])=><option key={id} value={id}>{profile.name}</option>)}<option value="custom">Custom</option>
@@ -56,6 +59,15 @@ export default function MicromouseControls(props:MicromouseControlsProps){
       </dl>}
     </>}
   </div>;
+}
+
+function BatchBenchmark({batch,available}:{batch:MicromouseBatchControls;available:boolean}){
+  return <details className="mouse-batch"><summary>Batch benchmark</summary><div className="stack">
+    <label>Maze seeds<select name="mouse-batch-count" value={batch.count} disabled={batch.running} onChange={e=>batch.setCount(Number(e.target.value) as BatchSeedCount)}><option value="10">10 seeds</option><option value="25">25 seeds</option><option value="50">50 seeds</option></select></label>
+    <button type="button" className="btn btn-sm" disabled={!available} onClick={batch.running?batch.cancel:batch.run}>{batch.running?'Cancel benchmark':'Run batch benchmark'}</button>
+    {batch.result&&<><div role="status">{batch.running?`Benchmarking ${batch.result.completed}/${batch.result.total}`:`Benchmark complete — ${batch.result.total} seeds`}</div><div className="leaderboard-scroll"><table aria-label="Batch benchmark results"><thead><tr><th>Strategy</th><th>Finish</th><th>Mean search</th><th>Median</th><th>Cells</th><th>Revisits</th><th>Explored</th><th>Speed</th></tr></thead><tbody>{batch.result.results.map(row=><tr key={row.strategy}><td>{strategyNames[row.strategy]}</td><td>{Math.round(row.completionRate*100)}%</td><td>{seconds(row.meanSearchTimeMs)}</td><td>{seconds(row.medianSearchTimeMs)}</td><td>{row.meanSearchCells.toFixed(1)}</td><td>{row.meanRevisits.toFixed(1)}</td><td>{row.meanExploredPercent.toFixed(1)}%</td><td>{seconds(row.meanSpeedTimeMs)}</td></tr>)}</tbody></table></div></>}
+    {batch.error&&<p role="alert">{batch.error}</p>}
+  </div></details>;
 }
 
 function StrategyComparison({rows,selected}:{rows:readonly MicromouseComparison[];selected:MouseStrategyId}){

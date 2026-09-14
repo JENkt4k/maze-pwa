@@ -53,6 +53,7 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
   Classic full-size mazes open and visibly mark a true 2×2 center area; simulations accept any of its four cells.
   Switch among Flood Fill, Trémaux, and Right-Wall exploration to compare robot behavior.
   An on-demand table benchmarks every strategy against the same maze and robot settings.
+  Batch benchmarks compare aggregate completion and performance across 10, 25, or 50 seeds in a cancellable worker.
 - Draw, erase, and clear a freehand path. Drawing stays aligned when the viewport
   changes and clears when the maze changes. Select **Scroll** to scroll by touch
   over the maze. Drawing is session-only and is not a validated solution.
