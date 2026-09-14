@@ -525,6 +525,7 @@ export default function App() {
           step: playback.step,
           seek: playback.seek,
           graph: mazeGraph,
+          mazeParams,
         }}
 
         /* Share */

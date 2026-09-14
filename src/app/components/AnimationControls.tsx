@@ -5,6 +5,7 @@ import type { PlaybackState } from '../hooks/useSolverPlayback';
 import type { MazeGraph } from '../../maze/graph';
 import SolverComparison from './SolverComparison';
 import { useState } from 'react';
+import type { MazeParams } from '../maze';
 
 export type AnimationControlsProps = {
   mode: AnimationMode;
@@ -35,6 +36,7 @@ export type AnimationControlsProps = {
   step: () => void;
   seek: (index: number) => void;
   graph:MazeGraph;
+  mazeParams:MazeParams;
 };
 
 export default function AnimationControls(props:AnimationControlsProps){
@@ -93,6 +95,6 @@ export default function AnimationControls(props:AnimationControlsProps){
       <div><dt>Turns</dt><dd>{props.metrics.turns}</dd></div>
     </dl>}
     <button type="button" className="btn" aria-expanded={comparisonOpen} onClick={()=>setComparisonOpen(value=>!value)}>{comparisonOpen?'Close solver comparison':'Compare solvers side by side'}</button>
-    {comparisonOpen&&<SolverComparison graph={props.graph} initial={props.solver}/>}
+    {comparisonOpen&&<SolverComparison graph={props.graph} params={props.mazeParams} initial={props.solver}/>}
   </div>;
 }

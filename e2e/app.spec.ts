@@ -574,6 +574,13 @@ test('animation independently switches generation and solving algorithms', async
   await expect(comparison.getByLabel(/^Shared progress/)).toHaveValue('2');
   await comparison.getByLabel(/^Shared progress/).fill('100');
   await expect(comparison.getByLabel('DFS live search metrics')).toContainText(/Discovered.*\/\d+/);
+  await comparison.getByText('Multi-seed charts',{exact:true}).click();
+  await comparison.getByRole('button',{name:'Run multi-seed analysis'}).click();
+  await expect(comparison.getByText('Analysis complete — 10 seeds')).toBeVisible();
+  const charts=comparison.getByRole('region',{name:'Multi-seed solver charts'});
+  await expect(charts.getByRole('region')).toHaveCount(5);
+  await expect(charts.getByRole('region',{name:'Average expanded'})).toContainText('DFS');
+  await expect(charts.getByRole('region',{name:'Average expanded'})).toContainText('A*');
 });
 
 test('difficulty search preserves the seed', async ({page}) => {
