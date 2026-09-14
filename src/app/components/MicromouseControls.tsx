@@ -6,7 +6,7 @@ import { matchingMouseProfile, MOUSE_PROFILES, type MouseMotion, type MouseProfi
 import type { BatchSeedCount, MicromouseBatchResult } from '../micromouseBatch';
 import { batchCsv, batchJson, comparisonCsv, comparisonJson, downloadText, exportFilename, type ComparisonExportContext } from '../micromouseExport';
 
-export type MicromouseBatchControls={count:BatchSeedCount;setCount:(count:BatchSeedCount)=>void;running:boolean;result:MicromouseBatchResult|null;error:string|null;durationMs:number|null;run:()=>void;cancel:()=>void};
+export type MicromouseBatchControls={count:BatchSeedCount;setCount:(count:BatchSeedCount)=>void;running:boolean;result:MicromouseBatchResult|null;error:string|null;durationMs:number|null;shared:boolean;share:()=>void;run:()=>void;cancel:()=>void};
 export type MicromouseControlsProps={available:boolean;active:boolean;reason?:string;failureReason?:string;state:PlaybackState;phase:MousePhase|'ready'|'complete';eventCount:number;speed:number;setSpeed:(value:number)=>void;showWalls:boolean;setShowWalls:(value:boolean)=>void;showFlood:boolean;setShowFlood:(value:boolean)=>void;showRoute:boolean;setShowRoute:(value:boolean)=>void;metrics?:MicromouseMetrics;simulationCostMs?:number;comparisonCostMs?:number;format?:MicromouseFormat;exportContext:ComparisonExportContext;applyFormat:(id:MicromouseFormatId)=>void;motion:MouseMotion;setMotion:(motion:MouseMotion)=>void;realism:MouseRealism;setRealism:(realism:MouseRealism)=>void;strategy:MouseStrategyId;setStrategy:(strategy:MouseStrategyId)=>void;comparisons?:readonly MicromouseComparison[];toggleComparison:()=>void;batch:MicromouseBatchControls;start:()=>void;play:()=>void;pause:()=>void;restart:()=>void;step:()=>void;seek:(index:number)=>void;seekPhase:(phase:MousePhase)=>void};
 const seconds=(ms:number)=>`${(ms/1000).toFixed(2)} s`;
 const strategyNames:Record<MouseStrategyId,string>={'flood-fill':'Flood Fill',tremaux:'Trémaux','right-wall':'Right-Wall'};
@@ -86,9 +86,12 @@ export default function MicromouseControls(props:MicromouseControlsProps){
 }
 
 function BatchBenchmark({batch,available}:{batch:MicromouseBatchControls;available:boolean}){
-  return <details className="mouse-batch"><summary>Batch benchmark</summary><div className="stack">
+  const [expanded,setExpanded]=useState(batch.shared);
+  useEffect(()=>{if(batch.shared)setExpanded(true);},[batch.shared]);
+  return <details className="mouse-batch" open={expanded} onToggle={event=>setExpanded(event.currentTarget.open)}><summary>Batch benchmark</summary><div className="stack">
+    {batch.shared&&<p role="status" className="benchmark-shared-status">Shared benchmark settings loaded.</p>}
     <label>Maze seeds<select name="mouse-batch-count" value={batch.count} disabled={batch.running} onChange={e=>batch.setCount(Number(e.target.value) as BatchSeedCount)}><option value="10">10 seeds</option><option value="25">25 seeds</option><option value="50">50 seeds</option></select></label>
-    <button type="button" className="btn btn-sm" disabled={!available} onClick={batch.running?batch.cancel:batch.run}>{batch.running?'Cancel benchmark':'Run batch benchmark'}</button>
+    <div className="hstack"><button type="button" className="btn btn-sm" disabled={!available} onClick={batch.running?batch.cancel:batch.run}>{batch.running?'Cancel benchmark':'Run batch benchmark'}</button><button type="button" className="btn btn-sm" disabled={!available||batch.running} onClick={batch.share}>Share configuration</button></div>
     {batch.result&&<><div role="status">{batch.running?`Benchmarking ${batch.result.completed}/${batch.result.total}`:`Benchmark complete — ${batch.result.total} seeds`}</div><div className="leaderboard-scroll"><table aria-label="Batch benchmark results"><thead><tr><th>Strategy</th><th>Finish</th><th>Mean search</th><th>Median</th><th>Cells</th><th>Revisits</th><th>Explored</th><th>Speed</th></tr></thead><tbody>{batch.result.results.map(row=><tr key={row.strategy}><td>{strategyNames[row.strategy]}</td><td>{Math.round(row.completionRate*100)}%</td><td>{seconds(row.meanSearchTimeMs)}</td><td>{seconds(row.medianSearchTimeMs)}</td><td>{row.meanSearchCells.toFixed(1)}</td><td>{row.meanRevisits.toFixed(1)}</td><td>{row.meanExploredPercent.toFixed(1)}%</td><td>{seconds(row.meanSpeedTimeMs)}</td></tr>)}</tbody></table></div><ExportButtons kind="batch" csv={()=>batchCsv(batch.result!)} json={()=>batchJson(batch.result!)}/></>}
     {batch.error&&<p role="alert">{batch.error}</p>}
   </div></details>;

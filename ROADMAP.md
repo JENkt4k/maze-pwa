@@ -31,16 +31,15 @@
 - Staged Micromouse physics and sensor edits with Apply/Reset controls and mobile-safe slider scrolling.
 - Accessibility pass for control tabs, form names, slider touch targets, and forced-color rendering.
 - Staged maze width and height editing plus explicitly triggered, measured Micromouse calculations.
+- Server-free share links for reproducible Micromouse benchmark configurations.
 
 ## Backlog
 
-1. **Maze collections and export**
-   - Shareable benchmark configurations.
-2. **Algorithm analysis**
+1. **Algorithm analysis**
    - Side-by-side playback and charts across multiple seeds.
-3. **Accessibility and release polish**
+2. **Accessibility and release polish**
    - Color-blind-safe data palettes and large-maze profiling.
-4. **Shared online leaderboard — deferred**
+3. **Shared online leaderboard — deferred**
    - Client contract and explicit opt-in integration: in progress.
    - Add the verifying, rate-limited backend as a separate deployment stage.
    - Follow [SHARED_LEADERBOARD_API.md](SHARED_LEADERBOARD_API.md).

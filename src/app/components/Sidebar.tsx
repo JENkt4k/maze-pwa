@@ -75,7 +75,7 @@ export default function Sidebar(props: Props){
   const applySize=()=>{props.setWidth(draftWidth);if(!props.lockSize)props.setHeight(draftHeight);};
   const resetSize=()=>{setDraftWidth(width);setDraftHeight(height);};
   type ControlPage='build'|'play'|'robot'|'analyze'|'library';
-  const [controlPage,setControlPage]=useState<ControlPage>('build');
+  const [controlPage,setControlPage]=useState<ControlPage>(()=>props.micromouse.batch.shared?'robot':'build');
   const pagePanelIds:Record<ControlPage,string>={build:'build-controls-panel build-secondary-panel',play:'play-controls-panel play-records-panel',robot:'robot-controls-panel',analyze:'analyze-controls-panel',library:'library-controls-panel'};
   const [highContrast,setHighContrast]=useState(()=>{try{return localStorage.getItem('ui:highContrast:v1')==='true';}catch{return false;}});
   const controlsRef=useRef<HTMLElement>(null);

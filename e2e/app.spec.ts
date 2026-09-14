@@ -256,6 +256,19 @@ test('challenge links open the exact maze directly in gameplay',async({page})=>{
   await expect(page.getByText('seed 77',{exact:true})).toBeVisible();
 });
 
+test('shared benchmark links restore the complete Micromouse configuration',async({page})=>{
+  await page.goto('./?v=2&w=16&h=16&seed=91&g=.3&b=.15&tau=.4&start=&goal=&benchmark=1&ms=tremaux&bc=25&msp=2.5&mac=7.5&mt=55&sr=3&sn=.12&pc=25&col=750&tr=6.5&diag=1');
+  await expect(page.getByRole('tab',{name:'Robot',exact:true})).toHaveAttribute('aria-selected','true');
+  const controls=page.locator('.mouse-controls');
+  await expect(controls.getByText('Shared benchmark settings loaded.')).toBeVisible();
+  await expect(controls.getByLabel('Maze seeds')).toHaveValue('25');
+  await expect(controls.getByLabel('Exploration strategy')).toHaveValue('tremaux');
+  await expect(controls.getByLabel(/^Maximum speed:/)).toHaveValue('2.5');
+  await expect(controls.getByLabel(/^Sensor range:/)).toHaveValue('3');
+  await expect(controls.getByLabel('Allow diagonal speed-run cornering')).toBeChecked();
+  await expect(controls.getByRole('button',{name:'Share configuration'})).toBeVisible();
+});
+
 test('hints highlight a shortest-path move and completion shows assisted results',async({page})=>{
   await page.emulateMedia({reducedMotion:'reduce'});
   await page.goto('./');

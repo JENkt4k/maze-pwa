@@ -4,6 +4,8 @@ import type { AnimationMode } from '../maze/animation';
 import { CUSTOM_MASK_SIZE, type CustomMask, type MaskId } from '../maze/masks';
 import type { WallStyle } from '../maze/walls';
 import type { MouseStrategyId } from '../maze/micromouse';
+import type { MouseRealism } from '../maze/micromouse';
+import type { MouseMotion } from '../maze/micromouseProfiles';
 
 export const SETTINGS_KEY = 'maze:settings:v1';
 export const STORAGE_KEY = 'savedMazes:v1';
@@ -35,6 +37,8 @@ export type Settings = MazeParams & Markers & {
   mouseDiagonalSpeedRuns:boolean;
   mouseTractionLimitMps2:number;
   mouseStrategy:MouseStrategyId;
+  mouseBatchCount:10|25|50;
+  benchmarkShared:boolean;
   // Legacy fields retained only while migrating existing settings.
   animateDFS: boolean;
   dfsSegMs: number;
@@ -56,7 +60,8 @@ export function validateSettings(value: unknown): Partial<Settings> {
     if (key === 'seed' || key === 'dfsSegMs' || key === 'lingerMs' || key === 'solverStepMs'||key==='micromouseSpeed'||key==='mouseTurn90Ms'||key==='mouseSensorRangeCells'||key==='mouseCorrectionMs'||key==='mouseCollisionMs') v = Math.trunc(v);
     out[key] = v;
   }
-  for (const key of ['controlsOpen', 'lockSize', 'animateDFS', 'solverEnabled','gameBreadcrumbs','mouseShowWalls','mouseShowFlood','mouseShowRoute','mouseDiagonalSpeedRuns']) if (typeof value[key] === 'boolean') out[key] = value[key];
+  for (const key of ['controlsOpen', 'lockSize', 'animateDFS', 'solverEnabled','gameBreadcrumbs','mouseShowWalls','mouseShowFlood','mouseShowRoute','mouseDiagonalSpeedRuns','benchmarkShared']) if (typeof value[key] === 'boolean') out[key] = value[key];
+  if([10,25,50].includes(Number(value.mouseBatchCount)))out.mouseBatchCount=Number(value.mouseBatchCount);
   if (['dfs', 'bfs', 'dijkstra', 'astar'].includes(String(value.solverAlgorithm))) out.solverAlgorithm = value.solverAlgorithm;
   if (['dfs', 'prim', 'kruskal', 'wilson'].includes(String(value.generator))) out.generator = value.generator as GeneratorId;
   if(['random','difficulty'].includes(String(value.braidMode)))out.braidMode=value.braidMode as BraidMode;
@@ -117,6 +122,13 @@ export function parseFromURL(search: string): Partial<Settings> {
   if(q.has('ws'))values.wallStyle=q.get('ws');
   if(q.has('wt'))values.wallThickness=Number(q.get('wt'));
   if(q.has('cr'))values.cornerRadius=Number(q.get('cr'));
+  if(q.get('benchmark')==='1'){
+    values.benchmarkShared=true;
+    if(q.has('ms'))values.mouseStrategy=q.get('ms');
+    if(q.has('bc'))values.mouseBatchCount=Number(q.get('bc'));
+    for(const [query,key] of [['msp','mouseMaxSpeedMps'],['mac','mouseAccelerationMps2'],['mt','mouseTurn90Ms'],['sr','mouseSensorRangeCells'],['sn','mouseSensorNoise'],['pc','mouseCorrectionMs'],['col','mouseCollisionMs'],['tr','mouseTractionLimitMps2']])if(q.has(query))values[key]=Number(q.get(query));
+    if(q.has('diag'))values.mouseDiagonalSpeedRuns=q.get('diag')==='1';
+  }
   for (const [query, key] of [['start', 'startIcon'], ['goal', 'goalIcon']]) {
     if (!q.has(query)) continue;
     let marker = q.get(query) ?? '';
@@ -129,6 +141,7 @@ export function parseFromURL(search: string): Partial<Settings> {
 export function buildShareURL(base: string, p: MazeParams & Markers): string {
   const u = new URL(base);
   u.searchParams.delete('challenge');
+  for(const key of ['benchmark','ms','bc','msp','mac','mt','sr','sn','pc','col','tr','diag'])u.searchParams.delete(key);
   u.searchParams.set('v', p.topology==='freeform'?'3':'2');
   for (const [query, key] of [['w', 'width'], ['h', 'height'], ['seed', 'seed'], ['g', 'g'], ['b', 'b'], ['tau', 'tau']] as const) u.searchParams.set(query, String(p[key]));
   if (p.generator && p.generator !== 'dfs') u.searchParams.set('gen', p.generator); else u.searchParams.delete('gen');
@@ -151,3 +164,10 @@ export function buildShareURL(base: string, p: MazeParams & Markers): string {
   return u.toString();
 }
 export function buildChallengeURL(base:string,p:MazeParams&Markers):string{const u=new URL(buildShareURL(base,p));u.searchParams.set('challenge','1');return u.toString();}
+export type BenchmarkShareSettings={motion:MouseMotion;realism:MouseRealism;strategy:MouseStrategyId;count:10|25|50};
+export function buildBenchmarkURL(base:string,p:MazeParams&Markers,settings:BenchmarkShareSettings):string{
+  const u=new URL(buildShareURL(base,p));u.searchParams.set('benchmark','1');
+  const values={ms:settings.strategy,bc:settings.count,msp:settings.motion.maxSpeedMps,mac:settings.motion.accelerationMps2,mt:settings.motion.turn90Ms,sr:settings.realism.sensorRangeCells,sn:settings.realism.sensorNoise,pc:settings.realism.correctionMs,col:settings.realism.collisionMs,tr:settings.realism.tractionLimitMps2,diag:settings.realism.diagonalSpeedRuns?1:0};
+  for(const [key,value] of Object.entries(values))u.searchParams.set(key,String(value));
+  return u.toString();
+}
