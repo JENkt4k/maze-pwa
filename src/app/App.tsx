@@ -14,7 +14,7 @@ import MazeViewport from "./components/MazeViewport";
 
 import { buildChallengeURL, buildShareURL, parseFromURL, parseSettings, parseSaved, SETTINGS_KEY, STORAGE_KEY, type SavedMaze } from "./state";
 import { handlePrint } from "./print";
-import { createMaze, type BraidMode, type GeneratorId, type MazeTopology } from "./maze";
+import { createMaze, openMazePassages, type BraidMode, type GeneratorId, type MazeTopology } from "./maze";
 import { useDifficultySearch } from "./hooks/useDifficultySearch";
 import { mazeFingerprint, mazeToGraph, nodeId } from '../maze/graph';
 import { solveMaze, type SolverId } from '../maze/solvers';
@@ -26,7 +26,7 @@ import type { MazePoint } from './maze';
 import type { WallStyle } from '../maze/walls';
 import { GAME_STORAGE_KEY, useMazeGame, type MazeGameState } from './hooks/useMazeGame';
 import { compareMicromouseStrategies, DEFAULT_MOUSE_PHYSICS, simulateMicromouse, type MousePhase, type MouseStrategyId } from '../maze/micromouse';
-import { matchingMicromouseFormat, MICROMOUSE_FORMATS, micromouseEndpoints, micromouseGoalCells, type MicromouseFormatId } from '../maze/micromouseFormats';
+import { matchingMicromouseFormat, MICROMOUSE_FORMATS, micromouseEndpoints, micromouseGoalCells, micromouseGoalPassages, type MicromouseFormatId } from '../maze/micromouseFormats';
 import { MOUSE_PROFILES, type MouseMotion } from '../maze/micromouseProfiles';
 import { analyzeDifficultyV2 } from '../maze/difficulty';
 import { abandonHistoryEntry, createHistoryEntry, HISTORY_LIMIT, HISTORY_STORAGE_KEY, historyGameState, parsePlayHistory, updateHistoryEntry, type HistoryMazeParams, type PlayHistoryEntry } from './history';
@@ -264,7 +264,9 @@ export default function App() {
   });
   const newMaze = () => setSeed(s => (s + 1) | 0);
   const mazeKey = `${topology}:${regionDensity}:${irregularity}:${generator}:${braidMode==='difficulty'?'difficulty:':''}${mask}:${customMask?.pixels??''}:${customMask?.threshold??''}:${customMask?.invert??''}:${width}:${height}:${seed}:${g}:${b}:${tau}`;
-  const mazeData = useMemo(() => createMaze(mazeParams), [width,height,seed,g,b,tau,generator,braidMode,topology,regionDensity,irregularity,mask,customMask,startCell,goalCell]);
+  const micromouseFormat=matchingMicromouseFormat(width,height);
+  const requestedCompetitionGoal=micromouseFormat&&goalCell&&goalCell.x===micromouseEndpoints(micromouseFormat).goal.x&&goalCell.y===micromouseEndpoints(micromouseFormat).goal.y;
+  const mazeData = useMemo(() => {const generated=createMaze(mazeParams);return requestedCompetitionGoal&&micromouseFormat?.id==='classic'?openMazePassages(generated,micromouseGoalPassages(micromouseFormat)):generated;}, [width,height,seed,g,b,tau,generator,braidMode,topology,regionDensity,irregularity,mask,customMask,startCell,goalCell,micromouseFormat,requestedCompetitionGoal]);
   const mazeGraph = useMemo(() => mazeToGraph(mazeData), [mazeData]);
   const difficultyV2=useMemo(()=>analyzeDifficultyV2(mazeGraph),[mazeGraph]);
   const mazeId=useMemo(()=>mazeFingerprint(mazeGraph),[mazeGraph]);
@@ -317,7 +319,6 @@ export default function App() {
     replaceHistoryEntry(updateHistoryEntry(entry,game.state));
   },[game.state.status,game.state.moves,game.state.revisits,game.state.hints,game.state.route,historyElapsedSecond,gameKey]);
   useEffect(()=>setMicromouseActive(false),[mazeId]);
-  const micromouseFormat=matchingMicromouseFormat(width,height);
   const competitionEndpoints=micromouseFormat?micromouseEndpoints(micromouseFormat):undefined;
   const usesCompetitionGoal=competitionEndpoints&&mazeData.goal.x===competitionEndpoints.goal.x&&mazeData.goal.y===competitionEndpoints.goal.y;
   const micromouseGraph=useMemo(()=>usesCompetitionGoal&&micromouseFormat?{...mazeGraph,goals:micromouseGoalCells(micromouseFormat).map(nodeId).filter(id=>mazeGraph.nodes.has(id))}:mazeGraph,[mazeGraph,micromouseFormat,usesCompetitionGoal]);
@@ -388,6 +389,7 @@ export default function App() {
               onEndpointSelect={selectEndpoint}
               gameplay={(gameActive&&gameStateMatchesMaze)||challengePlaying?{state:game.state,hintNode:game.hintNode,breadcrumbs:gameBreadcrumbs,move:game.move}:null}
               micromouse={micromouseActive&&micromouse?{events:micromouse.events,eventIndex:mousePlayback.state.index,showWalls:mouseShowWalls,showFlood:mouseShowFlood,showRoute:mouseShowRoute,goals:micromouseGraph.goals}:null}
+              goalZone={usesCompetitionGoal&&micromouseFormat?.id==='classic'?micromouseGraph.goals:undefined}
             /></MazeViewport>
             <DrawingCanvas hostRef={svgHostRef} mazeKey={mazeKey} disabled={endpointMode!==null||gameActive||challengePlaying||micromouseActive} playActive={gameActive||challengePlaying}
               onPlay={startGameplay} onModeChange={setDrawingMode} onExitPlay={()=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);}}/>

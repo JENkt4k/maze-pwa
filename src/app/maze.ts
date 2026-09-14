@@ -195,6 +195,20 @@ export function createMaze(params: MazeParams): MazeResult {
   return { maze, treeSteps, braidEdits, stats, start, goal, mask };
 }
 
+/** Opens specific adjacent passages and refreshes derived maze statistics. */
+export function openMazePassages(result:MazeResult,passages:readonly CarveStep[]):MazeResult{
+  if(result.geometry||!passages.length)return result;
+  const maze=result.maze.map(row=>row.map(cell=>({...cell}))),added:CarveStep[]=[];
+  for(const passage of passages){
+    const dx=passage.nx-passage.x,dy=passage.ny-passage.y,direction=DIRS.find(item=>item.dx===dx&&item.dy===dy);
+    if(!direction||!result.mask[passage.y]?.[passage.x]||!result.mask[passage.ny]?.[passage.nx])continue;
+    const from=maze[passage.y][passage.x],to=maze[passage.ny][passage.nx];
+    if(from[direction.a])added.push(passage);
+    from[direction.a]=0;to[direction.b]=0;
+  }
+  return{...result,maze,braidEdits:[...result.braidEdits,...added],stats:computeStats(maze,result.start,result.goal,result.mask)};
+}
+
 /* ---------------- helpers ---------------- */
 
 function mulberry32(seed:number){ let t = seed>>>0; return () => { t += 0x6D2B79F5; let r = Math.imul(t ^ (t>>>15), 1 | t); r ^= r + Math.imul(r ^ (r>>>7), 61 | r); return ((r ^ (r>>>14))>>>0) / 4294967296; }; }

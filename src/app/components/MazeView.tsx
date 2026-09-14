@@ -10,6 +10,7 @@ import GameplayOverlay from './GameplayOverlay';
 import type { MazeGameState } from '../hooks/useMazeGame';
 import MicromouseOverlay from './MicromouseOverlay';
 import type { MouseEvent } from '../../maze/micromouse';
+import GoalZoneOverlay from './GoalZoneOverlay';
 
 type RenderOpts = { cell:number; margin:number; stroke?:number; wallStyle?:import('../../maze/walls').WallStyle;cornerRadius?:number;startIcon?:string|null; goalIcon?:string|null; iconScale?:number };
 type Props = {
@@ -31,9 +32,10 @@ type Props = {
   onEndpointSelect?:(point:MazePoint)=>void;
   gameplay?:{state:MazeGameState;hintNode?:NodeId|null;breadcrumbs:boolean;move:(target:NodeId)=>void}|null;
   micromouse?:{events:readonly MouseEvent[];eventIndex:number;showWalls:boolean;showFlood:boolean;showRoute:boolean;goals:readonly NodeId[]}|null;
+  goalZone?:readonly NodeId[];
 };
 
-export default function MazeView({ hostRef, data, graph, solverRun, solverEnabled, solverEventIndex, generationEventIndex, generationComplete, generationColor, generationOpacity, solverColor, solverOpacity, render, onSVGChange, endpointMode, onEndpointSelect,gameplay,micromouse }: Props) {
+export default function MazeView({ hostRef, data, graph, solverRun, solverEnabled, solverEventIndex, generationEventIndex, generationComplete, generationColor, generationOpacity, solverColor, solverOpacity, render, onSVGChange, endpointMode, onEndpointSelect,gameplay,micromouse,goalZone }: Props) {
   const width = data.maze[0]?.length ?? 0;
   const height = data.maze.length;
   const { cell, margin, startIcon, goalIcon, iconScale = 0.7,wallStyle='classic',cornerRadius=.3 } = render;
@@ -47,6 +49,7 @@ export default function MazeView({ hostRef, data, graph, solverRun, solverEnable
   return (
     <div className="maze-frame" ref={hostRef} id="print-maze-only">
       <div dangerouslySetInnerHTML={{ __html: baseSVG }} />
+      {goalZone&&goalZone.length>1&&<GoalZoneOverlay graph={graph} goals={goalZone} cell={cell} margin={margin} width={width} height={height}/>}
       {solverEnabled && <GenerationOverlay steps={[...data.treeSteps,...data.braidEdits]} eventIndex={generationEventIndex}
         complete={generationComplete} color={generationColor} opacity={generationOpacity}
         cell={cell} margin={margin} stroke={stroke} widthCells={width} heightCells={height} freeform={!!data.geometry} />}
