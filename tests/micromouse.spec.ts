@@ -82,3 +82,16 @@ test('robot profiles are recognized and custom motion remains custom',()=>{
   expect(matchingMouseProfile(MOUSE_PROFILES.balanced.motion)).toBe('balanced');
   expect(matchingMouseProfile({...MOUSE_PROFILES.balanced.motion,turn90Ms:91})).toBe('custom');
 });
+
+test('exploration strategies produce distinct searches and retain a learned speed route',()=>{
+  const nodes=new Map([
+    ['0,0',{id:'0,0',position:{x:0,y:0},neighbors:['1,0','0,1']}],
+    ['1,0',{id:'1,0',position:{x:1,y:0},neighbors:['0,0']}],
+    ['0,1',{id:'0,1',position:{x:0,y:1},neighbors:['0,0','0,2']}],
+    ['0,2',{id:'0,2',position:{x:0,y:2},neighbors:['0,1']}],
+  ]),maze={nodes,start:'0,0',goals:['0,2']};
+  const flood=simulateMicromouse(maze,DEFAULT_MOUSE_PHYSICS,'flood-fill'),wall=simulateMicromouse(maze,DEFAULT_MOUSE_PHYSICS,'right-wall');
+  expect(flood.success).toBe(true);expect(wall.success).toBe(true);
+  expect(wall.metrics.search.cells).toBeGreaterThan(flood.metrics.search.cells);
+  expect(wall.routes.speed).toEqual(flood.routes.speed);
+});
