@@ -74,6 +74,24 @@ test('maze collection exports and restores a versioned JSON backup',async({page}
   expect((await downloadPromise).suggestedFilename()).toMatch(/^infimaze-collection-.*\.json$/);
 });
 
+test('selected saved mazes print as a configurable multi-maze pack',async({page})=>{
+  await page.addInitScript(()=>{window.print=()=>{const main=window.top as Window&{printCount?:number;printedMarkup?:string};main.printCount=(main.printCount??0)+1;main.printedMarkup=document.body.innerHTML;window.dispatchEvent(new Event('afterprint'));};});
+  await page.goto('./');
+  for(const name of ['First puzzle','Second puzzle']){await page.getByLabel('Maze name').fill(name);await page.getByRole('button',{name:'Save current',exact:true}).click();}
+  await page.getByText('Printable pack',{exact:true}).click();
+  await page.getByRole('button',{name:'Select shown',exact:true}).click();
+  await page.getByLabel('Print pack title').fill('Weekend puzzles');
+  await page.getByLabel('Mazes per page').selectOption('2');
+  await page.getByRole('button',{name:'Print selected (2)',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>(window as Window&{printCount?:number}).printCount)).toBe(1);
+  const markup=await page.evaluate(()=>(window as Window&{printedMarkup?:string}).printedMarkup??'');
+  expect(markup).toContain('Weekend puzzles');
+  expect(markup).toContain('First puzzle');
+  expect(markup).toContain('Second puzzle');
+  expect(markup).toContain('layout-2');
+  expect(markup.match(/<article>/g)).toHaveLength(2);
+});
+
 test('shape selector changes the maze mask', async ({page}) => {
   await page.goto('./');
   await page.getByText('Adjust size',{exact:true}).click();
