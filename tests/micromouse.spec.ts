@@ -1,7 +1,7 @@
 import { createMaze } from '@src/app/maze';
 import { mazeToGraph } from '@src/maze/graph';
 import { applyKnowledge, DEFAULT_MOUSE_PHYSICS, floodDistances, simulateMicromouse } from '@src/maze/micromouse';
-import { MICROMOUSE_FORMATS, matchingMicromouseFormat, micromouseEndpoints, micromouseFootprintMeters } from '@src/maze/micromouseFormats';
+import { MICROMOUSE_FORMATS, matchingMicromouseFormat, micromouseEndpoints, micromouseFootprintMeters, micromouseGoalCells } from '@src/maze/micromouseFormats';
 import { matchingMouseProfile, MOUSE_PROFILES } from '@src/maze/micromouseProfiles';
 import { solveMaze } from '@src/maze/solvers';
 
@@ -59,9 +59,23 @@ test('competition formats preserve the standard footprint and endpoints',()=>{
   expect(micromouseFootprintMeters(MICROMOUSE_FORMATS.classic)).toEqual({width:2.88,height:2.88});
   expect(micromouseFootprintMeters(MICROMOUSE_FORMATS.half)).toEqual({width:2.88,height:2.88});
   expect(micromouseEndpoints(MICROMOUSE_FORMATS.classic)).toEqual({start:{x:0,y:15},goal:{x:7,y:7}});
+  expect(micromouseGoalCells(MICROMOUSE_FORMATS.classic)).toHaveLength(4);
   expect(micromouseEndpoints(MICROMOUSE_FORMATS.half)).toEqual({start:{x:0,y:31},goal:{x:15,y:15}});
+  expect(micromouseGoalCells(MICROMOUSE_FORMATS.half)).toHaveLength(1);
   expect(matchingMicromouseFormat(16,16)?.id).toBe('classic');
   expect(matchingMicromouseFormat(19,19)).toBeUndefined();
+});
+
+test('Micromouse chooses a reachable goal from a goal zone',()=>{
+  const nodes=new Map([
+    ['0,0',{id:'0,0',position:{x:0,y:0},neighbors:['1,0']}],
+    ['1,0',{id:'1,0',position:{x:1,y:0},neighbors:['0,0']}],
+    ['2,0',{id:'2,0',position:{x:2,y:0},neighbors:[]}],
+  ]);
+  const result=simulateMicromouse({nodes,start:'0,0',goals:['2,0','1,0']});
+  expect(result.success).toBe(true);
+  expect(result.routes.search.at(-1)).toBe('1,0');
+  expect(result.routes.speed.at(-1)).toBe('1,0');
 });
 
 test('robot profiles are recognized and custom motion remains custom',()=>{

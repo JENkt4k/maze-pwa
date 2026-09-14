@@ -58,6 +58,7 @@ function CompetitionDimensions({format,speedCells}:{format:MicromouseFormat;spee
     <span>{format.width}×{format.height} cells · {footprint.width.toFixed(2)}×{footprint.height.toFixed(2)} m nominal</span>
     <span>{format.cellPitchCm} cm cell pitch · {format.passageWidthCm} cm passage</span>
     <span>{format.wallThicknessCm} cm wall thickness · {format.wallHeightCm} cm wall height</span>
+    <span>Goal: {format.id==='classic'?'four-cell center zone':'center target cell'}</span>
     {speedCells!==undefined&&<span>Speed-route distance: {(speedCells*format.cellPitchCm/100).toFixed(2)} m</span>}
   </div>;
 }

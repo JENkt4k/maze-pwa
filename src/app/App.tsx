@@ -16,7 +16,7 @@ import { buildChallengeURL, buildShareURL, parseFromURL, parseSettings, parseSav
 import { handlePrint } from "./print";
 import { createMaze, type BraidMode, type GeneratorId, type MazeTopology } from "./maze";
 import { useDifficultySearch } from "./hooks/useDifficultySearch";
-import { mazeFingerprint, mazeToGraph } from '../maze/graph';
+import { mazeFingerprint, mazeToGraph, nodeId } from '../maze/graph';
 import { solveMaze, type SolverId } from '../maze/solvers';
 import { useSolverPlayback } from './hooks/useSolverPlayback';
 import type { AnimationMode } from '../maze/animation';
@@ -26,7 +26,7 @@ import type { MazePoint } from './maze';
 import type { WallStyle } from '../maze/walls';
 import { GAME_STORAGE_KEY, useMazeGame, type MazeGameState } from './hooks/useMazeGame';
 import { DEFAULT_MOUSE_PHYSICS, simulateMicromouse, type MousePhase } from '../maze/micromouse';
-import { matchingMicromouseFormat, MICROMOUSE_FORMATS, micromouseEndpoints, type MicromouseFormatId } from '../maze/micromouseFormats';
+import { matchingMicromouseFormat, MICROMOUSE_FORMATS, micromouseEndpoints, micromouseGoalCells, type MicromouseFormatId } from '../maze/micromouseFormats';
 import { MOUSE_PROFILES, type MouseMotion } from '../maze/micromouseProfiles';
 import { analyzeDifficultyV2 } from '../maze/difficulty';
 import { abandonHistoryEntry, createHistoryEntry, HISTORY_LIMIT, HISTORY_STORAGE_KEY, historyGameState, parsePlayHistory, updateHistoryEntry, type HistoryMazeParams, type PlayHistoryEntry } from './history';
@@ -315,7 +315,10 @@ export default function App() {
   },[game.state.status,game.state.moves,game.state.revisits,game.state.hints,game.state.route,historyElapsedSecond,gameKey]);
   useEffect(()=>setMicromouseActive(false),[mazeId]);
   const micromouseFormat=matchingMicromouseFormat(width,height);
-  const micromouse=useMemo(()=>topology==='grid'?simulateMicromouse(mazeGraph,{...DEFAULT_MOUSE_PHYSICS,...mouseMotion,cellMeters:(micromouseFormat?.cellPitchCm??18)/100}):null,[topology,mazeGraph,micromouseFormat?.cellPitchCm,mouseMotion]);
+  const competitionEndpoints=micromouseFormat?micromouseEndpoints(micromouseFormat):undefined;
+  const usesCompetitionGoal=competitionEndpoints&&mazeData.goal.x===competitionEndpoints.goal.x&&mazeData.goal.y===competitionEndpoints.goal.y;
+  const micromouseGraph=useMemo(()=>usesCompetitionGoal&&micromouseFormat?{...mazeGraph,goals:micromouseGoalCells(micromouseFormat).map(nodeId).filter(id=>mazeGraph.nodes.has(id))}:mazeGraph,[mazeGraph,micromouseFormat,usesCompetitionGoal]);
+  const micromouse=useMemo(()=>topology==='grid'?simulateMicromouse(micromouseGraph,{...DEFAULT_MOUSE_PHYSICS,...mouseMotion,cellMeters:(micromouseFormat?.cellPitchCm??18)/100}):null,[topology,micromouseGraph,micromouseFormat?.cellPitchCm,mouseMotion]);
   const mousePlayback=useSolverPlayback(micromouse?.events.length??0,`mouse:${mazeId}`,micromouseActive,micromouseSpeed);
   const mousePhase:MousePhase|'ready'|'complete'=!micromouseActive||!micromouse?'ready':mousePlayback.state.finished?'complete':([...micromouse.events.slice(0,mousePlayback.state.index)].reverse().find(event=>event.type==='phase')?.phase??'search');
   const solverRun = useMemo(() => solveMaze(mazeGraph, solverAlgorithm), [mazeGraph, solverAlgorithm]);
@@ -380,7 +383,7 @@ export default function App() {
               endpointMode={endpointMode}
               onEndpointSelect={selectEndpoint}
               gameplay={(gameActive&&gameStateMatchesMaze)||challengePlaying?{state:game.state,hintNode:game.hintNode,breadcrumbs:gameBreadcrumbs,move:game.move}:null}
-              micromouse={micromouseActive&&micromouse?{events:micromouse.events,eventIndex:mousePlayback.state.index,showWalls:mouseShowWalls,showFlood:mouseShowFlood,showRoute:mouseShowRoute}:null}
+              micromouse={micromouseActive&&micromouse?{events:micromouse.events,eventIndex:mousePlayback.state.index,showWalls:mouseShowWalls,showFlood:mouseShowFlood,showRoute:mouseShowRoute,goals:micromouseGraph.goals}:null}
             /></MazeViewport>
             <DrawingCanvas hostRef={svgHostRef} mazeKey={mazeKey} disabled={endpointMode!==null||gameActive||challengePlaying||micromouseActive} playActive={gameActive||challengePlaying}
               onPlay={startGameplay} onModeChange={setDrawingMode} onExitPlay={()=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);}}/>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, type RefObject } from "react";
 import { toSVG, type MazeResult } from "../maze";
-import type { MazeGraph } from '../../maze/graph';
+import type { MazeGraph, NodeId } from '../../maze/graph';
 import type { SolverRun } from '../../maze/solvers';
 import SolverOverlay from './SolverOverlay';
 import GenerationOverlay from './GenerationOverlay';
@@ -8,7 +8,6 @@ import EndpointOverlay from './EndpointOverlay';
 import type { MazePoint } from '../maze';
 import GameplayOverlay from './GameplayOverlay';
 import type { MazeGameState } from '../hooks/useMazeGame';
-import type { NodeId } from '../../maze/graph';
 import MicromouseOverlay from './MicromouseOverlay';
 import type { MouseEvent } from '../../maze/micromouse';
 
@@ -31,7 +30,7 @@ type Props = {
   endpointMode?:'start'|'goal'|null;
   onEndpointSelect?:(point:MazePoint)=>void;
   gameplay?:{state:MazeGameState;hintNode?:NodeId|null;breadcrumbs:boolean;move:(target:NodeId)=>void}|null;
-  micromouse?:{events:readonly MouseEvent[];eventIndex:number;showWalls:boolean;showFlood:boolean;showRoute:boolean}|null;
+  micromouse?:{events:readonly MouseEvent[];eventIndex:number;showWalls:boolean;showFlood:boolean;showRoute:boolean;goals:readonly NodeId[]}|null;
 };
 
 export default function MazeView({ hostRef, data, graph, solverRun, solverEnabled, solverEventIndex, generationEventIndex, generationComplete, generationColor, generationOpacity, solverColor, solverOpacity, render, onSVGChange, endpointMode, onEndpointSelect,gameplay,micromouse }: Props) {
@@ -55,7 +54,7 @@ export default function MazeView({ hostRef, data, graph, solverRun, solverEnable
         color={solverColor} opacity={solverOpacity} cell={cell} margin={margin} widthCells={width} heightCells={height} freeform={!!data.geometry} />}
       {endpointMode&&onEndpointSelect&&<EndpointOverlay data={data} graph={graph} mode={endpointMode} cell={cell} margin={margin} onSelect={onEndpointSelect}/>}
       {!endpointMode&&gameplay&&<GameplayOverlay graph={graph} state={gameplay.state} hintNode={gameplay.hintNode} breadcrumbs={gameplay.breadcrumbs} move={gameplay.move} cell={cell} margin={margin} width={width} height={height} freeform={!!data.geometry}/>}
-      {!endpointMode&&micromouse&&<MicromouseOverlay graph={graph} events={micromouse.events} eventIndex={micromouse.eventIndex} cell={cell} margin={margin} width={width} height={height} showWalls={micromouse.showWalls} showFlood={micromouse.showFlood} showRoute={micromouse.showRoute}/>}
+      {!endpointMode&&micromouse&&<MicromouseOverlay graph={{...graph,goals:micromouse.goals}} events={micromouse.events} eventIndex={micromouse.eventIndex} cell={cell} margin={margin} width={width} height={height} showWalls={micromouse.showWalls} showFlood={micromouse.showFlood} showRoute={micromouse.showRoute}/>}
     </div>
   );
 }

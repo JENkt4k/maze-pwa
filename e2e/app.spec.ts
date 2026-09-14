@@ -278,6 +278,7 @@ test('Micromouse explores, exposes phases, and disables physics for freeform maz
   await controls.getByLabel(/^Playback speed:/).fill('250');
   await controls.getByRole('button',{name:'Start',exact:true}).click();
   await expect(page.locator('.micromouse-overlay-svg')).toBeVisible();
+  await expect(page.locator('.mouse-goal-zone rect')).toHaveCount(4);
   await controls.getByRole('button',{name:'Pause',exact:true}).click();
   await controls.getByRole('button',{name:'Step',exact:true}).click();
   await controls.getByRole('button',{name:'Step',exact:true}).click();
