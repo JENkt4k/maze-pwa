@@ -305,6 +305,12 @@ test('Micromouse explores, exposes phases, and disables physics for freeform maz
   await expect(controls.getByLabel(/^Maximum speed:/)).toHaveValue('3');
   await controls.getByLabel(/^90° turn:/).fill('55');
   await expect(controls.getByLabel('Robot profile')).toHaveValue('custom');
+  await controls.getByLabel(/^Sensor range:/).fill('3');
+  await controls.getByLabel(/^Reading noise:/).fill('5');
+  await controls.getByLabel(/^Position correction:/).fill('20');
+  await controls.getByLabel(/^Collision recovery:/).fill('750');
+  await expect(controls.getByText(/Noise is deterministic/)).toBeVisible();
+  await controls.getByLabel(/^Reading noise:/).fill('0');
   await controls.getByLabel(/^Playback speed:/).fill('250');
   await controls.getByRole('button',{name:'Start',exact:true}).click();
   await expect(page.locator('.micromouse-overlay-svg')).toBeVisible();

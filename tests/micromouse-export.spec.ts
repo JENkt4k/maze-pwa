@@ -2,7 +2,7 @@ import { batchCsv, batchJson, comparisonCsv, comparisonJson } from '@src/app/mic
 import { runMicromouseBatch } from '@src/app/micromouseBatch';
 import { createMaze } from '@src/app/maze';
 import { mazeToGraph } from '@src/maze/graph';
-import { compareMicromouseStrategies, DEFAULT_MOUSE_PHYSICS } from '@src/maze/micromouse';
+import { compareMicromouseStrategies, DEFAULT_MOUSE_PHYSICS, DEFAULT_MOUSE_REALISM } from '@src/maze/micromouse';
 import { MOUSE_PROFILES } from '@src/maze/micromouseProfiles';
 
 const motion=MOUSE_PROFILES.balanced.motion;
@@ -20,7 +20,7 @@ test('batch exports retain configuration and every seed-strategy run',()=>{
 
 test('same-maze strategy exports contain reproducible context and metrics',()=>{
   const rows=compareMicromouseStrategies(mazeToGraph(createMaze(params)),{...DEFAULT_MOUSE_PHYSICS,...motion});
-  const context={seed:42,width:7,height:7,generator:'dfs' as const,topology:'grid' as const,format:'custom',motion};
+  const context={seed:42,width:7,height:7,generator:'dfs' as const,topology:'grid' as const,format:'custom',motion,realism:DEFAULT_MOUSE_REALISM};
   expect(comparisonCsv(rows,context).split('\r\n')).toHaveLength(5);
   const json=JSON.parse(comparisonJson(rows,context));
   expect(json.context).toMatchObject({seed:42,format:'custom',robotProfile:'balanced'});
