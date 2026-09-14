@@ -7,6 +7,7 @@
 - Start and goal placement.
 - Rounded and organic wall rendering.
 - Interactive gameplay with persisted in-progress sessions.
+- Explicit gameplay Quit and later Resume without discarding attempt progress.
 - Freeform graph mazes.
 - Micromouse simulation with search, return, and speed-run phases.
 - Play history with exact local attempt restoration.
