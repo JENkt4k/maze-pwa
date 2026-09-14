@@ -69,6 +69,7 @@ export default function Sidebar(props: Props){
   const [picker, setPicker] = useState<null | "start" | "goal">(null);
   type ControlPage='build'|'play'|'robot'|'analyze'|'library';
   const [controlPage,setControlPage]=useState<ControlPage>('build');
+  const pagePanelIds:Record<ControlPage,string>={build:'build-controls-panel build-secondary-panel',play:'play-controls-panel play-records-panel',robot:'robot-controls-panel',analyze:'analyze-controls-panel',library:'library-controls-panel'};
   const [highContrast,setHighContrast]=useState(()=>{try{return localStorage.getItem('ui:highContrast:v1')==='true';}catch{return false;}});
   const controlsRef=useRef<HTMLElement>(null);
   useEffect(() => { if (!controlsOpen) setPicker(null); }, [controlsOpen]);
@@ -109,17 +110,17 @@ export default function Sidebar(props: Props){
         <h2 style={{ margin:0, fontSize:20 }}>Maze Controls</h2>
         <div className="hstack" style={{ gap:6 }}>
           {/* Minimize button shows when expanded */}
-          <button className="btn btn-sm" title="Minimize controls" onClick={onMinimize}>Minimize</button>
-          {canInstall && <button className="btn btn-sm" onClick={onInstall} title="Install app">Install</button>}
+          <button type="button" className="btn btn-sm" title="Minimize controls" onClick={onMinimize}>Minimize</button>
+          {canInstall && <button type="button" className="btn btn-sm" onClick={onInstall} title="Install app">Install</button>}
         </div>
       </div>
 
       <nav className="control-nav" aria-label="Control categories">
-        <div role="tablist" aria-label="Maze control pages">{(['build','play','robot','analyze','library'] as const).map((page,index,pages)=><button key={page} type="button" role="tab" data-control-tab={page} tabIndex={controlPage===page?0:-1} aria-selected={controlPage===page} className={controlPage===page?'active':''} onClick={()=>setControlPage(page)} onKeyDown={event=>{let next=index;if(event.key==='ArrowRight')next=(index+1)%pages.length;else if(event.key==='ArrowLeft')next=(index-1+pages.length)%pages.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=pages.length-1;else return;event.preventDefault();const target=pages[next];setControlPage(target);requestAnimationFrame(()=>controlsRef.current?.querySelector<HTMLButtonElement>(`[data-control-tab="${target}"]`)?.focus());}}>{page[0].toUpperCase()+page.slice(1)}</button>)}</div>
+        <div role="tablist" aria-label="Maze control pages">{(['build','play','robot','analyze','library'] as const).map((page,index,pages)=><button id={`${page}-controls-tab`} key={page} type="button" role="tab" data-control-tab={page} aria-controls={pagePanelIds[page]} tabIndex={controlPage===page?0:-1} aria-selected={controlPage===page} className={controlPage===page?'active':''} onClick={()=>setControlPage(page)} onKeyDown={event=>{let next=index;if(event.key==='ArrowRight')next=(index+1)%pages.length;else if(event.key==='ArrowLeft')next=(index-1+pages.length)%pages.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=pages.length-1;else return;event.preventDefault();const target=pages[next];setControlPage(target);requestAnimationFrame(()=>controlsRef.current?.querySelector<HTMLButtonElement>(`[data-control-tab="${target}"]`)?.focus());}}>{page[0].toUpperCase()+page.slice(1)}</button>)}</div>
         <div className="control-nav-tools"><button type="button" className="btn btn-sm" onClick={()=>controlsRef.current?.querySelectorAll('.control-page:not([hidden]) details[open]').forEach(details=>details.removeAttribute('open'))}>Collapse all</button><label className="contrast-toggle"><input name="high-contrast" type="checkbox" checked={highContrast} onChange={event=>setHighContrast(event.target.checked)}/>High contrast</label></div>
       </nav>
 
-      <div className="control-page" hidden={controlPage!=='build'} aria-label="Build controls">
+      <div id="build-controls-panel" role="tabpanel" aria-labelledby="build-controls-tab" className="control-page" hidden={controlPage!=='build'} aria-label="Build controls">
       <fieldset>
         <legend>Size</legend>
         <details>
@@ -169,7 +170,7 @@ export default function Sidebar(props: Props){
 
           <label className="hstack" style={{ alignItems:"center", gap:8 }}>
             <input
-              type="checkbox"
+              name="lock-maze-size" type="checkbox"
               checked={props.lockSize}
               onChange={(e)=>props.setLockSize(e.target.checked)}
             />
@@ -179,7 +180,7 @@ export default function Sidebar(props: Props){
       </fieldset>
       </div>
 
-      <div className="control-page" hidden={controlPage!=='play'} aria-label="Play controls">
+      <div id="play-controls-panel" role="tabpanel" aria-labelledby="play-controls-tab" className="control-page" hidden={controlPage!=='play'} aria-label="Play controls">
       <fieldset>
         <legend>Gameplay</legend>
         <details open>
@@ -189,7 +190,7 @@ export default function Sidebar(props: Props){
       </fieldset>
       </div>
 
-      <div className="control-page" hidden={controlPage!=='robot'} aria-label="Robot controls">
+      <div id="robot-controls-panel" role="tabpanel" aria-labelledby="robot-controls-tab" className="control-page" hidden={controlPage!=='robot'} aria-label="Robot controls">
       <fieldset>
         <legend>Micromouse</legend>
         <details open>
@@ -199,7 +200,7 @@ export default function Sidebar(props: Props){
       </fieldset>
       </div>
 
-      <div className="control-page" hidden={controlPage!=='play'} aria-label="Play records">
+      <div id="play-records-panel" className="control-page" hidden={controlPage!=='play'} aria-label="Play records">
       <fieldset>
         <legend>History</legend>
         <details open>
@@ -217,7 +218,7 @@ export default function Sidebar(props: Props){
       </fieldset>
       </div>
 
-      <div className="control-page" hidden={controlPage!=='build'} aria-label="Build appearance and markers">
+      <div id="build-secondary-panel" className="control-page" hidden={controlPage!=='build'} aria-label="Build appearance and markers">
       <fieldset>
         <legend>Appearance</legend>
         <details open>
@@ -315,7 +316,7 @@ export default function Sidebar(props: Props){
             <label>
               Or upload custom image (start):
               <input
-                type="file"
+                name="start-marker-image" type="file"
                 accept="image/png,image/jpeg,image/gif,image/webp"
                 onChange={e => { void uploadMarker(e.target.files?.[0], setStartIcon); e.target.value = ""; }}
               />
@@ -324,7 +325,7 @@ export default function Sidebar(props: Props){
             <label>
               Or upload custom image (goal):
               <input
-                type="file"
+                name="goal-marker-image" type="file"
                 accept="image/png,image/jpeg,image/gif,image/webp"
                 onChange={e => { void uploadMarker(e.target.files?.[0], setGoalIcon); e.target.value = ""; }}
               />
@@ -350,7 +351,7 @@ export default function Sidebar(props: Props){
       </fieldset>
       </div>
 
-      <div className="control-page" hidden={controlPage!=='analyze'} aria-label="Analysis controls">
+      <div id="analyze-controls-panel" role="tabpanel" aria-labelledby="analyze-controls-tab" className="control-page" hidden={controlPage!=='analyze'} aria-label="Analysis controls">
       <fieldset>
         <legend>Animation</legend>
         <details open>
@@ -367,10 +368,10 @@ export default function Sidebar(props: Props){
           <summary style={{ cursor:"pointer", fontWeight:600, padding:"6px 0" }}>Adjust difficulty</summary>
 
           <label>Goal bias g: {g.toFixed(2)}
-            <input type="range" min={0} max={1} step={0.01} value={g} onChange={e=>setG(parseFloat(e.target.value))}/>
+            <input name="goal-bias" type="range" min={0} max={1} step={0.01} value={g} onChange={e=>setG(parseFloat(e.target.value))}/>
           </label>
           <label>Braid b: {b.toFixed(2)}
-            <input type="range" min={0} max={0.5} step={0.01} value={b} onChange={e=>setB(parseFloat(e.target.value))}/>
+            <input name="braid-amount" type="range" min={0} max={0.5} step={0.01} value={b} onChange={e=>setB(parseFloat(e.target.value))}/>
           </label>
           <label>Braid strategy
             <select name="braid-strategy" value={props.braidMode} disabled={b===0} onChange={event=>props.setBraidMode(event.target.value as BraidMode)}>
@@ -379,7 +380,7 @@ export default function Sidebar(props: Props){
             </select>
           </label>
           <label>Turn penalty τ: {tau.toFixed(2)}
-            <input type="range" min={0} max={1} step={0.01} value={tau} onChange={e=>setTau(parseFloat(e.target.value))}/>
+            <input name="turn-penalty" type="range" min={0} max={1} step={0.01} value={tau} onChange={e=>setTau(parseFloat(e.target.value))}/>
           </label>
 
           <label>Search budget
@@ -408,12 +409,12 @@ export default function Sidebar(props: Props){
       </div>
 
       <div className="grid-3">
-        <button className="btn" onClick={onNew}>New Maze</button>
-        <button className="btn" onClick={onPrint}>Print</button>
-        <button className="btn btn-primary" onClick={onShare}>Share</button>
+        <button type="button" className="btn" onClick={onNew}>New Maze</button>
+        <button type="button" className="btn" onClick={onPrint}>Print</button>
+        <button type="button" className="btn btn-primary" onClick={onShare}>Share</button>
       </div>
 
-      <div className="control-page" hidden={controlPage!=='library'} aria-label="Library controls"><MazeCollection saveName={saveName} setSaveName={setSaveName} saveFolder={props.saveFolder} setSaveFolder={props.setSaveFolder} saveTags={props.saveTags} setSaveTags={props.setSaveTags} saved={saved} selectedId={selectedId} onSave={onSave} onLoad={onLoad} onDelete={onDelete} onImport={props.onImportCollection} onPrintPack={props.onPrintPack}/></div>
+      <div id="library-controls-panel" role="tabpanel" aria-labelledby="library-controls-tab" className="control-page" hidden={controlPage!=='library'} aria-label="Library controls"><MazeCollection saveName={saveName} setSaveName={setSaveName} saveFolder={props.saveFolder} setSaveFolder={props.setSaveFolder} saveTags={props.saveTags} setSaveTags={props.setSaveTags} saved={saved} selectedId={selectedId} onSave={onSave} onLoad={onLoad} onDelete={onDelete} onImport={props.onImportCollection} onPrintPack={props.onPrintPack}/></div>
     </aside>
   );
 }

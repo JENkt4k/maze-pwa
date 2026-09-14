@@ -24,7 +24,7 @@ test('markers are escaped; malformed URLs do not crash; desktop/mobile controls 
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('./?start=%25');
   await expect(page.getByRole('heading',{name:'InfiMaze',exact:true})).toBeVisible();
-  await expect(page.locator('input[type="text"]:not([name]):not([id]), select:not([name]):not([id])')).toHaveCount(0);
+  await expect(page.locator('input:not([name]):not([id]), select:not([name]):not([id]), textarea:not([name]):not([id])')).toHaveCount(0);
   await expect(page.getByLabel('Start marker',{exact:true})).toHaveValue('%');
   await page.goto('./?v=2&start=' + encodeURIComponent('</text><image onload="alert(1)"/><text>'));
   await expect(page.locator('#print-maze-only image')).toHaveCount(0);
@@ -42,14 +42,16 @@ test('markers are escaped; malformed URLs do not crash; desktop/mobile controls 
 test('control pages limit the visible sidebar and persist high contrast mode',async({page})=>{
   await page.goto('./');
   await expect(page.getByRole('tab',{name:'Build',exact:true})).toHaveAttribute('aria-selected','true');
-  await expect(page.getByLabel('Build controls')).toBeVisible();
-  await expect(page.getByLabel('Robot controls')).toBeHidden();
+  await expect(page.getByRole('tab',{name:'Build',exact:true})).toHaveAttribute('aria-controls',/build-controls-panel/);
+  await expect(page.getByRole('tabpanel',{name:'Build',exact:true})).toBeVisible();
+  await expect(page.locator('#build-controls-panel')).toBeVisible();
+  await expect(page.locator('#robot-controls-panel')).toBeHidden();
   await page.getByRole('tab',{name:'Build',exact:true}).press('ArrowRight');
   await expect(page.getByRole('tab',{name:'Play',exact:true})).toBeFocused();
   await openControlPage(page,'Robot');
-  await expect(page.getByLabel('Robot controls')).toBeVisible();
+  await expect(page.locator('#robot-controls-panel')).toBeVisible();
   await page.getByRole('button',{name:'Collapse all',exact:true}).click();
-  await expect(page.getByLabel('Robot controls').locator('details[open]')).toHaveCount(0);
+  await expect(page.locator('#robot-controls-panel details[open]')).toHaveCount(0);
   await page.getByLabel('High contrast').check();
   await expect(page.locator('html')).toHaveAttribute('data-contrast','high');
   await page.reload();
@@ -374,6 +376,11 @@ test('Micromouse explores, exposes phases, and disables physics for freeform maz
   await controls.getByLabel('Competition format').selectOption('classic');
   await controls.getByLabel('Robot profile').selectOption('sprint');
   await expect(controls.getByLabel(/^Maximum speed:/)).toHaveValue('3');
+  await controls.getByLabel(/^Maximum speed:/).fill('2.5');
+  await expect(controls.getByText('Changes not applied',{exact:true})).toBeVisible();
+  await controls.getByRole('button',{name:'Reset changes',exact:true}).click();
+  await expect(controls.getByLabel(/^Maximum speed:/)).toHaveValue('1.5');
+  await controls.getByLabel('Robot profile').selectOption('sprint');
   await controls.getByLabel(/^90° turn:/).fill('55');
   await expect(controls.getByLabel('Robot profile')).toHaveValue('custom');
   await controls.getByLabel('Allow diagonal speed-run cornering').check();
@@ -386,6 +393,8 @@ test('Micromouse explores, exposes phases, and disables physics for freeform maz
   await controls.getByLabel(/^Collision recovery:/).fill('750');
   await expect(controls.getByText(/Noise is deterministic/)).toBeVisible();
   await controls.getByLabel(/^Reading noise:/).fill('0');
+  await controls.getByRole('button',{name:'Apply changes',exact:true}).click();
+  await expect(controls.getByText('Changes not applied',{exact:true})).toHaveCount(0);
   await controls.getByLabel(/^Playback speed:/).fill('250');
   await controls.getByRole('button',{name:'Start',exact:true}).click();
   await expect(page.locator('.micromouse-overlay-svg')).toBeVisible();

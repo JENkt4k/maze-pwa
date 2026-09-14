@@ -1,4 +1,4 @@
-﻿import { useLayoutEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
+import { useLayoutEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
 type Point = { x: number; y: number };
@@ -94,7 +94,7 @@ export default function DrawingCanvas({ hostRef, mazeKey, disabled=false,playAct
       {(["draw", "erase", "scroll"] as const).map(value => <button key={value} type="button"
         className={`btn btn-sm${!playActive&&mode === value ? " btn-primary" : ""}`} aria-pressed={!playActive&&mode === value}
         onClick={() => { activePointer.current = null;onExitPlay?.();setMode(value);onModeChange?.(value); }}>{value === "draw" ? "Draw" : value === "erase" ? "Erase" : "Scroll"}</button>)}
-      <label className="hstack">Pen<input type="range" min={2} max={24} step={1} value={pen}
+      <label className="hstack">Pen<input name="drawing-pen-size" type="range" min={2} max={24} step={1} value={pen}
         onChange={event => setPen(Number(event.target.value))} /></label>
       <button type="button" className="btn btn-sm" onClick={() => { strokes.current = []; activePointer.current = null; repaint(); }}>Clear</button>
     </div>
