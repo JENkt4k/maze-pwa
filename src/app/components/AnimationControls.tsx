@@ -2,6 +2,9 @@ import { GENERATORS, type GeneratorId } from '../maze';
 import { ANIMATION_MODES, type AnimationMode } from '../../maze/animation';
 import { SOLVERS, type SolverId, type SolverMetrics } from '../../maze/solvers';
 import type { PlaybackState } from '../hooks/useSolverPlayback';
+import type { MazeGraph } from '../../maze/graph';
+import SolverComparison from './SolverComparison';
+import { useState } from 'react';
 
 export type AnimationControlsProps = {
   mode: AnimationMode;
@@ -31,9 +34,11 @@ export type AnimationControlsProps = {
   restart: () => void;
   step: () => void;
   seek: (index: number) => void;
+  graph:MazeGraph;
 };
 
 export default function AnimationControls(props:AnimationControlsProps){
+  const [comparisonOpen,setComparisonOpen]=useState(false);
   const progress=props.eventCount===0?0:Math.round(props.state.index/props.eventCount*100);
   return <div className="solver-controls">
     <label>Animation mode
@@ -87,5 +92,7 @@ export default function AnimationControls(props:AnimationControlsProps){
       <div><dt>Path</dt><dd>{props.metrics.pathLength} steps</dd></div>
       <div><dt>Turns</dt><dd>{props.metrics.turns}</dd></div>
     </dl>}
+    <button type="button" className="btn" aria-expanded={comparisonOpen} onClick={()=>setComparisonOpen(value=>!value)}>{comparisonOpen?'Close solver comparison':'Compare solvers side by side'}</button>
+    {comparisonOpen&&<SolverComparison graph={props.graph} initial={props.solver}/>}
   </div>;
 }
