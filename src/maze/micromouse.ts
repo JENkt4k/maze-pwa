@@ -5,20 +5,20 @@ export type MouseStrategyId='flood-fill'|'tremaux'|'right-wall';
 export type Heading='n'|'e'|'s'|'w';
 export type WallKnowledge='unknown'|'open'|'blocked';
 export type MousePhysics={cellMeters:number;maxSpeedMps:number;accelerationMps2:number;turn90Ms:number;collisionMs:number};
-export type MouseRealism={sensorRangeCells:number;sensorNoise:number;correctionMs:number;collisionMs:number;diagonalSpeedRuns:boolean};
+export type MouseRealism={sensorRangeCells:number;sensorNoise:number;correctionMs:number;collisionMs:number;diagonalSpeedRuns:boolean;tractionLimitMps2:number};
 export type MouseEvent=
   | Readonly<{type:'phase';phase:MousePhase;node:NodeId;heading:Heading}>
   | Readonly<{type:'sense';phase:MousePhase;node:NodeId;heading:Heading;walls:Readonly<Record<Heading,Exclude<WallKnowledge,'unknown'>>>;observations?:readonly Readonly<{node:NodeId;heading:Heading;value:Exclude<WallKnowledge,'unknown'>}>[]}>
   | Readonly<{type:'move';phase:MousePhase;from:NodeId;node:NodeId;heading:Heading}>
   | Readonly<{type:'collision';phase:MousePhase;node:NodeId;heading:Heading}>;
 export type PhaseMetrics={cells:number;turns:number;timeMs:number};
-export type MicromouseMetrics={search:PhaseMetrics;return:PhaseMetrics;speed:PhaseMetrics;totalTimeMs:number;uniqueCells:number;revisits:number;exploredPercent:number;speedRouteQuality:number;speedDistanceCells:number;speedDiagonalCuts:number;collisions:number};
+export type MicromouseMetrics={search:PhaseMetrics;return:PhaseMetrics;speed:PhaseMetrics;totalTimeMs:number;uniqueCells:number;revisits:number;exploredPercent:number;speedRouteQuality:number;speedDistanceCells:number;speedDiagonalCuts:number;effectiveAccelerationMps2:number;collisions:number};
 export type MicromouseResult=Readonly<{version:1;success:boolean;reason?:string;events:readonly MouseEvent[];metrics:MicromouseMetrics;routes:Readonly<Record<MousePhase,readonly NodeId[]>>}>;
 export type MicromouseComparison=Readonly<{strategy:MouseStrategyId;success:boolean;metrics:MicromouseMetrics}>;
 export type KnowledgeMap=Map<NodeId,Record<Heading,WallKnowledge>>;
 
 export const DEFAULT_MOUSE_PHYSICS:Readonly<MousePhysics>={cellMeters:.18,maxSpeedMps:1.5,accelerationMps2:4,turn90Ms:90,collisionMs:500};
-export const DEFAULT_MOUSE_REALISM:Readonly<MouseRealism>={sensorRangeCells:1,sensorNoise:0,correctionMs:0,collisionMs:500,diagonalSpeedRuns:false};
+export const DEFAULT_MOUSE_REALISM:Readonly<MouseRealism>={sensorRangeCells:1,sensorNoise:0,correctionMs:0,collisionMs:500,diagonalSpeedRuns:false,tractionLimitMps2:20};
 const directions=[{heading:'n',dx:0,dy:-1},{heading:'e',dx:1,dy:0},{heading:'s',dx:0,dy:1},{heading:'w',dx:-1,dy:0}] as const;
 const opposite:Record<Heading,Heading>={n:'s',e:'w',s:'n',w:'e'};
 const headingIndex:Record<Heading,number>={n:0,e:1,s:2,w:3};
@@ -128,10 +128,10 @@ export function simulateMicromouse(graph:MazeGraph,physics:MousePhysics=DEFAULT_
   const searched=explore('search',graph.goals,routes.search);if(searched){routes.return=[current];explore('return',graph.start,routes.return);}
   if(!failure){routes.speed=knownRoute(graph,knowledge,graph.start,graph.goals);if(!routes.speed.length)failure='No fully discovered speed route';else{current=graph.start;events.push({type:'phase',phase:'speed',node:current,heading});for(const node of routes.speed.slice(1)){const nextHeading=directionBetween(graph,current,node);events.push({type:'move',phase:'speed',from:current,node,heading:nextHeading});current=node;heading=nextHeading;}}}
   const endHeading=(route:readonly NodeId[],fallback:Heading):Heading=>route.length>1?directionBetween(graph,route[route.length-2],route[route.length-1]):fallback;
-  const addCollisions=(metrics:PhaseMetrics,phase:MousePhase):PhaseMetrics=>({...metrics,timeMs:metrics.timeMs+collisionCounts[phase]*realism.collisionMs});
-  const search=addCollisions(routeMetrics(graph,routes.search,'n',physics,realism.correctionMs),'search'),searchHeading=endHeading(routes.search,'n'),returnMetrics=addCollisions(routeMetrics(graph,routes.return,searchHeading,physics,realism.correctionMs),'return'),returnHeading=endHeading(routes.return,searchHeading),diagonalSpeed=realism.diagonalSpeedRuns?diagonalRouteMetrics(graph,routes.speed,returnHeading,physics,realism.correctionMs):null,speed=addCollisions(diagonalSpeed??routeMetrics(graph,routes.speed,returnHeading,physics,realism.correctionMs),'speed');
+  const effectivePhysics={...physics,accelerationMps2:Math.min(physics.accelerationMps2,realism.tractionLimitMps2)},addCollisions=(metrics:PhaseMetrics,phase:MousePhase):PhaseMetrics=>({...metrics,timeMs:metrics.timeMs+collisionCounts[phase]*realism.collisionMs});
+  const search=addCollisions(routeMetrics(graph,routes.search,'n',effectivePhysics,realism.correctionMs),'search'),searchHeading=endHeading(routes.search,'n'),returnMetrics=addCollisions(routeMetrics(graph,routes.return,searchHeading,effectivePhysics,realism.correctionMs),'return'),returnHeading=endHeading(routes.return,searchHeading),diagonalSpeed=realism.diagonalSpeedRuns?diagonalRouteMetrics(graph,routes.speed,returnHeading,effectivePhysics,realism.correctionMs):null,speed=addCollisions(diagonalSpeed??routeMetrics(graph,routes.speed,returnHeading,effectivePhysics,realism.correctionMs),'speed');
   const totalMoves=routes.search.length+routes.return.length+routes.speed.length-3,unique=new Set([...routes.search,...routes.return,...routes.speed]).size,revisits=Math.max(0,totalMoves+1-unique),shortest=trueShortest(graph);
-  const metrics:MicromouseMetrics={search,return:returnMetrics,speed,totalTimeMs:search.timeMs+returnMetrics.timeMs+speed.timeMs,uniqueCells:unique,revisits,exploredPercent:+(unique/graph.nodes.size*100).toFixed(1),speedRouteQuality:Number.isFinite(shortest)&&shortest?+(speed.cells/shortest).toFixed(3):1,speedDistanceCells:diagonalSpeed?.distanceCells??speed.cells,speedDiagonalCuts:diagonalSpeed?.diagonalCuts??0,collisions:collisionCounts.search+collisionCounts.return+collisionCounts.speed};
+  const metrics:MicromouseMetrics={search,return:returnMetrics,speed,totalTimeMs:search.timeMs+returnMetrics.timeMs+speed.timeMs,uniqueCells:unique,revisits,exploredPercent:+(unique/graph.nodes.size*100).toFixed(1),speedRouteQuality:Number.isFinite(shortest)&&shortest?+(speed.cells/shortest).toFixed(3):1,speedDistanceCells:diagonalSpeed?.distanceCells??speed.cells,speedDiagonalCuts:diagonalSpeed?.diagonalCuts??0,effectiveAccelerationMps2:effectivePhysics.accelerationMps2,collisions:collisionCounts.search+collisionCounts.return+collisionCounts.speed};
   return{version:1,success:!failure,reason:failure,events,metrics,routes};
 }
 
