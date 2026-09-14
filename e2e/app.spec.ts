@@ -263,6 +263,12 @@ test('Micromouse explores, exposes phases, and disables physics for freeform maz
   await controls.getByLabel('Competition format').selectOption('classic');
   await controls.getByLabel('Exploration strategy').selectOption('tremaux');
   await expect(controls.getByText(/least-visited passage/)).toBeVisible();
+  await controls.getByRole('button',{name:'Compare all strategies'}).click();
+  const comparison=controls.getByRole('region',{name:'Strategy comparison'});
+  await expect(comparison.getByRole('row')).toHaveCount(4);
+  await expect(comparison).toContainText('Flood Fill');
+  await expect(comparison).toContainText('Trémaux');
+  await expect(comparison).toContainText('Right-Wall');
   await expect(page.getByLabel(/^Width:/)).toHaveValue('16');
   await expect(page.getByLabel(/^Height:/)).toHaveValue('16');
   await expect(controls.getByRole('region',{name:'Competition dimensions'})).toContainText('2.88×2.88 m nominal');

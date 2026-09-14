@@ -1,6 +1,6 @@
 import { createMaze } from '@src/app/maze';
 import { mazeToGraph } from '@src/maze/graph';
-import { applyKnowledge, DEFAULT_MOUSE_PHYSICS, floodDistances, simulateMicromouse } from '@src/maze/micromouse';
+import { applyKnowledge, compareMicromouseStrategies, DEFAULT_MOUSE_PHYSICS, floodDistances, simulateMicromouse } from '@src/maze/micromouse';
 import { MICROMOUSE_FORMATS, matchingMicromouseFormat, micromouseEndpoints, micromouseFootprintMeters, micromouseGoalCells } from '@src/maze/micromouseFormats';
 import { matchingMouseProfile, MOUSE_PROFILES } from '@src/maze/micromouseProfiles';
 import { solveMaze } from '@src/maze/solvers';
@@ -94,4 +94,11 @@ test('exploration strategies produce distinct searches and retain a learned spee
   expect(flood.success).toBe(true);expect(wall.success).toBe(true);
   expect(wall.metrics.search.cells).toBeGreaterThan(flood.metrics.search.cells);
   expect(wall.routes.speed).toEqual(flood.routes.speed);
+});
+
+test('strategy comparison benchmarks every strategy without event payloads',()=>{
+  const comparison=compareMicromouseStrategies(graph());
+  expect(comparison.map(row=>row.strategy)).toEqual(['flood-fill','tremaux','right-wall']);
+  expect(comparison.every(row=>Number.isFinite(row.metrics.totalTimeMs))).toBe(true);
+  expect(comparison.every(row=>!('events' in row))).toBe(true);
 });

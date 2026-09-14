@@ -12,6 +12,7 @@ export type MouseEvent=
 export type PhaseMetrics={cells:number;turns:number;timeMs:number};
 export type MicromouseMetrics={search:PhaseMetrics;return:PhaseMetrics;speed:PhaseMetrics;totalTimeMs:number;uniqueCells:number;revisits:number;exploredPercent:number;speedRouteQuality:number;collisions:number};
 export type MicromouseResult=Readonly<{version:1;success:boolean;reason?:string;events:readonly MouseEvent[];metrics:MicromouseMetrics;routes:Readonly<Record<MousePhase,readonly NodeId[]>>}>;
+export type MicromouseComparison=Readonly<{strategy:MouseStrategyId;success:boolean;metrics:MicromouseMetrics}>;
 export type KnowledgeMap=Map<NodeId,Record<Heading,WallKnowledge>>;
 
 export const DEFAULT_MOUSE_PHYSICS:Readonly<MousePhysics>={cellMeters:.18,maxSpeedMps:1.5,accelerationMps2:4,turn90Ms:90,collisionMs:500};
@@ -118,4 +119,8 @@ export function simulateMicromouse(graph:MazeGraph,physics:MousePhysics=DEFAULT_
   const totalMoves=routes.search.length+routes.return.length+routes.speed.length-3,unique=new Set([...routes.search,...routes.return,...routes.speed]).size,revisits=Math.max(0,totalMoves+1-unique),shortest=trueShortest(graph);
   const metrics:MicromouseMetrics={search,return:returnMetrics,speed,totalTimeMs:search.timeMs+returnMetrics.timeMs+speed.timeMs,uniqueCells:unique,revisits,exploredPercent:+(unique/graph.nodes.size*100).toFixed(1),speedRouteQuality:Number.isFinite(shortest)&&shortest?+(speed.cells/shortest).toFixed(3):1,collisions:0};
   return{version:1,success:!failure,reason:failure,events,metrics,routes};
+}
+
+export function compareMicromouseStrategies(graph:MazeGraph,physics:MousePhysics=DEFAULT_MOUSE_PHYSICS):readonly MicromouseComparison[]{
+  return(['flood-fill','tremaux','right-wall'] as const).map(strategy=>{const result=simulateMicromouse(graph,physics,strategy);return{strategy,success:result.success,metrics:result.metrics};});
 }

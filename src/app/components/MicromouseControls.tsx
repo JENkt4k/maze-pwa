@@ -1,10 +1,11 @@
 import type { PlaybackState } from '../hooks/useSolverPlayback';
-import type { MicromouseMetrics, MousePhase, MouseStrategyId } from '../../maze/micromouse';
+import type { MicromouseComparison, MicromouseMetrics, MousePhase, MouseStrategyId } from '../../maze/micromouse';
 import { MICROMOUSE_FORMATS, micromouseFootprintMeters, type MicromouseFormat, type MicromouseFormatId } from '../../maze/micromouseFormats';
 import { matchingMouseProfile, MOUSE_PROFILES, type MouseMotion, type MouseProfileId } from '../../maze/micromouseProfiles';
 
-export type MicromouseControlsProps={available:boolean;active:boolean;reason?:string;failureReason?:string;state:PlaybackState;phase:MousePhase|'ready'|'complete';eventCount:number;speed:number;setSpeed:(value:number)=>void;showWalls:boolean;setShowWalls:(value:boolean)=>void;showFlood:boolean;setShowFlood:(value:boolean)=>void;showRoute:boolean;setShowRoute:(value:boolean)=>void;metrics?:MicromouseMetrics;format?:MicromouseFormat;applyFormat:(id:MicromouseFormatId)=>void;motion:MouseMotion;setMotion:(motion:MouseMotion)=>void;strategy:MouseStrategyId;setStrategy:(strategy:MouseStrategyId)=>void;start:()=>void;play:()=>void;pause:()=>void;restart:()=>void;step:()=>void;seek:(index:number)=>void;seekPhase:(phase:MousePhase)=>void};
+export type MicromouseControlsProps={available:boolean;active:boolean;reason?:string;failureReason?:string;state:PlaybackState;phase:MousePhase|'ready'|'complete';eventCount:number;speed:number;setSpeed:(value:number)=>void;showWalls:boolean;setShowWalls:(value:boolean)=>void;showFlood:boolean;setShowFlood:(value:boolean)=>void;showRoute:boolean;setShowRoute:(value:boolean)=>void;metrics?:MicromouseMetrics;format?:MicromouseFormat;applyFormat:(id:MicromouseFormatId)=>void;motion:MouseMotion;setMotion:(motion:MouseMotion)=>void;strategy:MouseStrategyId;setStrategy:(strategy:MouseStrategyId)=>void;comparisons?:readonly MicromouseComparison[];toggleComparison:()=>void;start:()=>void;play:()=>void;pause:()=>void;restart:()=>void;step:()=>void;seek:(index:number)=>void;seekPhase:(phase:MousePhase)=>void};
 const seconds=(ms:number)=>`${(ms/1000).toFixed(2)} s`;
+const strategyNames:Record<MouseStrategyId,string>={'flood-fill':'Flood Fill',tremaux:'Trémaux','right-wall':'Right-Wall'};
 
 export default function MicromouseControls(props:MicromouseControlsProps){
   const progress=props.eventCount?Math.round(props.state.index/props.eventCount*100):0,label=props.phase==='ready'?'Ready':props.phase==='complete'?'Complete':props.phase[0].toUpperCase()+props.phase.slice(1),profileId=matchingMouseProfile(props.motion);
@@ -20,6 +21,8 @@ export default function MicromouseControls(props:MicromouseControlsProps){
       <option value="flood-fill">Flood Fill</option><option value="tremaux">Trémaux (least visited)</option><option value="right-wall">Right-Wall Follower</option>
     </select></label>
     <p>{props.strategy==='flood-fill'?'Heads toward the lowest estimated distance.':props.strategy==='tremaux'?'Prefers the least-visited passage while using the goal distance as a tie-breaker.':'Keeps the right wall; reliable on perfect mazes but may loop in braided mazes.'}</p>
+    <button type="button" className="btn btn-sm" disabled={!props.available} aria-expanded={Boolean(props.comparisons)} onClick={props.toggleComparison}>{props.comparisons?'Hide strategy comparison':'Compare all strategies'}</button>
+    {props.comparisons&&<StrategyComparison rows={props.comparisons} selected={props.strategy}/>}
     <fieldset className="mouse-physics"><legend>Robot physics</legend>
       <label>Robot profile<select name="micromouse-profile" value={profileId} onChange={e=>{if(e.target.value!=='custom')props.setMotion(MOUSE_PROFILES[e.target.value as MouseProfileId].motion)}}>
         {Object.entries(MOUSE_PROFILES).map(([id,profile])=><option key={id} value={id}>{profile.name}</option>)}<option value="custom">Custom</option>
@@ -53,6 +56,13 @@ export default function MicromouseControls(props:MicromouseControlsProps){
       </dl>}
     </>}
   </div>;
+}
+
+function StrategyComparison({rows,selected}:{rows:readonly MicromouseComparison[];selected:MouseStrategyId}){
+  return <section className="mouse-comparison" aria-label="Strategy comparison"><strong>Same maze · same robot</strong><div className="leaderboard-scroll"><table>
+    <thead><tr><th>Strategy</th><th>Search</th><th>Time</th><th>Revisits</th><th>Explored</th><th>Speed</th></tr></thead>
+    <tbody>{rows.map(row=><tr key={row.strategy} className={row.strategy===selected?'selected':''}><td>{strategyNames[row.strategy]}</td>{row.success?<><td>{row.metrics.search.cells}</td><td>{seconds(row.metrics.search.timeMs)}</td><td>{row.metrics.revisits}</td><td>{row.metrics.exploredPercent}%</td><td>{seconds(row.metrics.speed.timeMs)}</td></>:<td colSpan={5}>Did not finish</td>}</tr>)}</tbody>
+  </table></div></section>;
 }
 
 function CompetitionDimensions({format,speedCells}:{format:MicromouseFormat;speedCells?:number}){

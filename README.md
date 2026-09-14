@@ -52,6 +52,7 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
   Explorer, Balanced, Sprint, and custom robot physics settings support motion comparisons offline.
   Classic full-size simulations accept any of the four center cells and visibly mark the goal zone.
   Switch among Flood Fill, Trémaux, and Right-Wall exploration to compare robot behavior.
+  An on-demand table benchmarks every strategy against the same maze and robot settings.
 - Draw, erase, and clear a freehand path. Drawing stays aligned when the viewport
   changes and clears when the maze changes. Select **Scroll** to scroll by touch
   over the maze. Drawing is session-only and is not a validated solution.
