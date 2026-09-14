@@ -1,5 +1,13 @@
 # InfiMaze feature roadmap
 
+## Current delivery focus
+
+- **Active:** PR #58 — cohesive interface styling, accessible palettes, and persistent light/dark/system themes.
+- **Next committed phase:** profile and optimize interaction, rendering, generation, and solver costs on 32×32, 41×41, and Giant mazes.
+- **Deferred:** shared online leaderboard infrastructure, which requires a separately deployed service.
+
+Scope rule: work that blocks or directly completes the active phase stays in its PR. Other refinements are recorded for a later phase so feature work does not drift indefinitely.
+
 ## Completed
 
 - Solver and generation animation algorithms.
@@ -35,6 +43,8 @@
 - Synchronized side-by-side playback and live metric charts for two solver algorithms.
 - Worker-based aggregate solver charts across multiple maze seeds.
 - Persistent color-blind-safe visualization palette with distinct line patterns.
+- Cohesive icon-inspired control styling with accessible navy, blue, and gold states.
+- Persistent light, dark, and system interface themes while keeping maze and print surfaces white.
 
 ## Backlog
 

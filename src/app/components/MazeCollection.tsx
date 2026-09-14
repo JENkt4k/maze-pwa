@@ -22,7 +22,7 @@ export default function MazeCollection(props:Props){
   const togglePrint=(id:string)=>setPrintSelection(current=>current.includes(id)?current.filter(value=>value!==id):[...current,id]);
   const exportBackup=()=>{downloadText(`infimaze-collection-${new Date().toISOString().slice(0,10)}.json`,collectionBackup(props.saved),'application/json');setMessage(`Exported ${props.saved.length} maze${props.saved.length===1?'':'s'}.`);};
   const importBackup=async(file:File|undefined)=>{if(!file)return;try{const count=props.onImport(await file.text());setMessage(`Imported ${count} maze${count===1?'':'s'}.`);}catch(error){setMessage(error instanceof Error?error.message:'The backup could not be imported.');}finally{if(inputRef.current)inputRef.current.value='';}};
-  return <fieldset>
+  return <fieldset className="maze-collection">
     <legend>Maze collection</legend>
     <div className="stack">
       <input className="input" name="maze-name" aria-label="Maze name" maxLength={200} placeholder="Name this maze…" value={props.saveName} onChange={e=>props.setSaveName(e.target.value)}/>
@@ -34,7 +34,7 @@ export default function MazeCollection(props:Props){
       <label>Folder<select name="folder-filter" aria-label="Filter by folder" value={folderFilter} onChange={e=>setFolderFilter(e.target.value)}><option value="">All folders</option>{folders.map(folder=><option key={folder}>{folder}</option>)}</select></label>
       <label>Tag<select name="tag-filter" aria-label="Filter by tag" value={tagFilter} onChange={e=>setTagFilter(e.target.value)}><option value="">All tags</option>{tags.map(tag=><option key={tag}>{tag}</option>)}</select></label>
     </div>}
-    {props.saved.length ? <div style={{marginTop:12,display:'grid',gap:6,maxHeight:260,overflow:'auto'}}>
+    {props.saved.length ? <div className="collection-list" style={{marginTop:12,display:'grid',gap:6,maxHeight:260,overflow:'auto'}}>
       {visible.map(maze=><div key={maze.id} style={{border:'1px solid #e6e9ef',borderRadius:10,padding:8,background:maze.id===props.selectedId?'#f0f6ff':'#fafbff'}}>
         <div className="hstack" style={{justifyContent:'space-between',gap:8}}><div className="hstack" style={{gap:7}}><input type="checkbox" name={`print-${maze.id}`} aria-label={`Add ${maze.name} to print pack`} checked={selectedIds.includes(maze.id)} onChange={()=>togglePrint(maze.id)}/><div><div style={{fontWeight:600,fontSize:14}}>{maze.name}</div><div style={{fontSize:12,color:'#586174'}}>{maze.folder&&`${maze.folder} · `}{maze.params.width}×{maze.params.height}, seed {maze.params.seed}</div></div></div><div className="hstack" style={{gap:6}}><button className="btn btn-sm" onClick={()=>props.onLoad(maze.id)}>Load</button><button className="btn btn-danger btn-sm" onClick={()=>props.onDelete(maze.id)}>Delete</button></div></div>
         {!!maze.tags?.length&&<div aria-label={`Tags for ${maze.name}`} style={{fontSize:12,color:'#315b88',marginTop:4}}>{maze.tags.map(tag=>`#${tag}`).join(' ')}</div>}
