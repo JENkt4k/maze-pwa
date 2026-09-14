@@ -27,6 +27,7 @@
 - Cancellable worker-based Micromouse batch benchmarks across multiple seeds.
 - Local maze collections with named folders, tags, filters, and versioned JSON backup/restore.
 - Printable multi-page maze packs generated from selected saved mazes.
+- Paged control navigation with an icon-inspired accessible theme and persistent high-contrast mode.
 
 ## Backlog
 

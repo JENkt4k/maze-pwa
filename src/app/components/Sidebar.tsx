@@ -67,7 +67,13 @@ export default function Sidebar(props: Props){
   } = props;
 
   const [picker, setPicker] = useState<null | "start" | "goal">(null);
+  type ControlPage='build'|'play'|'robot'|'analyze'|'library';
+  const [controlPage,setControlPage]=useState<ControlPage>('build');
+  const [highContrast,setHighContrast]=useState(()=>{try{return localStorage.getItem('ui:highContrast:v1')==='true';}catch{return false;}});
+  const controlsRef=useRef<HTMLElement>(null);
   useEffect(() => { if (!controlsOpen) setPicker(null); }, [controlsOpen]);
+  useEffect(()=>{document.documentElement.dataset.contrast=highContrast?'high':'';try{localStorage.setItem('ui:highContrast:v1',String(highContrast));}catch{}},[highContrast]);
+  useEffect(()=>{if(props.gameplay.active)setControlPage('play');else if(props.micromouse.active)setControlPage('robot');},[props.gameplay.active,props.micromouse.active]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   async function uploadMarker(file: File | undefined, setMarker: (value: string | null) => void) {
     if (!file) return;
@@ -98,7 +104,7 @@ export default function Sidebar(props: Props){
   const display = controlsOpen ? "flex" : "none";
 
   return (
-    <aside id="controls-panel" className="panel controls" style={{ display, flexDirection:"column", gap:16 }}>
+    <aside ref={controlsRef} id="controls-panel" className="panel controls" style={{ display, flexDirection:"column", gap:16 }}>
       <div className="sticky-top hstack" style={{ justifyContent:"space-between", paddingBottom:8 }}>
         <h2 style={{ margin:0, fontSize:20 }}>Maze Controls</h2>
         <div className="hstack" style={{ gap:6 }}>
@@ -108,6 +114,12 @@ export default function Sidebar(props: Props){
         </div>
       </div>
 
+      <nav className="control-nav" aria-label="Control categories">
+        <div role="tablist" aria-label="Maze control pages">{(['build','play','robot','analyze','library'] as const).map((page,index,pages)=><button key={page} type="button" role="tab" data-control-tab={page} tabIndex={controlPage===page?0:-1} aria-selected={controlPage===page} className={controlPage===page?'active':''} onClick={()=>setControlPage(page)} onKeyDown={event=>{let next=index;if(event.key==='ArrowRight')next=(index+1)%pages.length;else if(event.key==='ArrowLeft')next=(index-1+pages.length)%pages.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=pages.length-1;else return;event.preventDefault();const target=pages[next];setControlPage(target);requestAnimationFrame(()=>controlsRef.current?.querySelector<HTMLButtonElement>(`[data-control-tab="${target}"]`)?.focus());}}>{page[0].toUpperCase()+page.slice(1)}</button>)}</div>
+        <div className="control-nav-tools"><button type="button" className="btn btn-sm" onClick={()=>controlsRef.current?.querySelectorAll('.control-page:not([hidden]) details[open]').forEach(details=>details.removeAttribute('open'))}>Collapse all</button><label className="contrast-toggle"><input name="high-contrast" type="checkbox" checked={highContrast} onChange={event=>setHighContrast(event.target.checked)}/>High contrast</label></div>
+      </nav>
+
+      <div className="control-page" hidden={controlPage!=='build'} aria-label="Build controls">
       <fieldset>
         <legend>Size</legend>
         <details>
@@ -165,7 +177,9 @@ export default function Sidebar(props: Props){
           </label>
         </details>
       </fieldset>
+      </div>
 
+      <div className="control-page" hidden={controlPage!=='play'} aria-label="Play controls">
       <fieldset>
         <legend>Gameplay</legend>
         <details open>
@@ -173,7 +187,9 @@ export default function Sidebar(props: Props){
           <GameplayControls {...props.gameplay}/>
         </details>
       </fieldset>
+      </div>
 
+      <div className="control-page" hidden={controlPage!=='robot'} aria-label="Robot controls">
       <fieldset>
         <legend>Micromouse</legend>
         <details open>
@@ -181,7 +197,9 @@ export default function Sidebar(props: Props){
           <MicromouseControls {...props.micromouse}/>
         </details>
       </fieldset>
+      </div>
 
+      <div className="control-page" hidden={controlPage!=='play'} aria-label="Play records">
       <fieldset>
         <legend>History</legend>
         <details open>
@@ -197,7 +215,9 @@ export default function Sidebar(props: Props){
           <Leaderboard {...props.leaderboard}/>
         </details>
       </fieldset>
+      </div>
 
+      <div className="control-page" hidden={controlPage!=='build'} aria-label="Build appearance and markers">
       <fieldset>
         <legend>Appearance</legend>
         <details open>
@@ -328,7 +348,9 @@ export default function Sidebar(props: Props){
           />
         )}
       </fieldset>
+      </div>
 
+      <div className="control-page" hidden={controlPage!=='analyze'} aria-label="Analysis controls">
       <fieldset>
         <legend>Animation</legend>
         <details open>
@@ -383,6 +405,7 @@ export default function Sidebar(props: Props){
           </div>}
         </details>
       </fieldset>
+      </div>
 
       <div className="grid-3">
         <button className="btn" onClick={onNew}>New Maze</button>
@@ -390,7 +413,7 @@ export default function Sidebar(props: Props){
         <button className="btn btn-primary" onClick={onShare}>Share</button>
       </div>
 
-      <MazeCollection saveName={saveName} setSaveName={setSaveName} saveFolder={props.saveFolder} setSaveFolder={props.setSaveFolder} saveTags={props.saveTags} setSaveTags={props.setSaveTags} saved={saved} selectedId={selectedId} onSave={onSave} onLoad={onLoad} onDelete={onDelete} onImport={props.onImportCollection} onPrintPack={props.onPrintPack}/>
+      <div className="control-page" hidden={controlPage!=='library'} aria-label="Library controls"><MazeCollection saveName={saveName} setSaveName={setSaveName} saveFolder={props.saveFolder} setSaveFolder={props.setSaveFolder} saveTags={props.saveTags} setSaveTags={props.setSaveTags} saved={saved} selectedId={selectedId} onSave={onSave} onLoad={onLoad} onDelete={onDelete} onImport={props.onImportCollection} onPrintPack={props.onPrintPack}/></div>
     </aside>
   );
 }
