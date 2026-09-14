@@ -374,6 +374,11 @@ test('Micromouse explores, exposes phases, and disables physics for freeform maz
   await controls.getByLabel('Competition format').selectOption('classic');
   await controls.getByLabel('Robot profile').selectOption('sprint');
   await expect(controls.getByLabel(/^Maximum speed:/)).toHaveValue('3');
+  await controls.getByLabel(/^Maximum speed:/).fill('2.5');
+  await expect(controls.getByText('Changes not applied',{exact:true})).toBeVisible();
+  await controls.getByRole('button',{name:'Reset changes',exact:true}).click();
+  await expect(controls.getByLabel(/^Maximum speed:/)).toHaveValue('1.5');
+  await controls.getByLabel('Robot profile').selectOption('sprint');
   await controls.getByLabel(/^90° turn:/).fill('55');
   await expect(controls.getByLabel('Robot profile')).toHaveValue('custom');
   await controls.getByLabel('Allow diagonal speed-run cornering').check();
@@ -386,6 +391,8 @@ test('Micromouse explores, exposes phases, and disables physics for freeform maz
   await controls.getByLabel(/^Collision recovery:/).fill('750');
   await expect(controls.getByText(/Noise is deterministic/)).toBeVisible();
   await controls.getByLabel(/^Reading noise:/).fill('0');
+  await controls.getByRole('button',{name:'Apply changes',exact:true}).click();
+  await expect(controls.getByText('Changes not applied',{exact:true})).toHaveCount(0);
   await controls.getByLabel(/^Playback speed:/).fill('250');
   await controls.getByRole('button',{name:'Start',exact:true}).click();
   await expect(page.locator('.micromouse-overlay-svg')).toBeVisible();

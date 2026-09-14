@@ -28,6 +28,7 @@
 - Local maze collections with named folders, tags, filters, and versioned JSON backup/restore.
 - Printable multi-page maze packs generated from selected saved mazes.
 - Paged control navigation with an icon-inspired accessible theme and persistent high-contrast mode.
+- Staged Micromouse physics and sensor edits with Apply/Reset controls and mobile-safe slider scrolling.
 
 ## Backlog
 

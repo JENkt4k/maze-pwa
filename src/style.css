@@ -35,7 +35,7 @@ button { appearance: none; min-height: 44px; cursor: pointer; border-radius: 10p
 .input { border: 1px solid #d1d7e0; border-radius: 10px; padding: 10px 12px; font-size: 14px; min-height: 44px; width: 100%; }
 input { min-width: 0; max-width: 100%; }
 input[type="file"] { width: 100%; }
-input[type="range"] { width: 100%; height: 28px; touch-action: none; }
+input[type="range"] { width: 100%; height: 28px; touch-action: pan-y; }
 fieldset { min-width: 0; border: 1px solid var(--panel-border); border-radius: 12px; padding: 12px; }
 .custom-mask-controls { display:grid; gap:10px; margin-top:10px; }
 .mask-preview { display:flex; align-items:center; gap:12px; color:#586174; font-size:12px; }
@@ -94,6 +94,8 @@ label { display: grid; gap: 6px; font-size: 12px; color: #3c4557; }
 .game-results { display:grid;gap:10px;padding:12px;border:1px solid #86efac;border-radius:12px;background:#f0fdf4; }
 .mouse-controls { display:grid;gap:10px;padding-top:8px; }
 .mouse-controls p { margin:0;color:#586174;font-size:12px; }
+.robot-settings-actions{position:sticky;bottom:8px;z-index:5;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:10px;border:1px solid #d7b46a;border-radius:12px;background:#fffaf0;box-shadow:0 5px 18px rgba(7,23,47,.14)}
+.robot-settings-actions span{grid-column:1/-1;color:#7c4700;font-size:12px;font-weight:700}
 .competition-spec { display:grid;gap:3px;padding:9px 10px;border:1px solid #dbe4f0;border-radius:10px;background:#f8fafc;font-size:12px;color:#475569; }
 .competition-spec strong { color:#17233b;font-size:13px; }
 .mouse-physics { display:grid;gap:8px;margin:0;padding:10px;border:1px solid #dbe4f0;border-radius:10px; }
