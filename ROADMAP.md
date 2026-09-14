@@ -14,6 +14,7 @@
 - Difficulty 2.0 analysis, search, Wilson generation, adversarial braiding, and Giant mode.
 - Gameplay hints, assisted-run tracking, and completion results with personal-best comparison.
 - Server-free challenge links that open fixed mazes directly in gameplay.
+- Micromouse full-size and half-size competition presets with physical dimensions and scaled timing.
 
 ## Backlog
 

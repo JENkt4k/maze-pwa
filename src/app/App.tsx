@@ -25,7 +25,8 @@ import { chooseEndpoints, type EndpointStrategy } from '../maze/endpoints';
 import type { MazePoint } from './maze';
 import type { WallStyle } from '../maze/walls';
 import { GAME_STORAGE_KEY, useMazeGame, type MazeGameState } from './hooks/useMazeGame';
-import { simulateMicromouse, type MousePhase } from '../maze/micromouse';
+import { DEFAULT_MOUSE_PHYSICS, simulateMicromouse, type MousePhase } from '../maze/micromouse';
+import { matchingMicromouseFormat, MICROMOUSE_FORMATS, micromouseEndpoints, type MicromouseFormatId } from '../maze/micromouseFormats';
 import { analyzeDifficultyV2 } from '../maze/difficulty';
 import { abandonHistoryEntry, createHistoryEntry, HISTORY_LIMIT, HISTORY_STORAGE_KEY, historyGameState, parsePlayHistory, updateHistoryEntry, type HistoryMazeParams, type PlayHistoryEntry } from './history';
 
@@ -171,7 +172,7 @@ export default function App() {
     setCell(clamp(px, 18, 36));
   }, [hostRect, width]);
 
-  // keep odd dims if needed and lock together
+  // Manual sizing keeps the existing odd-grid increments; competition presets may use even grids.
   const setWidth  = (w:number) => { const odd = w%2? w : w+1; setWidthRaw(odd); if (lockSize) setHeightRaw(odd); };
   const setHeight = (h:number) => { const odd = h%2? h : h+1; setHeightRaw(odd); if (lockSize) setWidthRaw(odd); };
   const setGiantMode=(giant:boolean)=>{
@@ -308,7 +309,8 @@ export default function App() {
     replaceHistoryEntry(updateHistoryEntry(entry,game.state));
   },[game.state.status,game.state.moves,game.state.revisits,game.state.hints,game.state.route,historyElapsedSecond,gameKey]);
   useEffect(()=>setMicromouseActive(false),[mazeId]);
-  const micromouse=useMemo(()=>topology==='grid'?simulateMicromouse(mazeGraph):null,[topology,mazeGraph]);
+  const micromouseFormat=matchingMicromouseFormat(width,height);
+  const micromouse=useMemo(()=>topology==='grid'?simulateMicromouse(mazeGraph,{...DEFAULT_MOUSE_PHYSICS,cellMeters:(micromouseFormat?.cellPitchCm??18)/100}):null,[topology,mazeGraph,micromouseFormat?.cellPitchCm]);
   const mousePlayback=useSolverPlayback(micromouse?.events.length??0,`mouse:${mazeId}`,micromouseActive,micromouseSpeed);
   const mousePhase:MousePhase|'ready'|'complete'=!micromouseActive||!micromouse?'ready':mousePlayback.state.finished?'complete':([...micromouse.events.slice(0,mousePlayback.state.index)].reverse().find(event=>event.type==='phase')?.phase??'search');
   const solverRun = useMemo(() => solveMaze(mazeGraph, solverAlgorithm), [mazeGraph, solverAlgorithm]);
@@ -431,10 +433,10 @@ export default function App() {
         gameplay={{active:gameActive,state:game.state,breadcrumbs:gameBreadcrumbs,setBreadcrumbs:setGameBreadcrumbs,
           start:startGameplay,pause:game.pause,restart:restartGameplay,hint:game.hint,newMaze,difficulty:difficultyV2.score,
           personalBestMs:history.filter(entry=>entry.mazeId===mazeId&&entry.status==='completed'&&(entry.hints??0)===0&&entry.id!==activeAttemptId.current).sort((a,b)=>a.elapsedMs-b.elapsedMs)[0]?.elapsedMs,shareChallenge:handleChallengeShare}}
-        micromouse={{available:topology==='grid',active:micromouseActive,reason:'Micromouse physics requires grid topology.',failureReason:micromouse?.reason,state:mousePlayback.state,phase:mousePhase,eventCount:micromouse?.events.length??0,speed:micromouseSpeed,setSpeed:setMicromouseSpeed,showWalls:mouseShowWalls,setShowWalls:setMouseShowWalls,showFlood:mouseShowFlood,setShowFlood:setMouseShowFlood,showRoute:mouseShowRoute,setShowRoute:setMouseShowRoute,metrics:micromouse?.metrics,
+        micromouse={{available:topology==='grid',active:micromouseActive,reason:'Micromouse physics requires grid topology.',failureReason:micromouse?.reason,state:mousePlayback.state,phase:mousePhase,eventCount:micromouse?.events.length??0,speed:micromouseSpeed,setSpeed:setMicromouseSpeed,showWalls:mouseShowWalls,setShowWalls:setMouseShowWalls,showFlood:mouseShowFlood,setShowFlood:setMouseShowFlood,showRoute:mouseShowRoute,setShowRoute:setMouseShowRoute,metrics:micromouse?.metrics,format:micromouseFormat,
           start:()=>{game.pause();playback.pause();setGameActive(false);setEndpointMode(null);setMicromouseActive(true);},play:mousePlayback.play,pause:mousePlayback.pause,restart:()=>{game.pause();playback.pause();setGameActive(false);setEndpointMode(null);setMicromouseActive(true);mousePlayback.restart();},step:mousePlayback.step,seek:mousePlayback.seek,
           seekPhase:phase=>{const index=micromouse?.events.findIndex(event=>event.type==='phase'&&event.phase===phase)??-1;if(index>=0){setMicromouseActive(true);mousePlayback.seek(index+1);}},
-          competitionPreset:()=>{game.pause();mousePlayback.pause();setGameActive(false);setMicromouseActive(false);setEndpointMode(null);setStartCell({x:0,y:height-1});setGoalCell({x:Math.floor(width/2),y:Math.floor(height/2)});}}}
+          applyFormat:(id:MicromouseFormatId)=>{const format=MICROMOUSE_FORMATS[id],endpoints=micromouseEndpoints(format);game.pause();mousePlayback.pause();playback.pause();setGameActive(false);setMicromouseActive(false);setEndpointMode(null);setTopology('grid');setMask('rectangle');setLockSize(true);setWidthRaw(format.width);setHeightRaw(format.height);setStartCell(endpoints.start);setGoalCell(endpoints.goal);}}}
         history={{entries:history,onOpen:openHistory,onDelete:deleteHistory,onClear:clearHistory}}
         leaderboard={{entries:history,currentMazeId:mazeId,sharedEndpoint:import.meta.env.VITE_SHARED_LEADERBOARD_URL}}
 

@@ -1,15 +1,22 @@
 import type { PlaybackState } from '../hooks/useSolverPlayback';
 import type { MicromouseMetrics, MousePhase } from '../../maze/micromouse';
+import { MICROMOUSE_FORMATS, micromouseFootprintMeters, type MicromouseFormat, type MicromouseFormatId } from '../../maze/micromouseFormats';
 
-export type MicromouseControlsProps={available:boolean;active:boolean;reason?:string;failureReason?:string;state:PlaybackState;phase:MousePhase|'ready'|'complete';eventCount:number;speed:number;setSpeed:(value:number)=>void;showWalls:boolean;setShowWalls:(value:boolean)=>void;showFlood:boolean;setShowFlood:(value:boolean)=>void;showRoute:boolean;setShowRoute:(value:boolean)=>void;metrics?:MicromouseMetrics;start:()=>void;play:()=>void;pause:()=>void;restart:()=>void;step:()=>void;seek:(index:number)=>void;seekPhase:(phase:MousePhase)=>void;competitionPreset:()=>void};
+export type MicromouseControlsProps={available:boolean;active:boolean;reason?:string;failureReason?:string;state:PlaybackState;phase:MousePhase|'ready'|'complete';eventCount:number;speed:number;setSpeed:(value:number)=>void;showWalls:boolean;setShowWalls:(value:boolean)=>void;showFlood:boolean;setShowFlood:(value:boolean)=>void;showRoute:boolean;setShowRoute:(value:boolean)=>void;metrics?:MicromouseMetrics;format?:MicromouseFormat;applyFormat:(id:MicromouseFormatId)=>void;start:()=>void;play:()=>void;pause:()=>void;restart:()=>void;step:()=>void;seek:(index:number)=>void;seekPhase:(phase:MousePhase)=>void};
 const seconds=(ms:number)=>`${(ms/1000).toFixed(2)} s`;
 
 export default function MicromouseControls(props:MicromouseControlsProps){
   const progress=props.eventCount?Math.round(props.state.index/props.eventCount*100):0,label=props.phase==='ready'?'Ready':props.phase==='complete'?'Complete':props.phase[0].toUpperCase()+props.phase.slice(1);
   return <div className="mouse-controls" role="group" aria-label="Micromouse controls">
+    <label>Competition format
+      <select name="micromouse-format" value={props.format?.id??'custom'} onChange={e=>{if(e.target.value!=='custom')props.applyFormat(e.target.value as MicromouseFormatId)}}>
+        <option value="custom">Custom maze</option>
+        {Object.values(MICROMOUSE_FORMATS).map(format=><option key={format.id} value={format.id}>{format.name} ({format.width}×{format.height} · {format.cellPitchCm} cm)</option>)}
+      </select>
+    </label>
+    {props.format&&<CompetitionDimensions format={props.format} speedCells={props.metrics?.speed.cells}/>}
     {!props.available?<p>{props.reason}</p>:<>
       <div className="game-status" role="status"><strong>{label}</strong><span>{progress}%</span></div>
-      <button type="button" className="btn btn-sm" onClick={props.competitionPreset}>Competition endpoints</button>
       {props.failureReason&&<p role="alert">Simulation stopped: {props.failureReason}</p>}
       <div className="grid-3">
         <button type="button" className="btn btn-sm btn-primary" onClick={props.active?(props.state.playing?props.pause:props.play):props.start}>{props.active?(props.state.playing?'Pause':props.state.finished?'Replay':'Resume'):'Start'}</button>
@@ -31,5 +38,16 @@ export default function MicromouseControls(props:MicromouseControlsProps){
         <div><dt>Speed route</dt><dd>{props.metrics.speed.cells} cells</dd></div><div><dt>Route quality</dt><dd>{props.metrics.speedRouteQuality.toFixed(2)}×</dd></div>
       </dl>}
     </>}
+  </div>;
+}
+
+function CompetitionDimensions({format,speedCells}:{format:MicromouseFormat;speedCells?:number}){
+  const footprint=micromouseFootprintMeters(format);
+  return <div className="competition-spec" role="region" aria-label="Competition dimensions">
+    <strong>{format.name} dimensions</strong>
+    <span>{format.width}×{format.height} cells · {footprint.width.toFixed(2)}×{footprint.height.toFixed(2)} m nominal</span>
+    <span>{format.cellPitchCm} cm cell pitch · {format.passageWidthCm} cm passage</span>
+    <span>{format.wallThicknessCm} cm wall thickness · {format.wallHeightCm} cm wall height</span>
+    {speedCells!==undefined&&<span>Speed-route distance: {(speedCells*format.cellPitchCm/100).toFixed(2)} m</span>}
   </div>;
 }

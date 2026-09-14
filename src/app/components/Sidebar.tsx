@@ -140,7 +140,7 @@ export default function Sidebar(props: Props){
 
           <label>Width: {width}
             <input
-              name="maze-width" type="range" min={props.giantMode?43:7} max={props.giantMode?101:41} step={2}
+              name="maze-width" type="range" min={props.giantMode?43:7} max={props.giantMode?101:41} step={width%2===0?1:2}
               value={width}
               onChange={e=>props.setWidth(parseInt(e.target.value))}
             />
@@ -148,7 +148,7 @@ export default function Sidebar(props: Props){
 
           <label>Height: {height}
             <input
-              name="maze-height" type="range" min={props.giantMode?43:7} max={props.giantMode?101:41} step={2}
+              name="maze-height" type="range" min={props.giantMode?43:7} max={props.giantMode?101:41} step={height%2===0?1:2}
               value={height}
               onChange={e=>props.setHeight(parseInt(e.target.value))}
               disabled={props.lockSize}
