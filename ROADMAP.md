@@ -23,20 +23,19 @@
 - Multi-seed Micromouse batch benchmarks with downloadable CSV and JSON results.
 - Deterministic Micromouse sensor range/noise with collision recovery and position-correction timing.
 - Optional diagonal corner smoothing for learned Micromouse speed runs.
+- Configurable Micromouse traction limits applied to live and batch timing.
 - Cancellable worker-based Micromouse batch benchmarks across multiple seeds.
 
 ## Backlog
 
-1. **Micromouse sensor and motion realism**
-   - Optional traction or battery constraints.
-2. **Maze collections and export**
+1. **Maze collections and export**
    - Named folders and tags, backups, and printable maze packs.
    - Shareable benchmark configurations.
-3. **Algorithm analysis**
+2. **Algorithm analysis**
    - Side-by-side playback and charts across multiple seeds.
-4. **Accessibility and release polish**
+3. **Accessibility and release polish**
    - Keyboard and screen-reader audit, color-blind-safe palettes, mobile refinement, and large-maze profiling.
-5. **Shared online leaderboard — deferred**
+4. **Shared online leaderboard — deferred**
    - Client contract and explicit opt-in integration: in progress.
    - Add the verifying, rate-limited backend as a separate deployment stage.
    - Follow [SHARED_LEADERBOARD_API.md](SHARED_LEADERBOARD_API.md).

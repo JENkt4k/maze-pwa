@@ -74,6 +74,14 @@ test('diagonal speed mode cuts learned corners and reduces speed-run time',()=>{
   expect(diagonal.metrics.speed.timeMs).toBeLessThan(standard.metrics.speed.timeMs);
 });
 
+test('traction caps effective acceleration and increases travel time',()=>{
+  const maze=graph(),normal=simulateMicromouse(maze),limited=simulateMicromouse(maze,DEFAULT_MOUSE_PHYSICS,'flood-fill',{...DEFAULT_MOUSE_REALISM,tractionLimitMps2:1});
+  expect(normal.routes).toEqual(limited.routes);
+  expect(normal.metrics.effectiveAccelerationMps2).toBe(DEFAULT_MOUSE_PHYSICS.accelerationMps2);
+  expect(limited.metrics.effectiveAccelerationMps2).toBe(1);
+  expect(limited.metrics.totalTimeMs).toBeGreaterThan(normal.metrics.totalTimeMs);
+});
+
 test('disconnected courses stop with a bounded failure result',()=>{
   const nodes=new Map([
     ['0,0',{id:'0,0',position:{x:0,y:0},neighbors:[]}],

@@ -307,6 +307,8 @@ test('Micromouse explores, exposes phases, and disables physics for freeform maz
   await expect(controls.getByLabel('Robot profile')).toHaveValue('custom');
   await controls.getByLabel('Allow diagonal speed-run cornering').check();
   await expect(controls.getByText(/cuts across learned 90° corners/)).toBeVisible();
+  await controls.getByLabel(/^Traction limit:/).fill('2');
+  await expect(controls.getByText('Effective acceleration: 2.0 m/s².')).toBeVisible();
   await controls.getByLabel(/^Sensor range:/).fill('3');
   await controls.getByLabel(/^Reading noise:/).fill('5');
   await controls.getByLabel(/^Position correction:/).fill('20');
@@ -326,6 +328,7 @@ test('Micromouse explores, exposes phases, and disables physics for freeform maz
   await expect(controls.getByRole('status')).toContainText('Speed');
   await expect(controls.getByText('Speed run')).toBeVisible();
   await expect(controls.getByText('Diagonal cuts')).toBeVisible();
+  await expect(controls.getByText('Effective acceleration',{exact:true})).toBeVisible();
   await page.getByText('Adjust size',{exact:true}).click();
   await page.getByLabel('Maze topology').selectOption('freeform');
   await expect(controls.getByText('Micromouse physics requires grid topology.')).toBeVisible();

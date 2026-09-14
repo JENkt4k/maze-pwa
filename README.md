@@ -52,6 +52,7 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
   Explorer, Balanced, Sprint, and custom robot physics settings support motion comparisons offline.
   Configure deterministic sensor range/noise, per-cell position correction, and collision recovery penalties.
   Optionally smooth learned speed routes through 90° corners for faster diagonal competition runs.
+  Apply a traction limit that caps effective acceleration and changes every simulated phase and benchmark.
   Classic full-size mazes open and visibly mark a true 2×2 center area; simulations accept any of its four cells.
   Switch among Flood Fill, Trémaux, and Right-Wall exploration to compare robot behavior.
   An on-demand table benchmarks every strategy against the same maze and robot settings. Multi-seed batch results and same-maze comparisons can be downloaded as CSV or JSON for offline analysis.
