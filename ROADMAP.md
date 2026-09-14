@@ -15,6 +15,7 @@
 - Gameplay hints, assisted-run tracking, and completion results with personal-best comparison.
 - Server-free challenge links that open fixed mazes directly in gameplay.
 - Micromouse full-size and half-size competition presets with physical dimensions and scaled timing.
+- Offline Micromouse robot profiles with adjustable speed, acceleration, and turn timing.
 
 ## Backlog
 

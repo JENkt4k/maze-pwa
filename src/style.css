@@ -77,6 +77,7 @@ label { display: grid; gap: 6px; font-size: 12px; color: #3c4557; }
 .mouse-controls p { margin:0;color:#586174;font-size:12px; }
 .competition-spec { display:grid;gap:3px;padding:9px 10px;border:1px solid #dbe4f0;border-radius:10px;background:#f8fafc;font-size:12px;color:#475569; }
 .competition-spec strong { color:#17233b;font-size:13px; }
+.mouse-physics { display:grid;gap:8px;margin:0;padding:10px;border:1px solid #dbe4f0;border-radius:10px; }
 .mouse-layer-toggles { display:flex;flex-wrap:wrap;gap:8px 14px; }
 .mouse-layer-toggles label { display:flex;grid-template-columns:none;align-items:center;gap:6px; }
 .history-filters { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:10px; }

@@ -24,6 +24,9 @@ export type Settings = MazeParams & Markers & {
   mouseShowWalls:boolean;
   mouseShowFlood:boolean;
   mouseShowRoute:boolean;
+  mouseMaxSpeedMps:number;
+  mouseAccelerationMps2:number;
+  mouseTurn90Ms:number;
   // Legacy fields retained only while migrating existing settings.
   animateDFS: boolean;
   dfsSegMs: number;
@@ -31,7 +34,7 @@ export type Settings = MazeParams & Markers & {
 };
 export type SavedMaze = { id: string; name: string; params: MazeParams & Partial<Markers>; createdAt: number };
 const record = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
-const ranges = { width: [7, 101], height: [7, 101], seed: [-2147483648, 2147483647], g: [0, 1], b: [0, .5], tau: [0, 1],regionDensity:[.15,1],irregularity:[0,1], dfsSegMs: [10, 250], lingerMs: [0, 5000], solverStepMs: [10, 250],micromouseSpeed:[10,250], generationOpacity: [.1, 1], solverOpacity: [.1, 1],wallThickness:[1,8],cornerRadius:[0,.5] } as const;
+const ranges = { width: [7, 101], height: [7, 101], seed: [-2147483648, 2147483647], g: [0, 1], b: [0, .5], tau: [0, 1],regionDensity:[.15,1],irregularity:[0,1], dfsSegMs: [10, 250], lingerMs: [0, 5000], solverStepMs: [10, 250],micromouseSpeed:[10,250],mouseMaxSpeedMps:[.2,5],mouseAccelerationMps2:[.5,20],mouseTurn90Ms:[20,500], generationOpacity: [.1, 1], solverOpacity: [.1, 1],wallThickness:[1,8],cornerRadius:[0,.5] } as const;
 
 export function validateSettings(value: unknown): Partial<Settings> {
   if (!record(value)) return {};
@@ -42,7 +45,7 @@ export function validateSettings(value: unknown): Partial<Settings> {
     const [lo, hi] = ranges[key];
     let v = Math.max(lo, Math.min(hi, n));
     if (key === 'width' || key === 'height') v = Math.round(v);
-    if (key === 'seed' || key === 'dfsSegMs' || key === 'lingerMs' || key === 'solverStepMs'||key==='micromouseSpeed') v = Math.trunc(v);
+    if (key === 'seed' || key === 'dfsSegMs' || key === 'lingerMs' || key === 'solverStepMs'||key==='micromouseSpeed'||key==='mouseTurn90Ms') v = Math.trunc(v);
     out[key] = v;
   }
   for (const key of ['controlsOpen', 'lockSize', 'animateDFS', 'solverEnabled','gameBreadcrumbs','mouseShowWalls','mouseShowFlood','mouseShowRoute']) if (typeof value[key] === 'boolean') out[key] = value[key];

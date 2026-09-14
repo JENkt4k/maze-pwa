@@ -2,6 +2,7 @@ import { createMaze } from '@src/app/maze';
 import { mazeToGraph } from '@src/maze/graph';
 import { applyKnowledge, DEFAULT_MOUSE_PHYSICS, floodDistances, simulateMicromouse } from '@src/maze/micromouse';
 import { MICROMOUSE_FORMATS, matchingMicromouseFormat, micromouseEndpoints, micromouseFootprintMeters } from '@src/maze/micromouseFormats';
+import { matchingMouseProfile, MOUSE_PROFILES } from '@src/maze/micromouseProfiles';
 import { solveMaze } from '@src/maze/solvers';
 
 const graph=(seed=42,b=.15,width=11,height=9)=>mazeToGraph(createMaze({width,height,seed,g:.3,b,tau:.4}));
@@ -61,4 +62,9 @@ test('competition formats preserve the standard footprint and endpoints',()=>{
   expect(micromouseEndpoints(MICROMOUSE_FORMATS.half)).toEqual({start:{x:0,y:31},goal:{x:15,y:15}});
   expect(matchingMicromouseFormat(16,16)?.id).toBe('classic');
   expect(matchingMicromouseFormat(19,19)).toBeUndefined();
+});
+
+test('robot profiles are recognized and custom motion remains custom',()=>{
+  expect(matchingMouseProfile(MOUSE_PROFILES.balanced.motion)).toBe('balanced');
+  expect(matchingMouseProfile({...MOUSE_PROFILES.balanced.motion,turn90Ms:91})).toBe('custom');
 });
