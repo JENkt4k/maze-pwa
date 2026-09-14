@@ -25,11 +25,12 @@
 - Optional diagonal corner smoothing for learned Micromouse speed runs.
 - Configurable Micromouse traction limits applied to live and batch timing.
 - Cancellable worker-based Micromouse batch benchmarks across multiple seeds.
+- Local maze collections with named folders, tags, filters, and versioned JSON backup/restore.
 
 ## Backlog
 
 1. **Maze collections and export**
-   - Named folders and tags, backups, and printable maze packs.
+   - Printable maze packs.
    - Shareable benchmark configurations.
 2. **Algorithm analysis**
    - Side-by-side playback and charts across multiple seeds.

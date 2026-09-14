@@ -16,6 +16,7 @@ import MicromouseControls, { type MicromouseControlsProps } from './MicromouseCo
 import PlayHistory, { type PlayHistoryProps } from './PlayHistory';
 import Leaderboard, { type LeaderboardProps } from './Leaderboard';
 import type { DifficultySearchBudget, DifficultySearchProgress } from '../difficultySearch';
+import MazeCollection from './MazeCollection';
 
 type Props = {
   canInstall: boolean;
@@ -24,9 +25,9 @@ type Props = {
   topology:MazeTopology;setTopology:(value:MazeTopology)=>void;regionDensity:number;setRegionDensity:(value:number)=>void;irregularity:number;setIrregularity:(value:number)=>void;
   setWidth: (n:number)=>void; setHeight:(n:number)=>void; setG:(n:number)=>void; setB:(n:number)=>void; setTau:(n:number)=>void;
   onNew: () => void; onPrint: () => void;
-  saveName: string; setSaveName: (s:string)=>void;
+  saveName: string; setSaveName: (s:string)=>void;saveFolder:string;setSaveFolder:(s:string)=>void;saveTags:string;setSaveTags:(s:string)=>void;
   saved: SavedMaze[]; selectedId: string|null;
-  onSave: () => void; onLoad: (id:string)=>void; onDelete: (id:string)=>void;
+  onSave: () => void; onLoad: (id:string)=>void; onDelete: (id:string)=>void;onImportCollection:(text:string)=>number;
   controlsOpen: boolean;
   onMinimize: () => void;
   lockSize: boolean;
@@ -94,8 +95,6 @@ export default function Sidebar(props: Props){
   const goalBtnRef = useRef<HTMLButtonElement>(null);
 
   const display = controlsOpen ? "flex" : "none";
-
-  const hasSaved = saved.length > 0;
 
   return (
     <aside id="controls-panel" className="panel controls" style={{ display, flexDirection:"column", gap:16 }}>
@@ -390,32 +389,7 @@ export default function Sidebar(props: Props){
         <button className="btn btn-primary" onClick={onShare}>Share</button>
       </div>
 
-      <fieldset>
-        <legend>Save / Load</legend>
-        <div className="stack">
-          <input className="input" name="maze-name" aria-label="Maze name" maxLength={200} placeholder="Name this maze…" value={saveName} onChange={e=>setSaveName(e.target.value)}/>
-          <button className="btn btn-primary" onClick={onSave}>Save current</button>
-        </div>
-
-        {hasSaved ? (
-          <div style={{ marginTop:12, display:"grid", gap:6, maxHeight:220, overflow:"auto" }}>
-            { saved.map(sv => (
-              <div key={sv.id} className="hstack" style={{ border:"1px solid #e6e9ef", borderRadius:10, padding:8, justifyContent:"space-between", background: sv.id===selectedId ? "#f0f6ff" : "#fafbff" }}>
-                <div>
-                  <div style={{ fontWeight:600, fontSize:14 }}>{sv.name}</div>
-                  <div style={{ fontSize:12, color:"#586174" }}>
-                    {sv.params.width}×{sv.params.height}, seed {sv.params.seed}, g {sv.params.g.toFixed(2)}, b {sv.params.b.toFixed(2)}, τ {sv.params.tau.toFixed(2)}
-                  </div>
-                </div>
-                <div className="hstack" style={{ gap:6 }}>
-                  <button className="btn btn-sm" onClick={()=>onLoad(sv.id)}>Load</button>
-                  <button className="btn btn-danger btn-sm" onClick={()=>onDelete(sv.id)}>Delete</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : <div style={{ fontSize:12, color:"#7a879b" }}>No saved mazes yet.</div>}
-      </fieldset>
+      <MazeCollection saveName={saveName} setSaveName={setSaveName} saveFolder={props.saveFolder} setSaveFolder={props.setSaveFolder} saveTags={props.saveTags} setSaveTags={props.setSaveTags} saved={saved} selectedId={selectedId} onSave={onSave} onLoad={onLoad} onDelete={onDelete} onImport={props.onImportCollection}/>
     </aside>
   );
 }
