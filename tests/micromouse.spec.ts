@@ -1,6 +1,7 @@
 import { createMaze } from '@src/app/maze';
 import { mazeToGraph } from '@src/maze/graph';
 import { applyKnowledge, DEFAULT_MOUSE_PHYSICS, floodDistances, simulateMicromouse } from '@src/maze/micromouse';
+import { MICROMOUSE_FORMATS, matchingMicromouseFormat, micromouseEndpoints, micromouseFootprintMeters } from '@src/maze/micromouseFormats';
 import { solveMaze } from '@src/maze/solvers';
 
 const graph=(seed=42,b=.15,width=11,height=9)=>mazeToGraph(createMaze({width,height,seed,g:.3,b,tau:.4}));
@@ -32,6 +33,9 @@ test('physics configuration changes simulated time without changing decisions',(
   const maze=graph(),normal=simulateMicromouse(maze),slow=simulateMicromouse(maze,{...DEFAULT_MOUSE_PHYSICS,maxSpeedMps:.5,accelerationMps2:1});
   expect(slow.routes).toEqual(normal.routes);
   expect(slow.metrics.totalTimeMs).toBeGreaterThan(normal.metrics.totalTimeMs);
+  const half=simulateMicromouse(maze,{...DEFAULT_MOUSE_PHYSICS,cellMeters:.09});
+  expect(half.routes).toEqual(normal.routes);
+  expect(half.metrics.totalTimeMs).toBeLessThan(normal.metrics.totalTimeMs);
 });
 
 test('disconnected courses stop with a bounded failure result',()=>{
@@ -48,4 +52,13 @@ test('disconnected courses stop with a bounded failure result',()=>{
 test('freeform graphs are rejected because cardinal physics does not apply',()=>{
   const freeform=mazeToGraph(createMaze({width:9,height:9,seed:42,g:.3,b:.1,tau:.4,topology:'freeform'}));
   expect(()=>simulateMicromouse(freeform)).toThrow(/grid topology/);
+});
+
+test('competition formats preserve the standard footprint and endpoints',()=>{
+  expect(micromouseFootprintMeters(MICROMOUSE_FORMATS.classic)).toEqual({width:2.88,height:2.88});
+  expect(micromouseFootprintMeters(MICROMOUSE_FORMATS.half)).toEqual({width:2.88,height:2.88});
+  expect(micromouseEndpoints(MICROMOUSE_FORMATS.classic)).toEqual({start:{x:0,y:15},goal:{x:7,y:7}});
+  expect(micromouseEndpoints(MICROMOUSE_FORMATS.half)).toEqual({start:{x:0,y:31},goal:{x:15,y:15}});
+  expect(matchingMicromouseFormat(16,16)?.id).toBe('classic');
+  expect(matchingMicromouseFormat(19,19)).toBeUndefined();
 });

@@ -260,13 +260,17 @@ test('Difficulty 2 score is labeled as estimated and retains the legacy score',a
 test('Micromouse explores, exposes phases, and disables physics for freeform mazes',async({page})=>{
   await page.goto('./');
   const controls=page.locator('.mouse-controls');
-  const width=Number(await page.getByLabel(/^Width:/).inputValue());
-  const height=Number(await page.getByLabel(/^Height:/).inputValue());
-  await controls.getByRole('button',{name:'Competition endpoints'}).click();
-  await expect(page.locator('.endpoint-controls > span')).toContainText(`Start: 1,${height}`);
-  await expect(page.locator('.endpoint-controls > span')).toContainText(
-    `Goal: ${Math.floor(width/2)+1},${Math.floor(height/2)+1}`,
-  );
+  await controls.getByLabel('Competition format').selectOption('classic');
+  await expect(page.getByLabel(/^Width:/)).toHaveValue('16');
+  await expect(page.getByLabel(/^Height:/)).toHaveValue('16');
+  await expect(controls.getByRole('region',{name:'Competition dimensions'})).toContainText('2.88×2.88 m nominal');
+  await expect(page.locator('.endpoint-controls > span')).toContainText('Start: 1,16');
+  await expect(page.locator('.endpoint-controls > span')).toContainText('Goal: 8,8');
+  await controls.getByLabel('Competition format').selectOption('half');
+  await expect(page.getByLabel(/^Width:/)).toHaveValue('32');
+  await expect(page.getByLabel(/^Height:/)).toHaveValue('32');
+  await expect(controls.getByRole('region',{name:'Competition dimensions'})).toContainText('9 cm cell pitch');
+  await controls.getByLabel('Competition format').selectOption('classic');
   await controls.getByLabel(/^Playback speed:/).fill('250');
   await controls.getByRole('button',{name:'Start',exact:true}).click();
   await expect(page.locator('.micromouse-overlay-svg')).toBeVisible();

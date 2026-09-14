@@ -64,6 +64,7 @@ test('wall appearance survives validated settings and sharing',()=>{
 });
 test('Micromouse display preferences are bounded and persisted',()=>{
   expect(validateSettings({micromouseSpeed:999,mouseShowWalls:true,mouseShowFlood:false,mouseShowRoute:true})).toEqual({micromouseSpeed:250,mouseShowWalls:true,mouseShowFlood:false,mouseShowRoute:true});
+  expect(validateSettings({width:16,height:32})).toEqual({width:16,height:32});
 });
 test('saved records preserve markers and accept legacy records while dropping corrupt entries', () => {
   const old = {id:'old',name:'Old maze',params,createdAt:1};

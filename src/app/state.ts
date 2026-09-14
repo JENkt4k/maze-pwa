@@ -41,7 +41,7 @@ export function validateSettings(value: unknown): Partial<Settings> {
     if (typeof n !== 'number' || !Number.isFinite(n)) continue;
     const [lo, hi] = ranges[key];
     let v = Math.max(lo, Math.min(hi, n));
-    if (key === 'width' || key === 'height') { v = Math.trunc(v); v += v % 2 === 0 ? 1 : 0; }
+    if (key === 'width' || key === 'height') v = Math.round(v);
     if (key === 'seed' || key === 'dfsSegMs' || key === 'lingerMs' || key === 'solverStepMs'||key==='micromouseSpeed') v = Math.trunc(v);
     out[key] = v;
   }
