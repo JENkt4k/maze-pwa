@@ -20,6 +20,7 @@
 - Classic Micromouse open four-cell center goal zones with persistent visual marking and nearest-goal flood-fill behavior.
 - Selectable Micromouse Flood Fill, Trémaux, and Right-Wall exploration strategies.
 - On-demand Micromouse strategy comparison across search and speed-run metrics.
+- Cancellable worker-based Micromouse batch benchmarks across multiple seeds.
 
 ## Backlog
 
