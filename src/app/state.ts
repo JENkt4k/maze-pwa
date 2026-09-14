@@ -40,7 +40,7 @@ export type Settings = MazeParams & Markers & {
   dfsSegMs: number;
   lingerMs: number;
 };
-export type SavedMaze = { id: string; name: string; params: MazeParams & Partial<Markers>; createdAt: number };
+export type SavedMaze = { id: string; name: string; params: MazeParams & Partial<Markers>; createdAt: number; folder?: string; tags?: string[] };
 const record = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const ranges = { width: [7, 101], height: [7, 101], seed: [-2147483648, 2147483647], g: [0, 1], b: [0, .5], tau: [0, 1],regionDensity:[.15,1],irregularity:[0,1], dfsSegMs: [10, 250], lingerMs: [0, 5000], solverStepMs: [10, 250],micromouseSpeed:[10,250],mouseMaxSpeedMps:[.2,5],mouseAccelerationMps2:[.5,20],mouseTurn90Ms:[20,500],mouseSensorRangeCells:[1,4],mouseSensorNoise:[0,.25],mouseCorrectionMs:[0,100],mouseCollisionMs:[0,2000],mouseTractionLimitMps2:[.5,20], generationOpacity: [.1, 1], solverOpacity: [.1, 1],wallThickness:[1,8],cornerRadius:[0,.5] } as const;
 
@@ -92,7 +92,9 @@ export function parseSaved(raw: string | null): SavedMaze[] {
       if (['width', 'height', 'seed', 'g', 'b', 'tau'].some(key => !(key in params))) return [];
       if (ids.has(entry.id)) return [];
       ids.add(entry.id);
-      return [{ id: entry.id, name: entry.name.slice(0, 200), params: params as MazeParams & Partial<Markers>, createdAt: entry.createdAt as number }];
+      const folder=typeof entry.folder==='string'?entry.folder.trim().slice(0,80):'';
+      const tags=Array.isArray(entry.tags)?[...new Set(entry.tags.filter((tag):tag is string=>typeof tag==='string').map(tag=>tag.trim().slice(0,40)).filter(Boolean))].slice(0,20):[];
+      return [{ id: entry.id, name: entry.name.slice(0, 200), params: params as MazeParams & Partial<Markers>, createdAt: entry.createdAt as number, ...(folder?{folder}:{}), ...(tags.length?{tags}:{}) }];
     });
   } catch { return []; }
 }

@@ -31,6 +31,7 @@ import { MOUSE_PROFILES, type MouseMotion } from '../maze/micromouseProfiles';
 import { useMicromouseBatch } from './hooks/useMicromouseBatch';
 import { analyzeDifficultyV2 } from '../maze/difficulty';
 import { abandonHistoryEntry, createHistoryEntry, HISTORY_LIMIT, HISTORY_STORAGE_KEY, historyGameState, parsePlayHistory, updateHistoryEntry, type HistoryMazeParams, type PlayHistoryEntry } from './history';
+import { mergeCollections, normalizeFolder, normalizeTags, parseCollectionBackup } from './mazeCollection';
 
 const DEFAULT_START = "\u{1f680}";
 const DEFAULT_GOAL = "\u{1f3c1}";
@@ -96,6 +97,8 @@ export default function App() {
 
   // saved mazes UI state and handlers
   const [saveName, setSaveName] = useState<string>("");
+  const [saveFolder,setSaveFolder]=useState('');
+  const [saveTags,setSaveTags]=useState('');
   const [saved, setSaved] = useState<SavedMaze[]>(() => { try { return parseSaved(localStorage.getItem(STORAGE_KEY)); } catch { return []; } });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [history,setHistory]=useState<PlayHistoryEntry[]>(()=>{try{return parsePlayHistory(localStorage.getItem(HISTORY_STORAGE_KEY));}catch{return[];}});
@@ -113,13 +116,21 @@ export default function App() {
     const name = saveName.trim().slice(0, 200) || `Maze ${saved.length + 1}`;
     const params = { width, height, seed, g, b, tau, generator,braidMode,topology,regionDensity,irregularity, mask, customMask:mask==='custom'?customMask:undefined, startCell, goalCell, wallStyle, wallThickness, cornerRadius, startIcon, goalIcon };
     const id = crypto.randomUUID();
-    const newMaze: SavedMaze = { id, name, params, createdAt: Date.now() };
+    const folder=normalizeFolder(saveFolder),tags=normalizeTags(saveTags);
+    const newMaze: SavedMaze = { id, name, params, createdAt: Date.now(), ...(folder?{folder}:{}), ...(tags.length?{tags}:{}) };
     const updated = [...saved, newMaze];
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(updated)); }
     catch { setStorageError("Could not update saved mazes. Browser storage may be full or unavailable."); return; }
     setStorageError(null);
     setSaved(updated);
     setSelectedId(id);
+  };
+
+  const handleImportCollection=(text:string)=>{
+    const incoming=parseCollectionBackup(text),updated=mergeCollections(saved,incoming);
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(updated));}
+    catch{setStorageError('Could not import the collection. Browser storage may be full or unavailable.');throw new Error('The collection could not be stored in this browser.');}
+    setSaved(updated);setStorageError(null);return incoming.length;
   };
 
   const applyMazeParams=(params:HistoryMazeParams)=>{
@@ -433,11 +444,14 @@ export default function App() {
         /* Save/Load */
         saveName={saveName}
         setSaveName={setSaveName}
+        saveFolder={saveFolder} setSaveFolder={setSaveFolder}
+        saveTags={saveTags} setSaveTags={setSaveTags}
         saved={saved}
         selectedId={selectedId}
         onSave={handleSave}
         onLoad={handleLoad}
         onDelete={handleDelete}
+        onImportCollection={handleImportCollection}
 
         /* UI state */
         controlsOpen={controlsOpen}

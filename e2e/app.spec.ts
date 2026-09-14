@@ -42,7 +42,13 @@ test('saved rectangular maze and markers restore despite square lock; empty mark
   await page.getByLabel('Start marker',{exact:true}).fill('???????????');
   await page.getByLabel('Goal marker',{exact:true}).fill('');
   await page.getByLabel('Maze name').fill('Rectangle');
+  await page.getByLabel('Maze folder').fill('Favorites');
+  await page.getByLabel('Maze tags').fill('rectangular, hard');
   await page.getByRole('button',{name:'Save current',exact:true}).click();
+  await expect(page.getByText('Favorites · 7×9, seed 42')).toBeVisible();
+  await expect(page.getByLabel('Tags for Rectangle')).toContainText('#rectangular #hard');
+  await page.getByLabel('Filter by tag').selectOption('hard');
+  await expect(page.getByLabel('Tags for Rectangle')).toBeVisible();
   await page.getByLabel('Lock width & height (square)').check();
   await expect(page.getByLabel(/^Height:/)).toHaveValue('7');
   await page.getByLabel('Start marker',{exact:true}).fill('X');
@@ -55,6 +61,17 @@ test('saved rectangular maze and markers restore despite square lock; empty mark
   await expect(page.getByLabel('Start marker',{exact:true})).toHaveValue('???????????');
   await expect(page.getByLabel('Goal marker',{exact:true})).toHaveValue('');
   await expect(page.getByRole('button',{name:'Load',exact:true})).toBeVisible();
+});
+
+test('maze collection exports and restores a versioned JSON backup',async({page})=>{
+  await page.goto('./');
+  const backup={kind:'infimaze-maze-collection',version:1,exportedAt:1,mazes:[{id:'imported',name:'Imported maze',folder:'Archive',tags:['practice'],createdAt:1,params:{width:7,height:9,seed:77,g:.3,b:.15,tau:.4}}]};
+  await page.getByLabel('Collection backup file').setInputFiles({name:'backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(backup))});
+  await expect(page.getByRole('status').filter({hasText:'Imported 1 maze.'})).toBeVisible();
+  await expect(page.getByText('Imported maze',{exact:true})).toBeVisible();
+  const downloadPromise=page.waitForEvent('download');
+  await page.getByRole('button',{name:'Export backup',exact:true}).click();
+  expect((await downloadPromise).suggestedFilename()).toMatch(/^infimaze-collection-.*\.json$/);
 });
 
 test('shape selector changes the maze mask', async ({page}) => {

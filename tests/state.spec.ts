@@ -66,9 +66,9 @@ test('Micromouse display preferences are bounded and persisted',()=>{
   expect(validateSettings({micromouseSpeed:999,mouseShowWalls:true,mouseShowFlood:false,mouseShowRoute:true,mouseMaxSpeedMps:99,mouseAccelerationMps2:.1,mouseTurn90Ms:90.8,mouseSensorRangeCells:8,mouseSensorNoise:.9,mouseCorrectionMs:33.8,mouseCollisionMs:999.8,mouseDiagonalSpeedRuns:true,mouseTractionLimitMps2:99,mouseStrategy:'tremaux'})).toEqual({micromouseSpeed:250,mouseMaxSpeedMps:5,mouseAccelerationMps2:.5,mouseTurn90Ms:90,mouseSensorRangeCells:4,mouseSensorNoise:.25,mouseCorrectionMs:33,mouseCollisionMs:999,mouseDiagonalSpeedRuns:true,mouseTractionLimitMps2:20,mouseShowWalls:true,mouseShowFlood:false,mouseShowRoute:true,mouseStrategy:'tremaux'});
   expect(validateSettings({width:16,height:32})).toEqual({width:16,height:32});
 });
-test('saved records preserve markers and accept legacy records while dropping corrupt entries', () => {
+test('saved records preserve markers and collection metadata while accepting legacy records', () => {
   const old = {id:'old',name:'Old maze',params,createdAt:1};
-  const current = {id:'new',name:'New maze',params:{...params,startIcon:null,goalIcon:'🏁'},createdAt:2};
+  const current = {id:'new',name:'New maze',params:{...params,startIcon:null,goalIcon:'🏁'},createdAt:2,folder:'Favorites',tags:['hard','brain']};
   expect(parseSaved(JSON.stringify([old,current,old,null,{}, {...old,id:'bad',params:{g:1}}]))).toEqual([old,current]);
   expect(parseSaved('{}')).toEqual([]);
   expect(parseSaved('{')).toEqual([]);
