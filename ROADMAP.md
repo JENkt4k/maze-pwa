@@ -2,8 +2,8 @@
 
 ## Current delivery focus
 
-- **Active:** large-maze performance profiling and optimization across 32×32, 41×41, and Giant mazes.
-- **Next committed phase:** offline/PWA release-readiness audit covering installation, updates, cached navigation, and recovery behavior.
+- **Active:** offline/PWA release readiness covering installation metadata, updates, cached navigation, and recovery behavior.
+- **Next decision point:** select the next product milestone after the PWA release gate; shared online infrastructure remains deferred.
 - **Deferred:** shared online leaderboard infrastructure, which requires a separately deployed service.
 
 Scope rule: work that blocks or directly completes the active phase stays in its PR. Other refinements are recorded for a later phase so feature work does not drift indefinitely.
@@ -46,12 +46,11 @@ Scope rule: work that blocks or directly completes the active phase stays in its
 - Cohesive icon-inspired control styling with accessible navy, blue, and gold states.
 - Persistent light, dark, and system interface themes while keeping maze and print surfaces white.
 - Per-device maze pipeline timings plus compact SVG animation rendering for large and Giant mazes.
+- Production PWA readiness with branded install metadata, connectivity and registration recovery status, cached subpath navigation, and a physical-device release checklist.
 
 ## Backlog
 
-1. **Offline/PWA release readiness**
-   - Verify installation, update prompts, cached navigation, and recovery behavior across supported deployment paths.
-2. **Shared online leaderboard — deferred**
+1. **Shared online leaderboard — deferred**
    - Client contract and explicit opt-in integration: in progress.
    - Add the verifying, rate-limited backend as a separate deployment stage.
    - Follow [SHARED_LEADERBOARD_API.md](SHARED_LEADERBOARD_API.md).

@@ -34,6 +34,7 @@ import { abandonHistoryEntry, createHistoryEntry, HISTORY_LIMIT, HISTORY_STORAGE
 import { mergeCollections, normalizeFolder, normalizeTags, parseCollectionBackup } from './mazeCollection';
 import { loadVisualPalette, VISUAL_PALETTES, type VisualPaletteId } from './palettes';
 import { measure, type MazePerformanceMetrics } from './performance';
+import { useNetworkStatus } from './hooks/useNetworkStatus';
 
 const DEFAULT_START = "\u{1f680}";
 const DEFAULT_GOAL = "\u{1f3c1}";
@@ -42,13 +43,15 @@ export default function App() {
   /* PWA */
   const [needRefresh, setNeedRefresh] = useState(false);
   const [offlineReady, setOfflineReady] = useState(false);
+  const [pwaError,setPwaError]=useState<string|null>(null);
   const updateSWRef = useRef<((reloadPage?: boolean) => void) | null>(null);
   useEffect(() => {
     if (updateSWRef.current) return;
-    const updateSW = registerSW({ immediate: true, onNeedRefresh: () => setNeedRefresh(true), onOfflineReady: () => setOfflineReady(true) });
+    const updateSW = registerSW({ immediate: true, onNeedRefresh: () => setNeedRefresh(true), onOfflineReady: () => setOfflineReady(true),onRegisterError:()=>setPwaError('Offline support could not start. Online use is still available.') });
     updateSWRef.current = updateSW;
   }, []);
   const { canInstall, install } = usePWAInstall();
+  const online=useNetworkStatus();
 
   /* Load from URL if present (overrides some settings) */
   const [fromURL] = useState(() => parseFromURL(window.location.search));
@@ -566,9 +569,9 @@ export default function App() {
       />
 
       <PWABanner
-        offlineReady={offlineReady} needRefresh={needRefresh}
+        offlineReady={offlineReady} needRefresh={needRefresh} online={online} error={pwaError}
         onUpdate={() => updateSWRef.current?.(true)}
-        onClose={() => { setNeedRefresh(false); setOfflineReady(false); }}
+        onClose={() => { setNeedRefresh(false); setOfflineReady(false);setPwaError(null); }}
       />
     </div>
   );

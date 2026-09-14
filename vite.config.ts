@@ -19,6 +19,7 @@ export default defineConfig({
       includeAssets: [
         'icons/favicon.ico',
         'icons/icon-48.png',
+        'icons/icon-180.png',
         'icons/icon-192.png',
         'icons/icon-256.png',
         'icons/icon-384.png',
@@ -28,13 +29,17 @@ export default defineConfig({
       ],
       manifest: {
         name: 'InfiMaze',
-        short_name: 'Maze',
+        short_name: 'InfiMaze',
+        id: BASE,
+        description: 'Generate, solve, save, share, and print endless mazes offline.',
+        lang: 'en',
+        categories: ['games', 'education', 'entertainment'],
         // Important for subpath hosting (e.g., GitHub Pages project site):
         start_url: BASE,
         scope:   BASE,
         display: 'standalone',
-        background_color: '#ffffff',
-        theme_color: '#2b2f77',
+        background_color: '#f7f9fd',
+        theme_color: '#07172f',
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: 'icons/icon-256.png', sizes: '256x256', type: 'image/png', purpose: 'any' },
@@ -47,6 +52,8 @@ export default defineConfig({
       workbox: {
         // Precache built assets; serve SPA shell for navigations
         navigateFallback: `${BASE}index.html`,
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
         globDirectory: 'dist',
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}']
       }
