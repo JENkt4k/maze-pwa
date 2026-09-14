@@ -17,6 +17,7 @@ import PlayHistory, { type PlayHistoryProps } from './PlayHistory';
 import Leaderboard, { type LeaderboardProps } from './Leaderboard';
 import type { DifficultySearchBudget, DifficultySearchProgress } from '../difficultySearch';
 import MazeCollection from './MazeCollection';
+import type { PrintPackOptions } from '../print';
 
 type Props = {
   canInstall: boolean;
@@ -27,7 +28,7 @@ type Props = {
   onNew: () => void; onPrint: () => void;
   saveName: string; setSaveName: (s:string)=>void;saveFolder:string;setSaveFolder:(s:string)=>void;saveTags:string;setSaveTags:(s:string)=>void;
   saved: SavedMaze[]; selectedId: string|null;
-  onSave: () => void; onLoad: (id:string)=>void; onDelete: (id:string)=>void;onImportCollection:(text:string)=>number;
+  onSave: () => void; onLoad: (id:string)=>void; onDelete: (id:string)=>void;onImportCollection:(text:string)=>number;onPrintPack:(ids:string[],options:PrintPackOptions)=>void;
   controlsOpen: boolean;
   onMinimize: () => void;
   lockSize: boolean;
@@ -389,7 +390,7 @@ export default function Sidebar(props: Props){
         <button className="btn btn-primary" onClick={onShare}>Share</button>
       </div>
 
-      <MazeCollection saveName={saveName} setSaveName={setSaveName} saveFolder={props.saveFolder} setSaveFolder={props.setSaveFolder} saveTags={props.saveTags} setSaveTags={props.setSaveTags} saved={saved} selectedId={selectedId} onSave={onSave} onLoad={onLoad} onDelete={onDelete} onImport={props.onImportCollection}/>
+      <MazeCollection saveName={saveName} setSaveName={setSaveName} saveFolder={props.saveFolder} setSaveFolder={props.setSaveFolder} saveTags={props.saveTags} setSaveTags={props.setSaveTags} saved={saved} selectedId={selectedId} onSave={onSave} onLoad={onLoad} onDelete={onDelete} onImport={props.onImportCollection} onPrintPack={props.onPrintPack}/>
     </aside>
   );
 }

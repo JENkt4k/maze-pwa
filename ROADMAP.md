@@ -26,11 +26,11 @@
 - Configurable Micromouse traction limits applied to live and batch timing.
 - Cancellable worker-based Micromouse batch benchmarks across multiple seeds.
 - Local maze collections with named folders, tags, filters, and versioned JSON backup/restore.
+- Printable multi-page maze packs generated from selected saved mazes.
 
 ## Backlog
 
 1. **Maze collections and export**
-   - Printable maze packs.
    - Shareable benchmark configurations.
 2. **Algorithm analysis**
    - Side-by-side playback and charts across multiple seeds.

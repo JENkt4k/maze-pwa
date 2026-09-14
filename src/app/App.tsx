@@ -13,8 +13,8 @@ import MazeView from "./components/MazeView";
 import MazeViewport from "./components/MazeViewport";
 
 import { buildChallengeURL, buildShareURL, parseFromURL, parseSettings, parseSaved, SETTINGS_KEY, STORAGE_KEY, type SavedMaze } from "./state";
-import { handlePrint } from "./print";
-import { createMaze, openMazePassages, type BraidMode, type GeneratorId, type MazeTopology } from "./maze";
+import { handlePrint, handlePrintPack, type PrintPackOptions } from "./print";
+import { createMaze, openMazePassages, toSVG, type BraidMode, type GeneratorId, type MazeTopology } from "./maze";
 import { useDifficultySearch } from "./hooks/useDifficultySearch";
 import { mazeFingerprint, mazeToGraph, nodeId } from '../maze/graph';
 import { solveMaze, type SolverId } from '../maze/solvers';
@@ -131,6 +131,14 @@ export default function App() {
     try{localStorage.setItem(STORAGE_KEY,JSON.stringify(updated));}
     catch{setStorageError('Could not import the collection. Browser storage may be full or unavailable.');throw new Error('The collection could not be stored in this browser.');}
     setSaved(updated);setStorageError(null);return incoming.length;
+  };
+  const printMazePack=(ids:string[],options:PrintPackOptions)=>{
+    const wanted=new Set(ids);
+    const items=saved.filter(maze=>wanted.has(maze.id)).map(maze=>{
+      const data=createMaze(maze.params);
+      return {name:maze.name,svg:toSVG(data,{cell:24,margin:8,stroke:3,showStartGoal:true,startIcon:maze.params.startIcon,goalIcon:maze.params.goalIcon,wallStyle:maze.params.wallStyle,cornerRadius:maze.params.cornerRadius}),details:`${maze.params.width}×${maze.params.height} · seed ${maze.params.seed} · ${maze.params.generator??'dfs'}${maze.tags?.length?` · ${maze.tags.map(tag=>`#${tag}`).join(' ')}`:''}`};
+    });
+    handlePrintPack(items,options);
   };
 
   const applyMazeParams=(params:HistoryMazeParams)=>{
@@ -452,6 +460,7 @@ export default function App() {
         onLoad={handleLoad}
         onDelete={handleDelete}
         onImportCollection={handleImportCollection}
+        onPrintPack={printMazePack}
 
         /* UI state */
         controlsOpen={controlsOpen}
