@@ -97,7 +97,7 @@ test('untrusted marker content stays text in the actual SVG DOM', () => {
 test('generation and solution phases render as independent layers', () => {
   const {container,rerender}=render(<MazeView hostRef={createRef<HTMLDivElement>()} data={data} graph={graph}
     solverRun={solverRun} solverEnabled solverEventIndex={0} generationEventIndex={3} generationComplete={false} generationColor="#7c3aed" generationOpacity={.6} solverColor="#2563eb" solverOpacity={.65} render={renderOpts}/>);
-  expect(container.querySelectorAll('.generation-overlay-svg path')).toHaveLength(3);
+  expect(container.querySelectorAll('.generation-overlay-svg path')).toHaveLength(1);
   expect(container.querySelector('.generation-overlay-svg path')?.getAttribute('stroke')).toBe('#7c3aed');
   expect(container.querySelector('.generation-overlay-svg path')?.getAttribute('opacity')).toBe('0.6');
   expect(container.querySelector('.solver-overlay-svg')).toBeNull();
@@ -105,6 +105,6 @@ test('generation and solution phases render as independent layers', () => {
     solverEnabled solverEventIndex={2} generationEventIndex={data.treeSteps.length} generationComplete generationColor="#14b8a6" generationOpacity={.35} solverColor="#c026d3" solverOpacity={.8} render={renderOpts}/>);
   expect(container.querySelector('.generation-complete')).not.toBeNull();
   expect(container.querySelector('.solver-overlay-svg')).not.toBeNull();
-  expect(container.querySelector('.solver-expanded circle')?.getAttribute('fill')).toBe('#c026d3');
-  expect(container.querySelector('.solver-expanded circle')?.getAttribute('opacity')).toBe('0.8');
+  expect(container.querySelector('.solver-expanded')?.getAttribute('fill')).toBe('#c026d3');
+  expect(container.querySelector('.solver-expanded')?.getAttribute('opacity')).toBe('0.8');
 });

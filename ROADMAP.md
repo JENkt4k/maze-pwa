@@ -2,8 +2,8 @@
 
 ## Current delivery focus
 
-- **Active:** PR #58 — cohesive interface styling, accessible palettes, and persistent light/dark/system themes.
-- **Next committed phase:** profile and optimize interaction, rendering, generation, and solver costs on 32×32, 41×41, and Giant mazes.
+- **Active:** large-maze performance profiling and optimization across 32×32, 41×41, and Giant mazes.
+- **Next committed phase:** offline/PWA release-readiness audit covering installation, updates, cached navigation, and recovery behavior.
 - **Deferred:** shared online leaderboard infrastructure, which requires a separately deployed service.
 
 Scope rule: work that blocks or directly completes the active phase stays in its PR. Other refinements are recorded for a later phase so feature work does not drift indefinitely.
@@ -45,11 +45,12 @@ Scope rule: work that blocks or directly completes the active phase stays in its
 - Persistent color-blind-safe visualization palette with distinct line patterns.
 - Cohesive icon-inspired control styling with accessible navy, blue, and gold states.
 - Persistent light, dark, and system interface themes while keeping maze and print surfaces white.
+- Per-device maze pipeline timings plus compact SVG animation rendering for large and Giant mazes.
 
 ## Backlog
 
-1. **Accessibility and release polish**
-   - Large-maze profiling.
+1. **Offline/PWA release readiness**
+   - Verify installation, update prompts, cached navigation, and recovery behavior across supported deployment paths.
 2. **Shared online leaderboard — deferred**
    - Client contract and explicit opt-in integration: in progress.
    - Add the verifying, rate-limited backend as a separate deployment stage.

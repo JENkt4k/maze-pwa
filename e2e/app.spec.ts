@@ -581,8 +581,8 @@ test('animation independently switches generation and solving algorithms', async
   await expect(page.locator('.solver-overlay-svg')).toBeVisible();
   await page.getByLabel('Solver animation color').fill('#c026d3');
   await page.getByLabel('Solver animation opacity').fill('80');
-  await expect(page.locator('.solver-expanded circle').first()).toHaveAttribute('fill','#c026d3');
-  await expect(page.locator('.solver-expanded circle').first()).toHaveAttribute('opacity','0.8');
+  await expect(page.locator('.solver-expanded').first()).toHaveAttribute('fill','#c026d3');
+  await expect(page.locator('.solver-expanded').first()).toHaveAttribute('opacity','0.8');
   await page.getByRole('button',{name:'Compare solvers side by side'}).click();
   const comparison=page.getByRole('region',{name:'Side-by-side solver playback'});
   await expect(comparison.getByLabel('A* playback')).toBeVisible();

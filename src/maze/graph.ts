@@ -43,7 +43,10 @@ export function requireNode(graph: MazeGraph, id: NodeId): MazeNode {
 
 /** Stable topology/content identity for gameplay records and future history. */
 export function mazeFingerprint(graph:MazeGraph):string{
-  const canonical=[...graph.nodes.values()].sort((a,b)=>a.id.localeCompare(b.id)).map(node=>`${node.id}@${node.position.x.toFixed(5)},${node.position.y.toFixed(5)}>${[...node.neighbors].sort().join(',')}`).join('|')+`#${graph.start}>${[...graph.goals].sort().join(',')}`;
-  let hash=0x811c9dc5;for(let i=0;i<canonical.length;i++){hash^=canonical.charCodeAt(i);hash=Math.imul(hash,0x01000193);}
+  let hash=0x811c9dc5;
+  const append=(value:string)=>{for(let i=0;i<value.length;i++){hash^=value.charCodeAt(i);hash=Math.imul(hash,0x01000193);}};
+  const nodes=[...graph.nodes.values()].sort((a,b)=>a.id.localeCompare(b.id));
+  nodes.forEach((node,index)=>{if(index)append('|');append(`${node.id}@${node.position.x.toFixed(5)},${node.position.y.toFixed(5)}>${[...node.neighbors].sort().join(',')}`);});
+  append(`#${graph.start}>${[...graph.goals].sort().join(',')}`);
   return`v1-${(hash>>>0).toString(16).padStart(8,'0')}`;
 }
