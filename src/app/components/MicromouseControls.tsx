@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { PlaybackState } from '../hooks/useSolverPlayback';
 import type { MicromouseComparison, MicromouseMetrics, MousePhase, MouseRealism, MouseStrategyId } from '../../maze/micromouse';
 import { MICROMOUSE_FORMATS, micromouseFootprintMeters, type MicromouseFormat, type MicromouseFormatId } from '../../maze/micromouseFormats';
@@ -11,7 +12,13 @@ const seconds=(ms:number)=>`${(ms/1000).toFixed(2)} s`;
 const strategyNames:Record<MouseStrategyId,string>={'flood-fill':'Flood Fill',tremaux:'Trémaux','right-wall':'Right-Wall'};
 
 export default function MicromouseControls(props:MicromouseControlsProps){
-  const progress=props.eventCount?Math.round(props.state.index/props.eventCount*100):0,label=props.phase==='ready'?'Ready':props.phase==='complete'?'Complete':props.phase[0].toUpperCase()+props.phase.slice(1),profileId=matchingMouseProfile(props.motion);
+  const [draftMotion,setDraftMotion]=useState(props.motion),[draftRealism,setDraftRealism]=useState(props.realism);
+  useEffect(()=>setDraftMotion(props.motion),[props.motion]);
+  useEffect(()=>setDraftRealism(props.realism),[props.realism]);
+  const dirty=JSON.stringify(draftMotion)!==JSON.stringify(props.motion)||JSON.stringify(draftRealism)!==JSON.stringify(props.realism);
+  const applySettings=()=>{props.setMotion(draftMotion);props.setRealism(draftRealism);};
+  const resetSettings=()=>{setDraftMotion(props.motion);setDraftRealism(props.realism);};
+  const progress=props.eventCount?Math.round(props.state.index/props.eventCount*100):0,label=props.phase==='ready'?'Ready':props.phase==='complete'?'Complete':props.phase[0].toUpperCase()+props.phase.slice(1),profileId=matchingMouseProfile(draftMotion);
   return <div className="mouse-controls" role="group" aria-label="Micromouse controls">
     <label>Competition format
       <select name="micromouse-format" value={props.format?.id??'custom'} onChange={e=>{if(e.target.value!=='custom')props.applyFormat(e.target.value as MicromouseFormatId)}}>
@@ -28,25 +35,26 @@ export default function MicromouseControls(props:MicromouseControlsProps){
     {props.comparisons&&<StrategyComparison rows={props.comparisons} selected={props.strategy} context={props.exportContext}/>}
     <BatchBenchmark batch={props.batch} available={props.available}/>
     <fieldset className="mouse-physics"><legend>Robot physics</legend>
-      <label>Robot profile<select name="micromouse-profile" value={profileId} onChange={e=>{if(e.target.value!=='custom')props.setMotion(MOUSE_PROFILES[e.target.value as MouseProfileId].motion)}}>
+      <label>Robot profile<select name="micromouse-profile" value={profileId} onChange={e=>{if(e.target.value!=='custom')setDraftMotion(MOUSE_PROFILES[e.target.value as MouseProfileId].motion)}}>
         {Object.entries(MOUSE_PROFILES).map(([id,profile])=><option key={id} value={id}>{profile.name}</option>)}<option value="custom">Custom</option>
       </select></label>
       <p>{profileId==='custom'?'Custom robot motion settings.':MOUSE_PROFILES[profileId].description}</p>
-      <label>Maximum speed: {props.motion.maxSpeedMps.toFixed(2)} m/s<input name="mouse-max-speed" type="range" min="0.2" max="5" step="0.05" value={props.motion.maxSpeedMps} onChange={e=>props.setMotion({...props.motion,maxSpeedMps:Number(e.target.value)})}/></label>
-      <label>Acceleration: {props.motion.accelerationMps2.toFixed(1)} m/s²<input name="mouse-acceleration" type="range" min="0.5" max="20" step="0.5" value={props.motion.accelerationMps2} onChange={e=>props.setMotion({...props.motion,accelerationMps2:Number(e.target.value)})}/></label>
-      <label>Traction limit: {props.realism.tractionLimitMps2.toFixed(1)} m/s²<input name="mouse-traction-limit" type="range" min="0.5" max="20" step="0.5" value={props.realism.tractionLimitMps2} onChange={e=>props.setRealism({...props.realism,tractionLimitMps2:Number(e.target.value)})}/></label>
-      <p>Effective acceleration: {Math.min(props.motion.accelerationMps2,props.realism.tractionLimitMps2).toFixed(1)} m/s².</p>
-      <label>90° turn: {props.motion.turn90Ms} ms<input name="mouse-turn-time" type="range" min="20" max="500" step="5" value={props.motion.turn90Ms} onChange={e=>props.setMotion({...props.motion,turn90Ms:Number(e.target.value)})}/></label>
-      <label className="hstack"><input name="mouse-diagonal-speed" type="checkbox" checked={props.realism.diagonalSpeedRuns} onChange={e=>props.setRealism({...props.realism,diagonalSpeedRuns:e.target.checked})}/>Allow diagonal speed-run cornering</label>
+      <label>Maximum speed: {draftMotion.maxSpeedMps.toFixed(2)} m/s<input name="mouse-max-speed" type="range" min="0.2" max="5" step="0.05" value={draftMotion.maxSpeedMps} onChange={e=>setDraftMotion({...draftMotion,maxSpeedMps:Number(e.target.value)})}/></label>
+      <label>Acceleration: {draftMotion.accelerationMps2.toFixed(1)} m/s²<input name="mouse-acceleration" type="range" min="0.5" max="20" step="0.5" value={draftMotion.accelerationMps2} onChange={e=>setDraftMotion({...draftMotion,accelerationMps2:Number(e.target.value)})}/></label>
+      <label>Traction limit: {draftRealism.tractionLimitMps2.toFixed(1)} m/s²<input name="mouse-traction-limit" type="range" min="0.5" max="20" step="0.5" value={draftRealism.tractionLimitMps2} onChange={e=>setDraftRealism({...draftRealism,tractionLimitMps2:Number(e.target.value)})}/></label>
+      <p>Effective acceleration: {Math.min(draftMotion.accelerationMps2,draftRealism.tractionLimitMps2).toFixed(1)} m/s².</p>
+      <label>90° turn: {draftMotion.turn90Ms} ms<input name="mouse-turn-time" type="range" min="20" max="500" step="5" value={draftMotion.turn90Ms} onChange={e=>setDraftMotion({...draftMotion,turn90Ms:Number(e.target.value)})}/></label>
+      <label className="hstack"><input name="mouse-diagonal-speed" type="checkbox" checked={draftRealism.diagonalSpeedRuns} onChange={e=>setDraftRealism({...draftRealism,diagonalSpeedRuns:e.target.checked})}/>Allow diagonal speed-run cornering</label>
       <p>Diagonal mode cuts across learned 90° corners without changing the search route.</p>
     </fieldset>
     <fieldset className="mouse-sensors"><legend>Sensors and correction</legend>
-      <label>Sensor range: {props.realism.sensorRangeCells} {props.realism.sensorRangeCells===1?'cell':'cells'}<input name="mouse-sensor-range" type="range" min="1" max="4" step="1" value={props.realism.sensorRangeCells} onChange={e=>props.setRealism({...props.realism,sensorRangeCells:Number(e.target.value)})}/></label>
-      <label>Reading noise: {Math.round(props.realism.sensorNoise*100)}%<input name="mouse-sensor-noise" type="range" min="0" max="25" step="1" value={Math.round(props.realism.sensorNoise*100)} onChange={e=>props.setRealism({...props.realism,sensorNoise:Number(e.target.value)/100})}/></label>
-      <label>Position correction: {props.realism.correctionMs} ms/cell<input name="mouse-correction-time" type="range" min="0" max="100" step="5" value={props.realism.correctionMs} onChange={e=>props.setRealism({...props.realism,correctionMs:Number(e.target.value)})}/></label>
-      <label>Collision recovery: {props.realism.collisionMs} ms<input name="mouse-collision-time" type="range" min="0" max="2000" step="50" value={props.realism.collisionMs} onChange={e=>props.setRealism({...props.realism,collisionMs:Number(e.target.value)})}/></label>
+      <label>Sensor range: {draftRealism.sensorRangeCells} {draftRealism.sensorRangeCells===1?'cell':'cells'}<input name="mouse-sensor-range" type="range" min="1" max="4" step="1" value={draftRealism.sensorRangeCells} onChange={e=>setDraftRealism({...draftRealism,sensorRangeCells:Number(e.target.value)})}/></label>
+      <label>Reading noise: {Math.round(draftRealism.sensorNoise*100)}%<input name="mouse-sensor-noise" type="range" min="0" max="25" step="1" value={Math.round(draftRealism.sensorNoise*100)} onChange={e=>setDraftRealism({...draftRealism,sensorNoise:Number(e.target.value)/100})}/></label>
+      <label>Position correction: {draftRealism.correctionMs} ms/cell<input name="mouse-correction-time" type="range" min="0" max="100" step="5" value={draftRealism.correctionMs} onChange={e=>setDraftRealism({...draftRealism,correctionMs:Number(e.target.value)})}/></label>
+      <label>Collision recovery: {draftRealism.collisionMs} ms<input name="mouse-collision-time" type="range" min="0" max="2000" step="50" value={draftRealism.collisionMs} onChange={e=>setDraftRealism({...draftRealism,collisionMs:Number(e.target.value)})}/></label>
       <p>Noise is deterministic for each maze seed. False-open readings can cause collisions; recovery and correction time are included in results.</p>
     </fieldset>
+    <div className="robot-settings-actions" role="group" aria-label="Robot settings changes"><button type="button" className="btn btn-primary" disabled={!dirty} onClick={applySettings}>Apply changes</button><button type="button" className="btn" disabled={!dirty} onClick={resetSettings}>Reset changes</button>{dirty&&<span role="status">Changes not applied</span>}</div>
     {!props.available?<p>{props.reason}</p>:<>
       <div className="game-status" role="status"><strong>{label}</strong><span>{progress}%</span></div>
       {props.failureReason&&<p role="alert">Simulation stopped: {props.failureReason}</p>}
