@@ -15,8 +15,12 @@ export const micromouseFootprintMeters=(format:MicromouseFormat)=>({
 });
 
 export function micromouseEndpoints(format:MicromouseFormat):{start:{x:number;y:number};goal:{x:number;y:number}}{
-  // The app models one goal cell, so use the upper-left cell of the classic center goal area.
   return{start:{x:0,y:format.height-1},goal:{x:Math.floor((format.width-1)/2),y:Math.floor((format.height-1)/2)}};
+}
+
+export function micromouseGoalCells(format:MicromouseFormat):readonly {x:number;y:number}[]{
+  const goal=micromouseEndpoints(format).goal;
+  return format.id==='classic'?[goal,{x:goal.x+1,y:goal.y},{x:goal.x,y:goal.y+1},{x:goal.x+1,y:goal.y+1}]:[goal];
 }
 
 export function matchingMicromouseFormat(width:number,height:number):MicromouseFormat|undefined{

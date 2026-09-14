@@ -38,8 +38,8 @@ export function applyKnowledge(events:readonly MouseEvent[],eventIndex=events.le
   return knowledge;
 }
 
-export function floodDistances(graph:MazeGraph,knowledge:KnowledgeMap,target:NodeId,allowUnknown=true):Map<NodeId,number>{
-  const distances=new Map<NodeId,number>([[target,0]]),queue=[target];
+export function floodDistances(graph:MazeGraph,knowledge:KnowledgeMap,target:NodeId|readonly NodeId[],allowUnknown=true):Map<NodeId,number>{
+  const targets=Array.isArray(target)?target:[target],distances=new Map<NodeId,number>(targets.map(id=>[id,0])),queue=[...targets];
   for(let head=0;head<queue.length;head++){
     const current=queue[head],point=requireNode(graph,current).position;
     for(const direction of directions){
@@ -57,7 +57,7 @@ function observe(graph:MazeGraph,node:NodeId,knowledge:KnowledgeMap):Record<Head
   return walls;
 }
 
-function chooseMove(graph:MazeGraph,current:NodeId,target:NodeId,heading:Heading,knowledge:KnowledgeMap,visits:ReadonlyMap<NodeId,number>):{node:NodeId;heading:Heading}|null{
+function chooseMove(graph:MazeGraph,current:NodeId,target:NodeId|readonly NodeId[],heading:Heading,knowledge:KnowledgeMap,visits:ReadonlyMap<NodeId,number>):{node:NodeId;heading:Heading}|null{
   const distances=floodDistances(graph,knowledge,target),point=requireNode(graph,current).position;
   const choices=directions.flatMap((direction,index)=>{
     if(knowledge.get(current)?.[direction.heading]!=='open')return[];
@@ -67,13 +67,15 @@ function chooseMove(graph:MazeGraph,current:NodeId,target:NodeId,heading:Heading
   return choices[0]??null;
 }
 
-function knownRoute(graph:MazeGraph,knowledge:KnowledgeMap,start:NodeId,goal:NodeId):NodeId[]{
+function knownRoute(graph:MazeGraph,knowledge:KnowledgeMap,start:NodeId,goals:readonly NodeId[]):NodeId[]{
   const parents=new Map<NodeId,NodeId|null>([[start,null]]),queue=[start];
-  for(let head=0;head<queue.length&&!parents.has(goal);head++){
+  let goal=goals.find(id=>parents.has(id));
+  for(let head=0;head<queue.length&&!goal;head++){
     const current=queue[head],point=requireNode(graph,current).position;
     for(const direction of directions){if(knowledge.get(current)?.[direction.heading]!=='open')continue;const next=idAt(point.x+direction.dx,point.y+direction.dy);if(graph.nodes.has(next)&&!parents.has(next)){parents.set(next,current);queue.push(next);}}
+    goal=goals.find(id=>parents.has(id));
   }
-  if(!parents.has(goal))return[];const path:NodeId[]=[];for(let current:NodeId|null=goal;current;current=parents.get(current)??null)path.push(current);return path.reverse();
+  if(!goal)return[];const path:NodeId[]=[];for(let current:NodeId|null=goal;current;current=parents.get(current)??null)path.push(current);return path.reverse();
 }
 
 function trueShortest(graph:MazeGraph):number{
@@ -91,22 +93,24 @@ function routeMetrics(graph:MazeGraph,route:readonly NodeId[],initial:Heading,ph
 }
 
 export function simulateMicromouse(graph:MazeGraph,physics:MousePhysics=DEFAULT_MOUSE_PHYSICS):MicromouseResult{
-  if(graph.goals.length!==1)throw new Error('Micromouse requires one goal');
+  if(!graph.goals.length)throw new Error('Micromouse requires at least one goal');
+  for(const goal of graph.goals)requireNode(graph,goal);
   for(const node of graph.nodes.values()){if(!Number.isInteger(node.position.x)||!Number.isInteger(node.position.y))throw new Error('Micromouse requires grid topology');for(const neighbor of node.neighbors)directionBetween(graph,node.id,neighbor);}
   const events:MouseEvent[]=[],knowledge:KnowledgeMap=new Map(),visits=new Map<NodeId,number>([[graph.start,1]]),routes:{search:NodeId[];return:NodeId[];speed:NodeId[]}={search:[graph.start],return:[],speed:[]};
   let current=graph.start,heading:Heading='n',failure:string|undefined;
-  const explore=(phase:'search'|'return',target:NodeId,route:NodeId[])=>{
+  const explore=(phase:'search'|'return',target:NodeId|readonly NodeId[],route:NodeId[])=>{
+    const targets=Array.isArray(target)?target:[target];
     events.push({type:'phase',phase,node:current,heading});if(!route.length)route.push(current);
     const limit=Math.max(16,graph.nodes.size*8);
-    for(let step=0;current!==target&&step<limit;step++){
+    for(let step=0;!targets.includes(current)&&step<limit;step++){
       const walls=observe(graph,current,knowledge);events.push({type:'sense',phase,node:current,heading,walls});
-      const next=chooseMove(graph,current,target,heading,knowledge,visits);if(!next){failure=`No route to ${target} using discovered walls`;return false;}
+      const next=chooseMove(graph,current,target,heading,knowledge,visits);if(!next){failure='No route to a goal using discovered walls';return false;}
       events.push({type:'move',phase,from:current,node:next.node,heading:next.heading});current=next.node;heading=next.heading;route.push(current);visits.set(current,(visits.get(current)??0)+1);
     }
-    const walls=observe(graph,current,knowledge);events.push({type:'sense',phase,node:current,heading,walls});if(current!==target){failure=`${phase} exceeded ${limit} steps`;return false;}return true;
+    const walls=observe(graph,current,knowledge);events.push({type:'sense',phase,node:current,heading,walls});if(!targets.includes(current)){failure=`${phase} exceeded ${limit} steps`;return false;}return true;
   };
-  const searched=explore('search',graph.goals[0],routes.search);if(searched){routes.return=[current];explore('return',graph.start,routes.return);}
-  if(!failure){routes.speed=knownRoute(graph,knowledge,graph.start,graph.goals[0]);if(!routes.speed.length)failure='No fully discovered speed route';else{current=graph.start;events.push({type:'phase',phase:'speed',node:current,heading});for(const node of routes.speed.slice(1)){const nextHeading=directionBetween(graph,current,node);events.push({type:'move',phase:'speed',from:current,node,heading:nextHeading});current=node;heading=nextHeading;}}}
+  const searched=explore('search',graph.goals,routes.search);if(searched){routes.return=[current];explore('return',graph.start,routes.return);}
+  if(!failure){routes.speed=knownRoute(graph,knowledge,graph.start,graph.goals);if(!routes.speed.length)failure='No fully discovered speed route';else{current=graph.start;events.push({type:'phase',phase:'speed',node:current,heading});for(const node of routes.speed.slice(1)){const nextHeading=directionBetween(graph,current,node);events.push({type:'move',phase:'speed',from:current,node,heading:nextHeading});current=node;heading=nextHeading;}}}
   const endHeading=(route:readonly NodeId[],fallback:Heading):Heading=>route.length>1?directionBetween(graph,route[route.length-2],route[route.length-1]):fallback;
   const search=routeMetrics(graph,routes.search,'n',physics),searchHeading=endHeading(routes.search,'n'),returnMetrics=routeMetrics(graph,routes.return,searchHeading,physics),returnHeading=endHeading(routes.return,searchHeading),speed=routeMetrics(graph,routes.speed,returnHeading,physics);
   const totalMoves=routes.search.length+routes.return.length+routes.speed.length-3,unique=new Set([...routes.search,...routes.return,...routes.speed]).size,revisits=Math.max(0,totalMoves+1-unique),shortest=trueShortest(graph);
