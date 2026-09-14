@@ -25,7 +25,7 @@ import { chooseEndpoints, type EndpointStrategy } from '../maze/endpoints';
 import type { MazePoint } from './maze';
 import type { WallStyle } from '../maze/walls';
 import { GAME_STORAGE_KEY, useMazeGame, type MazeGameState } from './hooks/useMazeGame';
-import { compareMicromouseStrategies, DEFAULT_MOUSE_PHYSICS, DEFAULT_MOUSE_REALISM, simulateMicromouse, type MousePhase, type MouseRealism, type MouseStrategyId } from '../maze/micromouse';
+import { compareMicromouseStrategies, DEFAULT_MOUSE_PHYSICS, DEFAULT_MOUSE_REALISM, simulateMicromouse, type MicromouseComparison, type MicromouseResult, type MousePhase, type MouseRealism, type MouseStrategyId } from '../maze/micromouse';
 import { matchingMicromouseFormat, MICROMOUSE_FORMATS, micromouseEndpoints, micromouseGoalCells, micromouseGoalPassages, type MicromouseFormatId } from '../maze/micromouseFormats';
 import { MOUSE_PROFILES, type MouseMotion } from '../maze/micromouseProfiles';
 import { useMicromouseBatch } from './hooks/useMicromouseBatch';
@@ -85,7 +85,7 @@ export default function App() {
   const [mouseMotion,setMouseMotion]=useState<MouseMotion>({maxSpeedMps:persisted.mouseMaxSpeedMps??MOUSE_PROFILES.balanced.motion.maxSpeedMps,accelerationMps2:persisted.mouseAccelerationMps2??MOUSE_PROFILES.balanced.motion.accelerationMps2,turn90Ms:persisted.mouseTurn90Ms??MOUSE_PROFILES.balanced.motion.turn90Ms});
   const [mouseRealism,setMouseRealism]=useState<MouseRealism>({sensorRangeCells:persisted.mouseSensorRangeCells??DEFAULT_MOUSE_REALISM.sensorRangeCells,sensorNoise:persisted.mouseSensorNoise??DEFAULT_MOUSE_REALISM.sensorNoise,correctionMs:persisted.mouseCorrectionMs??DEFAULT_MOUSE_REALISM.correctionMs,collisionMs:persisted.mouseCollisionMs??DEFAULT_MOUSE_REALISM.collisionMs,diagonalSpeedRuns:persisted.mouseDiagonalSpeedRuns??DEFAULT_MOUSE_REALISM.diagonalSpeedRuns,tractionLimitMps2:persisted.mouseTractionLimitMps2??DEFAULT_MOUSE_REALISM.tractionLimitMps2});
   const [mouseStrategy,setMouseStrategy]=useState<MouseStrategyId>(persisted.mouseStrategy??'flood-fill');
-  const [mouseComparisonOpen,setMouseComparisonOpen]=useState(false);
+  const [sizeRevision,setSizeRevision]=useState(0);
   const [controlsOpen, setControlsOpen] = useState(persisted.controlsOpen ?? !window.matchMedia("(max-width: 840px)").matches);
   const [lockSize, setLockSize]         = useState((persisted.lockSize ?? false) && width === height);
   const giantMode=width>41||height>41;
@@ -142,6 +142,7 @@ export default function App() {
   };
 
   const applyMazeParams=(params:HistoryMazeParams)=>{
+    setSizeRevision(value=>value+1);
     setWidthRaw(params.width);setHeightRaw(params.height);
     if(params.width!==params.height)setLockSize(false);
     setStartIcon(params.startIcon===undefined?DEFAULT_START:params.startIcon);setGoalIcon(params.goalIcon===undefined?DEFAULT_GOAL:params.goalIcon);
@@ -351,9 +352,14 @@ export default function App() {
   const competitionEndpoints=micromouseFormat?micromouseEndpoints(micromouseFormat):undefined;
   const usesCompetitionGoal=competitionEndpoints&&mazeData.goal.x===competitionEndpoints.goal.x&&mazeData.goal.y===competitionEndpoints.goal.y;
   const micromouseGraph=useMemo(()=>usesCompetitionGoal&&micromouseFormat?{...mazeGraph,goals:micromouseGoalCells(micromouseFormat).map(nodeId).filter(id=>mazeGraph.nodes.has(id))}:mazeGraph,[mazeGraph,micromouseFormat,usesCompetitionGoal]);
-  const micromouse=useMemo(()=>topology==='grid'?simulateMicromouse(micromouseGraph,{...DEFAULT_MOUSE_PHYSICS,...mouseMotion,cellMeters:(micromouseFormat?.cellPitchCm??18)/100},mouseStrategy,mouseRealism,seed):null,[topology,micromouseGraph,micromouseFormat?.cellPitchCm,mouseMotion,mouseStrategy,mouseRealism,seed]);
-  const mouseComparisons=useMemo(()=>mouseComparisonOpen&&topology==='grid'?compareMicromouseStrategies(micromouseGraph,{...DEFAULT_MOUSE_PHYSICS,...mouseMotion,cellMeters:(micromouseFormat?.cellPitchCm??18)/100},mouseRealism,seed):undefined,[mouseComparisonOpen,topology,micromouseGraph,mouseMotion,mouseRealism,micromouseFormat?.cellPitchCm,seed]);
-  const mousePlayback=useSolverPlayback(micromouse?.events.length??0,`mouse:${mazeId}:${mouseStrategy}:${mouseMotion.maxSpeedMps}:${mouseMotion.accelerationMps2}:${mouseMotion.turn90Ms}:${mouseRealism.sensorRangeCells}:${mouseRealism.sensorNoise}:${mouseRealism.correctionMs}:${mouseRealism.collisionMs}:${mouseRealism.diagonalSpeedRuns}:${mouseRealism.tractionLimitMps2}`,micromouseActive,micromouseSpeed);
+  const mouseScenarioKey=`${mazeId}:${mouseStrategy}:${mouseMotion.maxSpeedMps}:${mouseMotion.accelerationMps2}:${mouseMotion.turn90Ms}:${mouseRealism.sensorRangeCells}:${mouseRealism.sensorNoise}:${mouseRealism.correctionMs}:${mouseRealism.collisionMs}:${mouseRealism.diagonalSpeedRuns}:${mouseRealism.tractionLimitMps2}`;
+  const [mouseRun,setMouseRun]=useState<{key:string;result:MicromouseResult;costMs:number}|null>(null);
+  const [comparisonRun,setComparisonRun]=useState<{key:string;rows:readonly MicromouseComparison[];costMs:number;visible:boolean}|null>(null);
+  const micromouse=mouseRun?.key===mouseScenarioKey?mouseRun.result:null;
+  const mouseComparisons=comparisonRun?.key===mouseScenarioKey&&comparisonRun.visible?comparisonRun.rows:undefined;
+  const runMicromouse=()=>{if(topology!=='grid')return;const started=performance.now(),result=simulateMicromouse(micromouseGraph,{...DEFAULT_MOUSE_PHYSICS,...mouseMotion,cellMeters:(micromouseFormat?.cellPitchCm??18)/100},mouseStrategy,mouseRealism,seed);setMouseRun({key:mouseScenarioKey,result,costMs:Math.max(0,Math.round(performance.now()-started))});setMicromouseActive(true);};
+  const toggleMouseComparison=()=>{if(comparisonRun?.key===mouseScenarioKey&&comparisonRun.visible){setComparisonRun({...comparisonRun,visible:false});return;}const started=performance.now(),rows=compareMicromouseStrategies(micromouseGraph,{...DEFAULT_MOUSE_PHYSICS,...mouseMotion,cellMeters:(micromouseFormat?.cellPitchCm??18)/100},mouseRealism,seed);setComparisonRun({key:mouseScenarioKey,rows,costMs:Math.max(0,Math.round(performance.now()-started)),visible:true});};
+  const mousePlayback=useSolverPlayback(micromouse?.events.length??0,`mouse:${mouseScenarioKey}`,micromouseActive,micromouseSpeed);
   const mousePhase:MousePhase|'ready'|'complete'=!micromouseActive||!micromouse?'ready':mousePlayback.state.finished?'complete':([...micromouse.events.slice(0,mousePlayback.state.index)].reverse().find(event=>event.type==='phase')?.phase??'search');
   const solverRun = useMemo(() => solveMaze(mazeGraph, solverAlgorithm), [mazeGraph, solverAlgorithm]);
   const buildEventCount = mazeData.treeSteps.length + mazeData.braidEdits.length;
@@ -466,8 +472,9 @@ export default function App() {
         controlsOpen={controlsOpen}
         onMinimize={() => setControlsOpen(false)}
         lockSize={lockSize}
+        sizeRevision={sizeRevision}
         mask={mask} setMask={setMask} customMask={customMask} setCustomMask={setCustomMask}
-        setLockSize={value => { setLockSize(value); if (value) setHeightRaw(width); }}
+        setLockSize={setLockSize}
         wallStyle={wallStyle} setWallStyle={setWallStyle} wallThickness={wallThickness} setWallThickness={setWallThickness} cornerRadius={cornerRadius} setCornerRadius={setCornerRadius}
 
         /* Markers */
@@ -481,8 +488,8 @@ export default function App() {
           quit:quitGameplay,
           start:startGameplay,pause:game.pause,restart:restartGameplay,hint:game.hint,newMaze,difficulty:difficultyV2.score,
           personalBestMs:history.filter(entry=>entry.mazeId===mazeId&&entry.status==='completed'&&(entry.hints??0)===0&&entry.id!==activeAttemptId.current).sort((a,b)=>a.elapsedMs-b.elapsedMs)[0]?.elapsedMs,shareChallenge:handleChallengeShare}}
-        micromouse={{available:topology==='grid',active:micromouseActive,reason:'Micromouse physics requires grid topology.',failureReason:micromouse?.reason,state:mousePlayback.state,phase:mousePhase,eventCount:micromouse?.events.length??0,speed:micromouseSpeed,setSpeed:setMicromouseSpeed,showWalls:mouseShowWalls,setShowWalls:setMouseShowWalls,showFlood:mouseShowFlood,setShowFlood:setMouseShowFlood,showRoute:mouseShowRoute,setShowRoute:setMouseShowRoute,metrics:micromouse?.metrics,format:micromouseFormat,exportContext:{seed,width,height,generator,topology,format:micromouseFormat?.id??'custom',motion:mouseMotion,realism:mouseRealism},motion:mouseMotion,setMotion:setMouseMotion,realism:mouseRealism,setRealism:setMouseRealism,strategy:mouseStrategy,setStrategy:setMouseStrategy,comparisons:mouseComparisons,toggleComparison:()=>setMouseComparisonOpen(value=>!value),batch:mouseBatch,
-          start:()=>{game.pause();playback.pause();setGameActive(false);setEndpointMode(null);setMicromouseActive(true);},play:mousePlayback.play,pause:mousePlayback.pause,restart:()=>{game.pause();playback.pause();setGameActive(false);setEndpointMode(null);setMicromouseActive(true);mousePlayback.restart();},step:mousePlayback.step,seek:mousePlayback.seek,
+        micromouse={{available:topology==='grid',active:micromouseActive,reason:'Micromouse physics requires grid topology.',failureReason:micromouse?.reason,state:mousePlayback.state,phase:mousePhase,eventCount:micromouse?.events.length??0,speed:micromouseSpeed,setSpeed:setMicromouseSpeed,showWalls:mouseShowWalls,setShowWalls:setMouseShowWalls,showFlood:mouseShowFlood,setShowFlood:setMouseShowFlood,showRoute:mouseShowRoute,setShowRoute:setMouseShowRoute,metrics:micromouse?.metrics,simulationCostMs:mouseRun?.key===mouseScenarioKey?mouseRun.costMs:undefined,comparisonCostMs:comparisonRun?.key===mouseScenarioKey?comparisonRun.costMs:undefined,format:micromouseFormat,exportContext:{seed,width,height,generator,topology,format:micromouseFormat?.id??'custom',motion:mouseMotion,realism:mouseRealism},motion:mouseMotion,setMotion:setMouseMotion,realism:mouseRealism,setRealism:setMouseRealism,strategy:mouseStrategy,setStrategy:setMouseStrategy,comparisons:mouseComparisons,toggleComparison:toggleMouseComparison,batch:mouseBatch,
+          start:()=>{game.pause();playback.pause();setGameActive(false);setEndpointMode(null);runMicromouse();},play:mousePlayback.play,pause:mousePlayback.pause,restart:()=>{game.pause();playback.pause();setGameActive(false);setEndpointMode(null);runMicromouse();},step:mousePlayback.step,seek:mousePlayback.seek,
           seekPhase:phase=>{const index=micromouse?.events.findIndex(event=>event.type==='phase'&&event.phase===phase)??-1;if(index>=0){setMicromouseActive(true);mousePlayback.seek(index+1);}},
           applyFormat:(id:MicromouseFormatId)=>{const format=MICROMOUSE_FORMATS[id],endpoints=micromouseEndpoints(format);game.pause();mousePlayback.pause();playback.pause();setGameActive(false);setMicromouseActive(false);setEndpointMode(null);setTopology('grid');setMask('rectangle');setLockSize(true);setWidthRaw(format.width);setHeightRaw(format.height);setStartCell(endpoints.start);setGoalCell(endpoints.goal);}}}
         history={{entries:history,onOpen:openHistory,onDelete:deleteHistory,onClear:clearHistory}}

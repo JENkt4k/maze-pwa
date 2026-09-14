@@ -32,6 +32,7 @@ type Props = {
   controlsOpen: boolean;
   onMinimize: () => void;
   lockSize: boolean;
+  sizeRevision:number;
   setLockSize: (v:boolean)=>void;
   mask:MaskId; setMask:(mask:MaskId)=>void; customMask?:CustomMask; setCustomMask:(mask:CustomMask)=>void;
   wallStyle:WallStyle;setWallStyle:(style:WallStyle)=>void;wallThickness:number;setWallThickness:(value:number)=>void;cornerRadius:number;setCornerRadius:(value:number)=>void;
@@ -67,6 +68,12 @@ export default function Sidebar(props: Props){
   } = props;
 
   const [picker, setPicker] = useState<null | "start" | "goal">(null);
+  const [draftWidth,setDraftWidth]=useState(width),[draftHeight,setDraftHeight]=useState(height);
+  useEffect(()=>{setDraftWidth(width);setDraftHeight(height);},[width,height,props.sizeRevision]);
+  const sizeDirty=draftWidth!==width||draftHeight!==height;
+  const normalizeSize=(value:number)=>value%2?value:value+1;
+  const applySize=()=>{props.setWidth(draftWidth);if(!props.lockSize)props.setHeight(draftHeight);};
+  const resetSize=()=>{setDraftWidth(width);setDraftHeight(height);};
   type ControlPage='build'|'play'|'robot'|'analyze'|'library';
   const [controlPage,setControlPage]=useState<ControlPage>('build');
   const pagePanelIds:Record<ControlPage,string>={build:'build-controls-panel build-secondary-panel',play:'play-controls-panel play-records-panel',robot:'robot-controls-panel',analyze:'analyze-controls-panel',library:'library-controls-panel'};
@@ -151,19 +158,19 @@ export default function Sidebar(props: Props){
           </>}
           {props.mask==='custom'&&<CustomMaskControls value={props.customMask} onChange={props.setCustomMask} width={width} height={height}/>}
 
-          <label>Width: {width}
+          <label>Width: {draftWidth}
             <input
-              name="maze-width" type="range" min={props.giantMode?43:7} max={props.giantMode?101:41} step={width%2===0?1:2}
-              value={width}
-              onChange={e=>props.setWidth(parseInt(e.target.value))}
+              name="maze-width" type="range" min={props.giantMode?43:7} max={props.giantMode?101:41} step={draftWidth%2===0?1:2}
+              value={draftWidth}
+              onChange={e=>{const next=normalizeSize(parseInt(e.target.value));setDraftWidth(next);if(props.lockSize)setDraftHeight(next);}}
             />
           </label>
 
-          <label>Height: {height}
+          <label>Height: {draftHeight}
             <input
-              name="maze-height" type="range" min={props.giantMode?43:7} max={props.giantMode?101:41} step={height%2===0?1:2}
-              value={height}
-              onChange={e=>props.setHeight(parseInt(e.target.value))}
+              name="maze-height" type="range" min={props.giantMode?43:7} max={props.giantMode?101:41} step={draftHeight%2===0?1:2}
+              value={draftHeight}
+              onChange={e=>setDraftHeight(normalizeSize(parseInt(e.target.value)))}
               disabled={props.lockSize}
             />
           </label>
@@ -172,10 +179,11 @@ export default function Sidebar(props: Props){
             <input
               name="lock-maze-size" type="checkbox"
               checked={props.lockSize}
-              onChange={(e)=>props.setLockSize(e.target.checked)}
+              onChange={(e)=>{props.setLockSize(e.target.checked);if(e.target.checked)setDraftHeight(draftWidth);}}
             />
             <span>Lock width & height (square)</span>
           </label>
+          <div className="maze-size-actions" role="group" aria-label="Maze size changes"><button type="button" className="btn btn-primary" disabled={!sizeDirty} onClick={applySize}>Apply size</button><button type="button" className="btn" disabled={!sizeDirty} onClick={resetSize}>Reset size</button>{sizeDirty&&<span role="status">Size change not applied; current maze remains {width}×{height}.</span>}</div>
         </details>
       </fieldset>
       </div>

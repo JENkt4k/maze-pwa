@@ -30,6 +30,7 @@
 - Paged control navigation with an icon-inspired accessible theme and persistent high-contrast mode.
 - Staged Micromouse physics and sensor edits with Apply/Reset controls and mobile-safe slider scrolling.
 - Accessibility pass for control tabs, form names, slider touch targets, and forced-color rendering.
+- Staged maze width and height editing plus explicitly triggered, measured Micromouse calculations.
 
 ## Backlog
 
