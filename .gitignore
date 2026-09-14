@@ -8,3 +8,4 @@
 /.npm-cache
 /test-results
 /playwright-report
+.codex-remote-attachments/
