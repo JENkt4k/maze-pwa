@@ -52,7 +52,7 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
   Explorer, Balanced, Sprint, and custom robot physics settings support motion comparisons offline.
   Classic full-size mazes open and visibly mark a true 2×2 center area; simulations accept any of its four cells.
   Switch among Flood Fill, Trémaux, and Right-Wall exploration to compare robot behavior.
-  An on-demand table benchmarks every strategy against the same maze and robot settings.
+  An on-demand table benchmarks every strategy against the same maze and robot settings. Multi-seed batch results and same-maze comparisons can be downloaded as CSV or JSON for offline analysis.
   Batch benchmarks compare aggregate completion and performance across 10, 25, or 50 seeds in a cancellable worker.
 - Draw, erase, and clear a freehand path. Drawing stays aligned when the viewport
   changes and clears when the maze changes. Select **Scroll** to scroll by touch
