@@ -52,10 +52,21 @@ test('control pages and accessible visual preferences persist',async({page})=>{
   await expect(page.locator('#robot-controls-panel')).toBeVisible();
   await page.getByRole('button',{name:'Collapse all',exact:true}).click();
   await expect(page.locator('#robot-controls-panel details[open]')).toHaveCount(0);
-  await page.getByLabel('High contrast').check();
-  await expect(page.locator('html')).toHaveAttribute('data-contrast','high');
   await page.getByLabel('Data colors').selectOption('colorblind');
   await expect(page.locator('html')).toHaveAttribute('data-palette','colorblind');
+  await expect(page.getByLabel('Data colors')).toHaveCSS('color','rgb(255, 255, 255)');
+  await expect(page.getByLabel('Data colors')).toHaveCSS('background-color','rgb(16, 43, 80)');
+  await page.getByLabel('Theme').selectOption('dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
+  await expect(page.locator('.panel').first()).toHaveCSS('background-color','rgb(13, 29, 50)');
+  await expect(page.locator('.stats-card')).toHaveCSS('color','rgb(23, 35, 59)');
+  await openControlPage(page,'Library');
+  await page.getByLabel('Maze name').fill('Dark theme maze');
+  await page.getByRole('button',{name:'Save current',exact:true}).click();
+  await expect(page.locator('.collection-list>div').first()).toHaveCSS('color','rgb(23, 35, 59)');
+  await page.getByLabel('High contrast').check();
+  await expect(page.locator('html')).toHaveAttribute('data-contrast','high');
+  await expect(page.getByLabel('Data colors')).toHaveCSS('background-color','rgb(0, 0, 0)');
   await openControlPage(page,'Build');
   await expect(page.getByLabel('Build animation color')).toHaveValue('#b35c00');
   await expect(page.getByLabel('Solver animation color')).toHaveValue('#0072b2');
@@ -64,6 +75,8 @@ test('control pages and accessible visual preferences persist',async({page})=>{
   await expect(page.locator('html')).toHaveAttribute('data-contrast','high');
   await expect(page.getByLabel('Data colors')).toHaveValue('colorblind');
   await expect(page.locator('html')).toHaveAttribute('data-palette','colorblind');
+  await expect(page.locator('select[name="interface-theme"]')).toHaveValue('dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme','dark');
 });
 
 test('maze size changes remain staged until applied and can be reset',async({page})=>{

@@ -80,9 +80,18 @@ export default function Sidebar(props: Props){
   const [controlPage,setControlPage]=useState<ControlPage>(()=>props.micromouse.batch.shared?'robot':'build');
   const pagePanelIds:Record<ControlPage,string>={build:'build-controls-panel build-secondary-panel',play:'play-controls-panel play-records-panel',robot:'robot-controls-panel',analyze:'analyze-controls-panel',library:'library-controls-panel'};
   const [highContrast,setHighContrast]=useState(()=>{try{return localStorage.getItem('ui:highContrast:v1')==='true';}catch{return false;}});
+  type ThemePreference='system'|'light'|'dark';
+  const [theme,setTheme]=useState<ThemePreference>(()=>{try{const value=localStorage.getItem('ui:theme:v1');return value==='light'||value==='dark'?value:'system';}catch{return 'system';}});
   const controlsRef=useRef<HTMLElement>(null);
   useEffect(() => { if (!controlsOpen) setPicker(null); }, [controlsOpen]);
   useEffect(()=>{document.documentElement.dataset.contrast=highContrast?'high':'';try{localStorage.setItem('ui:highContrast:v1',String(highContrast));}catch{}},[highContrast]);
+  useEffect(()=>{
+    const media=window.matchMedia('(prefers-color-scheme: dark)');
+    const apply=()=>{document.documentElement.dataset.theme=theme==='system'?(media.matches?'dark':'light'):theme;document.documentElement.dataset.themePreference=theme;};
+    apply();media.addEventListener('change',apply);
+    try{localStorage.setItem('ui:theme:v1',theme);}catch{}
+    return()=>media.removeEventListener('change',apply);
+  },[theme]);
   useEffect(()=>{if(props.gameplay.active)setControlPage('play');else if(props.micromouse.active)setControlPage('robot');},[props.gameplay.active,props.micromouse.active]);
   const [uploadError, setUploadError] = useState<string | null>(null);
   async function uploadMarker(file: File | undefined, setMarker: (value: string | null) => void) {
@@ -126,7 +135,7 @@ export default function Sidebar(props: Props){
 
       <nav className="control-nav" aria-label="Control categories">
         <div role="tablist" aria-label="Maze control pages">{(['build','play','robot','analyze','library'] as const).map((page,index,pages)=><button id={`${page}-controls-tab`} key={page} type="button" role="tab" data-control-tab={page} aria-controls={pagePanelIds[page]} tabIndex={controlPage===page?0:-1} aria-selected={controlPage===page} className={controlPage===page?'active':''} onClick={()=>setControlPage(page)} onKeyDown={event=>{let next=index;if(event.key==='ArrowRight')next=(index+1)%pages.length;else if(event.key==='ArrowLeft')next=(index-1+pages.length)%pages.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=pages.length-1;else return;event.preventDefault();const target=pages[next];setControlPage(target);requestAnimationFrame(()=>controlsRef.current?.querySelector<HTMLButtonElement>(`[data-control-tab="${target}"]`)?.focus());}}>{page[0].toUpperCase()+page.slice(1)}</button>)}</div>
-        <div className="control-nav-tools"><button type="button" className="btn btn-sm" onClick={()=>controlsRef.current?.querySelectorAll('.control-page:not([hidden]) details[open]').forEach(details=>details.removeAttribute('open'))}>Collapse all</button><label className="palette-select">Data colors<select name="visual-palette" value={props.visualPalette} onChange={event=>props.setVisualPalette(event.target.value as VisualPaletteId)}>{Object.entries(VISUAL_PALETTES).map(([id,palette])=><option key={id} value={id}>{palette.name}</option>)}</select></label><label className="contrast-toggle"><input name="high-contrast" type="checkbox" checked={highContrast} onChange={event=>setHighContrast(event.target.checked)}/>High contrast</label></div>
+        <div className="control-nav-tools"><button type="button" className="btn btn-sm" onClick={()=>controlsRef.current?.querySelectorAll('.control-page:not([hidden]) details[open]').forEach(details=>details.removeAttribute('open'))}>Collapse all</button><label className="palette-select">Theme<select name="interface-theme" value={theme} onChange={event=>setTheme(event.target.value as ThemePreference)}><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label><label className="palette-select">Data colors<select name="visual-palette" value={props.visualPalette} onChange={event=>props.setVisualPalette(event.target.value as VisualPaletteId)}>{Object.entries(VISUAL_PALETTES).map(([id,palette])=><option key={id} value={id}>{palette.name}</option>)}</select></label><label className="contrast-toggle"><input name="high-contrast" type="checkbox" checked={highContrast} onChange={event=>setHighContrast(event.target.checked)}/>High contrast</label></div>
       </nav>
 
       <div id="build-controls-panel" role="tabpanel" aria-labelledby="build-controls-tab" className="control-page" hidden={controlPage!=='build'} aria-label="Build controls">
