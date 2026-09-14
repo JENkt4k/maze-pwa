@@ -82,7 +82,7 @@ export default function App() {
   const [mouseShowFlood,setMouseShowFlood]=useState(persisted.mouseShowFlood??false);
   const [mouseShowRoute,setMouseShowRoute]=useState(persisted.mouseShowRoute??true);
   const [mouseMotion,setMouseMotion]=useState<MouseMotion>({maxSpeedMps:persisted.mouseMaxSpeedMps??MOUSE_PROFILES.balanced.motion.maxSpeedMps,accelerationMps2:persisted.mouseAccelerationMps2??MOUSE_PROFILES.balanced.motion.accelerationMps2,turn90Ms:persisted.mouseTurn90Ms??MOUSE_PROFILES.balanced.motion.turn90Ms});
-  const [mouseRealism,setMouseRealism]=useState<MouseRealism>({sensorRangeCells:persisted.mouseSensorRangeCells??DEFAULT_MOUSE_REALISM.sensorRangeCells,sensorNoise:persisted.mouseSensorNoise??DEFAULT_MOUSE_REALISM.sensorNoise,correctionMs:persisted.mouseCorrectionMs??DEFAULT_MOUSE_REALISM.correctionMs,collisionMs:persisted.mouseCollisionMs??DEFAULT_MOUSE_REALISM.collisionMs});
+  const [mouseRealism,setMouseRealism]=useState<MouseRealism>({sensorRangeCells:persisted.mouseSensorRangeCells??DEFAULT_MOUSE_REALISM.sensorRangeCells,sensorNoise:persisted.mouseSensorNoise??DEFAULT_MOUSE_REALISM.sensorNoise,correctionMs:persisted.mouseCorrectionMs??DEFAULT_MOUSE_REALISM.correctionMs,collisionMs:persisted.mouseCollisionMs??DEFAULT_MOUSE_REALISM.collisionMs,diagonalSpeedRuns:persisted.mouseDiagonalSpeedRuns??DEFAULT_MOUSE_REALISM.diagonalSpeedRuns});
   const [mouseStrategy,setMouseStrategy]=useState<MouseStrategyId>(persisted.mouseStrategy??'flood-fill');
   const [mouseComparisonOpen,setMouseComparisonOpen]=useState(false);
   const [controlsOpen, setControlsOpen] = useState(persisted.controlsOpen ?? !window.matchMedia("(max-width: 840px)").matches);
@@ -236,6 +236,7 @@ export default function App() {
           mouseSensorNoise:mouseRealism.sensorNoise,
           mouseCorrectionMs:mouseRealism.correctionMs,
           mouseCollisionMs:mouseRealism.collisionMs,
+          mouseDiagonalSpeedRuns:mouseRealism.diagonalSpeedRuns,
           mouseStrategy,
           generationColor,
           generationOpacity,
@@ -332,7 +333,7 @@ export default function App() {
   const micromouseGraph=useMemo(()=>usesCompetitionGoal&&micromouseFormat?{...mazeGraph,goals:micromouseGoalCells(micromouseFormat).map(nodeId).filter(id=>mazeGraph.nodes.has(id))}:mazeGraph,[mazeGraph,micromouseFormat,usesCompetitionGoal]);
   const micromouse=useMemo(()=>topology==='grid'?simulateMicromouse(micromouseGraph,{...DEFAULT_MOUSE_PHYSICS,...mouseMotion,cellMeters:(micromouseFormat?.cellPitchCm??18)/100},mouseStrategy,mouseRealism,seed):null,[topology,micromouseGraph,micromouseFormat?.cellPitchCm,mouseMotion,mouseStrategy,mouseRealism,seed]);
   const mouseComparisons=useMemo(()=>mouseComparisonOpen&&topology==='grid'?compareMicromouseStrategies(micromouseGraph,{...DEFAULT_MOUSE_PHYSICS,...mouseMotion,cellMeters:(micromouseFormat?.cellPitchCm??18)/100},mouseRealism,seed):undefined,[mouseComparisonOpen,topology,micromouseGraph,mouseMotion,mouseRealism,micromouseFormat?.cellPitchCm,seed]);
-  const mousePlayback=useSolverPlayback(micromouse?.events.length??0,`mouse:${mazeId}:${mouseStrategy}:${mouseMotion.maxSpeedMps}:${mouseMotion.accelerationMps2}:${mouseMotion.turn90Ms}:${mouseRealism.sensorRangeCells}:${mouseRealism.sensorNoise}:${mouseRealism.correctionMs}:${mouseRealism.collisionMs}`,micromouseActive,micromouseSpeed);
+  const mousePlayback=useSolverPlayback(micromouse?.events.length??0,`mouse:${mazeId}:${mouseStrategy}:${mouseMotion.maxSpeedMps}:${mouseMotion.accelerationMps2}:${mouseMotion.turn90Ms}:${mouseRealism.sensorRangeCells}:${mouseRealism.sensorNoise}:${mouseRealism.correctionMs}:${mouseRealism.collisionMs}:${mouseRealism.diagonalSpeedRuns}`,micromouseActive,micromouseSpeed);
   const mousePhase:MousePhase|'ready'|'complete'=!micromouseActive||!micromouse?'ready':mousePlayback.state.finished?'complete':([...micromouse.events.slice(0,mousePlayback.state.index)].reverse().find(event=>event.type==='phase')?.phase??'search');
   const solverRun = useMemo(() => solveMaze(mazeGraph, solverAlgorithm), [mazeGraph, solverAlgorithm]);
   const buildEventCount = mazeData.treeSteps.length + mazeData.braidEdits.length;

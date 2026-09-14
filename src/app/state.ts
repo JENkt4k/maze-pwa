@@ -32,6 +32,7 @@ export type Settings = MazeParams & Markers & {
   mouseSensorNoise:number;
   mouseCorrectionMs:number;
   mouseCollisionMs:number;
+  mouseDiagonalSpeedRuns:boolean;
   mouseStrategy:MouseStrategyId;
   // Legacy fields retained only while migrating existing settings.
   animateDFS: boolean;
@@ -54,7 +55,7 @@ export function validateSettings(value: unknown): Partial<Settings> {
     if (key === 'seed' || key === 'dfsSegMs' || key === 'lingerMs' || key === 'solverStepMs'||key==='micromouseSpeed'||key==='mouseTurn90Ms'||key==='mouseSensorRangeCells'||key==='mouseCorrectionMs'||key==='mouseCollisionMs') v = Math.trunc(v);
     out[key] = v;
   }
-  for (const key of ['controlsOpen', 'lockSize', 'animateDFS', 'solverEnabled','gameBreadcrumbs','mouseShowWalls','mouseShowFlood','mouseShowRoute']) if (typeof value[key] === 'boolean') out[key] = value[key];
+  for (const key of ['controlsOpen', 'lockSize', 'animateDFS', 'solverEnabled','gameBreadcrumbs','mouseShowWalls','mouseShowFlood','mouseShowRoute','mouseDiagonalSpeedRuns']) if (typeof value[key] === 'boolean') out[key] = value[key];
   if (['dfs', 'bfs', 'dijkstra', 'astar'].includes(String(value.solverAlgorithm))) out.solverAlgorithm = value.solverAlgorithm;
   if (['dfs', 'prim', 'kruskal', 'wilson'].includes(String(value.generator))) out.generator = value.generator as GeneratorId;
   if(['random','difficulty'].includes(String(value.braidMode)))out.braidMode=value.braidMode as BraidMode;

@@ -22,12 +22,13 @@
 - On-demand Micromouse strategy comparison across search and speed-run metrics.
 - Multi-seed Micromouse batch benchmarks with downloadable CSV and JSON results.
 - Deterministic Micromouse sensor range/noise with collision recovery and position-correction timing.
+- Optional diagonal corner smoothing for learned Micromouse speed runs.
 - Cancellable worker-based Micromouse batch benchmarks across multiple seeds.
 
 ## Backlog
 
 1. **Micromouse sensor and motion realism**
-   - Diagonal speed runs and optional traction or battery constraints.
+   - Optional traction or battery constraints.
 2. **Maze collections and export**
    - Named folders and tags, backups, and printable maze packs.
    - Shareable benchmark configurations.
