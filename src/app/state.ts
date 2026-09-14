@@ -3,6 +3,7 @@ import type { SolverId } from '../maze/solvers';
 import type { AnimationMode } from '../maze/animation';
 import { CUSTOM_MASK_SIZE, type CustomMask, type MaskId } from '../maze/masks';
 import type { WallStyle } from '../maze/walls';
+import type { MouseStrategyId } from '../maze/micromouse';
 
 export const SETTINGS_KEY = 'maze:settings:v1';
 export const STORAGE_KEY = 'savedMazes:v1';
@@ -27,6 +28,7 @@ export type Settings = MazeParams & Markers & {
   mouseMaxSpeedMps:number;
   mouseAccelerationMps2:number;
   mouseTurn90Ms:number;
+  mouseStrategy:MouseStrategyId;
   // Legacy fields retained only while migrating existing settings.
   animateDFS: boolean;
   dfsSegMs: number;
@@ -55,6 +57,7 @@ export function validateSettings(value: unknown): Partial<Settings> {
   if(['grid','freeform'].includes(String(value.topology)))out.topology=value.topology as MazeTopology;
   if (['rectangle','ellipse','diamond','heart','star','cup','brain','moose','custom'].includes(String(value.mask))) out.mask=value.mask as MaskId;
   if(['classic','rounded','organic'].includes(String(value.wallStyle)))out.wallStyle=value.wallStyle as WallStyle;
+  if(['flood-fill','tremaux','right-wall'].includes(String(value.mouseStrategy)))out.mouseStrategy=value.mouseStrategy as MouseStrategyId;
   if(record(value.customMask)&&typeof value.customMask.pixels==='string'&&value.customMask.pixels.length<=Math.ceil(CUSTOM_MASK_SIZE**2/3)*4&&typeof value.customMask.threshold==='number'){
     const threshold=Math.max(1,Math.min(254,Math.trunc(value.customMask.threshold)));
     out.customMask={pixels:value.customMask.pixels,threshold,invert:value.customMask.invert===true,name:typeof value.customMask.name==='string'?value.customMask.name.slice(0,100):undefined} satisfies CustomMask;

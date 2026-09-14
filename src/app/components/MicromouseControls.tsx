@@ -1,9 +1,9 @@
 import type { PlaybackState } from '../hooks/useSolverPlayback';
-import type { MicromouseMetrics, MousePhase } from '../../maze/micromouse';
+import type { MicromouseMetrics, MousePhase, MouseStrategyId } from '../../maze/micromouse';
 import { MICROMOUSE_FORMATS, micromouseFootprintMeters, type MicromouseFormat, type MicromouseFormatId } from '../../maze/micromouseFormats';
 import { matchingMouseProfile, MOUSE_PROFILES, type MouseMotion, type MouseProfileId } from '../../maze/micromouseProfiles';
 
-export type MicromouseControlsProps={available:boolean;active:boolean;reason?:string;failureReason?:string;state:PlaybackState;phase:MousePhase|'ready'|'complete';eventCount:number;speed:number;setSpeed:(value:number)=>void;showWalls:boolean;setShowWalls:(value:boolean)=>void;showFlood:boolean;setShowFlood:(value:boolean)=>void;showRoute:boolean;setShowRoute:(value:boolean)=>void;metrics?:MicromouseMetrics;format?:MicromouseFormat;applyFormat:(id:MicromouseFormatId)=>void;motion:MouseMotion;setMotion:(motion:MouseMotion)=>void;start:()=>void;play:()=>void;pause:()=>void;restart:()=>void;step:()=>void;seek:(index:number)=>void;seekPhase:(phase:MousePhase)=>void};
+export type MicromouseControlsProps={available:boolean;active:boolean;reason?:string;failureReason?:string;state:PlaybackState;phase:MousePhase|'ready'|'complete';eventCount:number;speed:number;setSpeed:(value:number)=>void;showWalls:boolean;setShowWalls:(value:boolean)=>void;showFlood:boolean;setShowFlood:(value:boolean)=>void;showRoute:boolean;setShowRoute:(value:boolean)=>void;metrics?:MicromouseMetrics;format?:MicromouseFormat;applyFormat:(id:MicromouseFormatId)=>void;motion:MouseMotion;setMotion:(motion:MouseMotion)=>void;strategy:MouseStrategyId;setStrategy:(strategy:MouseStrategyId)=>void;start:()=>void;play:()=>void;pause:()=>void;restart:()=>void;step:()=>void;seek:(index:number)=>void;seekPhase:(phase:MousePhase)=>void};
 const seconds=(ms:number)=>`${(ms/1000).toFixed(2)} s`;
 
 export default function MicromouseControls(props:MicromouseControlsProps){
@@ -16,6 +16,10 @@ export default function MicromouseControls(props:MicromouseControlsProps){
       </select>
     </label>
     {props.format&&<CompetitionDimensions format={props.format} speedCells={props.metrics?.speed.cells}/>}
+    <label>Exploration strategy<select name="micromouse-strategy" value={props.strategy} onChange={e=>props.setStrategy(e.target.value as MouseStrategyId)}>
+      <option value="flood-fill">Flood Fill</option><option value="tremaux">Trémaux (least visited)</option><option value="right-wall">Right-Wall Follower</option>
+    </select></label>
+    <p>{props.strategy==='flood-fill'?'Heads toward the lowest estimated distance.':props.strategy==='tremaux'?'Prefers the least-visited passage while using the goal distance as a tie-breaker.':'Keeps the right wall; reliable on perfect mazes but may loop in braided mazes.'}</p>
     <fieldset className="mouse-physics"><legend>Robot physics</legend>
       <label>Robot profile<select name="micromouse-profile" value={profileId} onChange={e=>{if(e.target.value!=='custom')props.setMotion(MOUSE_PROFILES[e.target.value as MouseProfileId].motion)}}>
         {Object.entries(MOUSE_PROFILES).map(([id,profile])=><option key={id} value={id}>{profile.name}</option>)}<option value="custom">Custom</option>

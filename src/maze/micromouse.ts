@@ -1,6 +1,7 @@
 import { requireNode, type MazeGraph, type NodeId } from './graph';
 
 export type MousePhase='search'|'return'|'speed';
+export type MouseStrategyId='flood-fill'|'tremaux'|'right-wall';
 export type Heading='n'|'e'|'s'|'w';
 export type WallKnowledge='unknown'|'open'|'blocked';
 export type MousePhysics={cellMeters:number;maxSpeedMps:number;accelerationMps2:number;turn90Ms:number;collisionMs:number};
@@ -57,13 +58,14 @@ function observe(graph:MazeGraph,node:NodeId,knowledge:KnowledgeMap):Record<Head
   return walls;
 }
 
-function chooseMove(graph:MazeGraph,current:NodeId,target:NodeId|readonly NodeId[],heading:Heading,knowledge:KnowledgeMap,visits:ReadonlyMap<NodeId,number>):{node:NodeId;heading:Heading}|null{
+function chooseMove(graph:MazeGraph,current:NodeId,target:NodeId|readonly NodeId[],heading:Heading,knowledge:KnowledgeMap,visits:ReadonlyMap<NodeId,number>,strategy:MouseStrategyId):{node:NodeId;heading:Heading}|null{
   const distances=floodDistances(graph,knowledge,target),point=requireNode(graph,current).position;
   const choices=directions.flatMap((direction,index)=>{
     if(knowledge.get(current)?.[direction.heading]!=='open')return[];
     const node=idAt(point.x+direction.dx,point.y+direction.dy),distance=distances.get(node);if(distance===undefined)return[];
-    return[{node,heading:direction.heading,distance,visited:visits.get(node)??0,straight:direction.heading===heading?0:1,order:index}];
-  }).sort((a,b)=>a.distance-b.distance||a.visited-b.visited||a.straight-b.straight||a.order-b.order);
+    const delta=(headingIndex[direction.heading]-headingIndex[heading]+4)%4,rightRank=delta===1?0:delta===0?1:delta===3?2:3;
+    return[{node,heading:direction.heading,distance,visited:visits.get(node)??0,straight:direction.heading===heading?0:1,rightRank,order:index}];
+  }).sort((a,b)=>strategy==='right-wall'?a.rightRank-b.rightRank||a.visited-b.visited:strategy==='tremaux'?a.visited-b.visited||a.distance-b.distance||a.straight-b.straight:a.distance-b.distance||a.visited-b.visited||a.straight-b.straight||a.order-b.order);
   return choices[0]??null;
 }
 
@@ -92,7 +94,7 @@ function routeMetrics(graph:MazeGraph,route:readonly NodeId[],initial:Heading,ph
   }return{cells:route.length-1,turns,timeMs:Math.round(timeMs)};
 }
 
-export function simulateMicromouse(graph:MazeGraph,physics:MousePhysics=DEFAULT_MOUSE_PHYSICS):MicromouseResult{
+export function simulateMicromouse(graph:MazeGraph,physics:MousePhysics=DEFAULT_MOUSE_PHYSICS,strategy:MouseStrategyId='flood-fill'):MicromouseResult{
   if(!graph.goals.length)throw new Error('Micromouse requires at least one goal');
   for(const goal of graph.goals)requireNode(graph,goal);
   for(const node of graph.nodes.values()){if(!Number.isInteger(node.position.x)||!Number.isInteger(node.position.y))throw new Error('Micromouse requires grid topology');for(const neighbor of node.neighbors)directionBetween(graph,node.id,neighbor);}
@@ -104,7 +106,7 @@ export function simulateMicromouse(graph:MazeGraph,physics:MousePhysics=DEFAULT_
     const limit=Math.max(16,graph.nodes.size*8);
     for(let step=0;!targets.includes(current)&&step<limit;step++){
       const walls=observe(graph,current,knowledge);events.push({type:'sense',phase,node:current,heading,walls});
-      const next=chooseMove(graph,current,target,heading,knowledge,visits);if(!next){failure='No route to a goal using discovered walls';return false;}
+      const next=chooseMove(graph,current,target,heading,knowledge,visits,strategy);if(!next){failure='No route to a goal using discovered walls';return false;}
       events.push({type:'move',phase,from:current,node:next.node,heading:next.heading});current=next.node;heading=next.heading;route.push(current);visits.set(current,(visits.get(current)??0)+1);
     }
     const walls=observe(graph,current,knowledge);events.push({type:'sense',phase,node:current,heading,walls});if(!targets.includes(current)){failure=`${phase} exceeded ${limit} steps`;return false;}return true;

@@ -17,6 +17,7 @@
 - Micromouse full-size and half-size competition presets with physical dimensions and scaled timing.
 - Offline Micromouse robot profiles with adjustable speed, acceleration, and turn timing.
 - Classic Micromouse four-cell center goal zones with nearest-goal flood-fill behavior.
+- Selectable Micromouse Flood Fill, Trémaux, and Right-Wall exploration strategies.
 
 ## Backlog
 
