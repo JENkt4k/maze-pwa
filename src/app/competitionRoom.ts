@@ -7,7 +7,9 @@ import { strFromU8,strToU8,zlibSync,unzlibSync } from 'fflate';
 export const COMPETITION_ROOM_STORAGE_PREFIX='maze:competition-room:v1:';
 export const COMPETITION_LAST_ROOM_PREFIX='maze:competition-last-room:v1:';
 export const COMPETITION_PARTICIPANT_ID='maze:competition-participant-id:v1';
+export const COMPETITION_SESSION_PREFIX='maze:competition-session:v1:';
 export type RoomResult=Readonly<{id:string;player:string;mazeId:string;elapsedMs:number;moves:number;revisits:number;route:readonly string[];completedAt:number}>;
+export type RoomSession=Readonly<{roomId:string;roomName:string;role:'host'|'guest';player:string}>;
 export type SignalCode=Readonly<{version:1;kind:'offer'|'answer';roomId:string;roomName?:string;participantId?:string;participantName?:string;mazeId:string;maze:HistoryMazeParams;description:RTCSessionDescriptionInit}>;
 export type CandidateRoute='none'|'local'|'stun'|'relay';
 
@@ -17,6 +19,14 @@ const bytesToBase64=(bytes:Uint8Array)=>{let value='';for(const byte of bytes)va
 const base64ToBytes=(value:string)=>{const normalized=value.replace(/-/g,'+').replace(/_/g,'/');const decoded=atob(normalized+'='.repeat((4-normalized.length%4)%4));return Uint8Array.from(decoded,char=>char.charCodeAt(0));};
 
 const COMPRESSED_SIGNAL_PREFIX='z.';
+
+export function parseRoomSession(raw:string|null):RoomSession|null{
+  try{
+    const value:unknown=JSON.parse(raw??'null');
+    if(!record(value)||typeof value.roomId!=='string'||!value.roomId||typeof value.roomName!=='string'||!value.roomName.trim()||!['host','guest'].includes(String(value.role))||typeof value.player!=='string'||!value.player.trim())return null;
+    return{roomId:value.roomId,roomName:value.roomName.trim().slice(0,40),role:value.role as 'host'|'guest',player:value.player.trim().slice(0,24)};
+  }catch{return null;}
+}
 
 export function encodeSignal(signal:SignalCode):string{
   return COMPRESSED_SIGNAL_PREFIX+bytesToBase64(zlibSync(strToU8(JSON.stringify(signal)),{level:9}));

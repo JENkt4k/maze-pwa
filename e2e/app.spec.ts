@@ -439,6 +439,27 @@ test('serverless competition peers complete the manual offer and answer exchange
   await expect(hostRoom.getByRole('region',{name:'Room participants'})).toContainText('Tuesday sprint');
   await expect(hostRoom.getByRole('region',{name:'Room participants'})).toContainText('Guest Bob');
   await expect(guestRoom.getByRole('region',{name:'Room participants'})).toContainText('Host Alice');
+  await hostRoom.getByRole('button',{name:'Remove Guest Bob'}).click();
+  await expect(hostRoom).toContainText('Guest Bob removed');
+  await expect(guestRoom).toContainText('The host removed you from the room');
+});
+
+test('competition host can resume a saved room after refresh',async({page})=>{
+  await page.goto('./');
+  await openControlPage(page,'Play');
+  let room=page.getByRole('region',{name:'Serverless competition room'});
+  await room.getByLabel('Player name').fill('Host Alice');
+  await room.getByLabel('Room name').fill('Weekend final');
+  await room.getByRole('button',{name:'Create room'}).click();
+  await expect(room.getByRole('region',{name:'Room participants'})).toContainText('Weekend final');
+  await page.reload();
+  await openControlPage(page,'Play');
+  room=page.getByRole('region',{name:'Serverless competition room'});
+  const saved=room.getByRole('region',{name:'Saved competition room'});
+  await expect(saved).toContainText('Previously hosted as Host Alice');
+  await saved.getByRole('button',{name:'Resume hosting'}).click();
+  await expect(room.getByRole('region',{name:'Room participants'})).toContainText('Weekend final');
+  await expect(room).toContainText('Create a fresh offer for each returning participant');
 });
 
 test('giant maze mode exposes larger sizes and pan and zoom controls',async({page})=>{
