@@ -74,7 +74,8 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
   metrics are rejected. Accepted standings persist on each participating device
   and can be exported as JSON or CSV. Connection codes support native sharing,
   clipboard import, downloadable QR images, and cancellation of stale offers.
-  Restrictive networks may prevent a direct connection.
+  Visible ICE-gathering and connection states distinguish normal negotiation from
+  failures. Restrictive networks may prevent a direct connection.
 - Open **Animation Algorithms** to replay construction, solving, or both as one
   timeline. Choose randomized DFS, Prim, or Kruskal generation independently from
   DFS, breadth-first search, Dijkstra, or A* solving. One playback system provides

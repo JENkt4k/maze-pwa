@@ -13,7 +13,9 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${port}${basePath}`,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-    launchOptions: process.platform === 'win32' ? { channel: 'msedge' } : {},
+    launchOptions: process.platform === 'win32'
+      ? { channel: 'msedge',args:['--disable-features=WebRtcHideLocalIpsWithMdns'] }
+      : { args:['--disable-features=WebRtcHideLocalIpsWithMdns'] },
   },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: {width:1280,height:900} } },

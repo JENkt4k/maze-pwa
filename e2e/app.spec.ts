@@ -382,6 +382,30 @@ test('serverless competition rooms expose manual signaling without an account',a
   await expect(room.getByRole('button',{name:'Share my best result'})).toBeDisabled();
 });
 
+test('serverless competition peers complete the manual offer and answer exchange',async({page,context})=>{
+  const guest=await context.newPage();
+  await Promise.all([page.goto('./'),guest.goto('./')]);
+  await openControlPage(page,'Play');await openControlPage(guest,'Play');
+  const hostRoom=page.getByRole('region',{name:'Serverless competition room'}),guestRoom=guest.getByRole('region',{name:'Serverless competition room'});
+  await hostRoom.getByRole('button',{name:'Create room'}).click();
+  await hostRoom.getByRole('button',{name:'Add participant'}).click();
+  const hostOffer=hostRoom.getByLabel('Offer to participant');
+  await expect(hostOffer).not.toHaveValue('',{timeout:12000});
+  await guestRoom.getByLabel('Host offer code').fill(await hostOffer.inputValue());
+  await guestRoom.getByRole('button',{name:'Join from offer'}).click();
+  const guestAnswer=guestRoom.getByLabel('Answer to host');
+  await expect(guestAnswer).not.toHaveValue('',{timeout:12000});
+  const signalSummary=await guest.evaluate(([offerCode,answerCode])=>{
+    const decode=(code:string)=>JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(code.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-code.length%4)%4)),char=>char.charCodeAt(0))));
+    return[offerCode,answerCode].map(code=>{const signal=decode(code);return{type:signal.description.type,candidates:signal.description.sdp.split('\r\n').filter((line:string)=>line.startsWith('a=candidate:'))};});
+  },[await hostOffer.inputValue(),await guestAnswer.inputValue()]);
+  expect(signalSummary.every(signal=>signal.candidates.length>0)).toBe(true);
+  await hostRoom.getByLabel('Participant answer').fill(await guestAnswer.inputValue());
+  await hostRoom.getByRole('button',{name:'Connect participant'}).click();
+  await expect(hostRoom).toContainText('Hosting · 1 connected',{timeout:7000});
+  await expect(guestRoom).toContainText('Joined · 1 connected',{timeout:7000});
+});
+
 test('giant maze mode exposes larger sizes and pan and zoom controls',async({page})=>{
   await page.goto('./');
   await page.getByText('Adjust size',{exact:true}).click();
