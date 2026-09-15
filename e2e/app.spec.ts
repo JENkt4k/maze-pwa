@@ -372,6 +372,7 @@ test('serverless competition rooms expose manual signaling without an account',a
   const room=page.getByRole('region',{name:'Serverless competition room'});
   await expect(room).toContainText('No account or server');
   await expect(room.getByLabel('Host offer code')).toBeVisible();
+  await expect(room.getByRole('button',{name:'Paste offer'})).toBeVisible();
   await room.getByLabel('Host offer code').fill('invalid-code');
   await room.getByRole('button',{name:'Join from offer'}).click();
   await expect(room.getByRole('alert')).toContainText('valid InfiMaze offer code');
