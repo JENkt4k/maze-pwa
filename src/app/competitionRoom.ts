@@ -8,6 +8,7 @@ export const COMPETITION_ROOM_STORAGE_PREFIX='maze:competition-room:v1:';
 export const COMPETITION_LAST_ROOM_PREFIX='maze:competition-last-room:v1:';
 export type RoomResult=Readonly<{id:string;player:string;mazeId:string;elapsedMs:number;moves:number;revisits:number;route:readonly string[];completedAt:number}>;
 export type SignalCode=Readonly<{version:1;kind:'offer'|'answer';roomId:string;mazeId:string;maze:HistoryMazeParams;description:RTCSessionDescriptionInit}>;
+export type CandidateRoute='none'|'local'|'stun'|'relay';
 
 const record=(value:unknown):value is Record<string,unknown>=>typeof value==='object'&&value!==null&&!Array.isArray(value);
 const finite=(value:unknown):value is number=>typeof value==='number'&&Number.isFinite(value)&&value>=0;
@@ -31,6 +32,11 @@ export function decodeSignal(code:string,kind:'offer'|'answer'):SignalCode{
     if(['width','height','seed','g','b','tau'].some(key=>!(key in maze)))throw new Error();
     return{version:1,kind,roomId:value.roomId,mazeId:value.mazeId,maze:maze as HistoryMazeParams,description:{type:value.description.type as RTCSdpType,sdp:value.description.sdp}};
   }catch{throw new Error(`This is not a valid InfiMaze ${kind} code.`);}
+}
+
+export function candidateRoute(description:RTCSessionDescriptionInit|null|undefined):CandidateRoute{
+  const types=new Set((description?.sdp??'').split(/\r?\n/).flatMap(line=>line.startsWith('a=candidate:')?(line.match(/\btyp\s+(host|srflx|relay)\b/)?.[1]?[line.match(/\btyp\s+(host|srflx|relay)\b/)![1]]:[]):[]));
+  return types.has('relay')?'relay':types.has('srflx')?'stun':types.has('host')?'local':'none';
 }
 
 export function resultFromAttempt(entry:PlayHistoryEntry,player:string):RoomResult{

@@ -1,4 +1,4 @@
-import { decodeSignal,encodeSignal,mergeRoomResults,parseRoomResult,resultFromAttempt,roomResultsCsv,type RoomResult } from '@src/app/competitionRoom';
+import { candidateRoute,decodeSignal,encodeSignal,mergeRoomResults,parseRoomResult,resultFromAttempt,roomResultsCsv,type RoomResult } from '@src/app/competitionRoom';
 import type { PlayHistoryEntry } from '@src/app/history';
 import type { MazeGraph } from '@src/maze/graph';
 
@@ -28,6 +28,13 @@ test('peer results are derived and their complete replay is validated',()=>{
   expect(()=>parseRoomResult({...result,route:['0,0','1,1']},'maze-a',graph)).toThrow(/impossible move/);
   expect(()=>parseRoomResult({...result,moves:99},'maze-a',graph)).toThrow(/metrics/);
   expect(()=>resultFromAttempt({...attempt,hints:1},'Ada')).toThrow(/without hints/);
+});
+
+test('ICE candidates report connection reach without exposing addresses',()=>{
+  expect(candidateRoute({type:'offer',sdp:'v=0\r\na=candidate:1 1 udp 1 device.local 5000 typ host\r\n'})).toBe('local');
+  expect(candidateRoute({type:'offer',sdp:'a=candidate:2 1 udp 1 203.0.113.2 5001 typ srflx\r\n'})).toBe('stun');
+  expect(candidateRoute({type:'answer',sdp:'a=candidate:3 1 udp 1 192.0.2.4 5002 typ relay\r\n'})).toBe('relay');
+  expect(candidateRoute({type:'offer',sdp:'v=0\r\n'})).toBe('none');
 });
 
 test('room standings deduplicate, rank, and export portable CSV',()=>{
