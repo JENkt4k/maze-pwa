@@ -12,7 +12,11 @@ const attempt:PlayHistoryEntry={version:1,id:'result-1',mazeId:'maze-a',gameKey:
 
 test('manual offer and answer codes preserve signaling data',()=>{
   const signal={version:1 as const,kind:'offer' as const,roomId:'room-a',mazeId:'maze-a',maze:params,description:{type:'offer' as const,sdp:'v=0\r\na=ice:example'}};
-  expect(decodeSignal(encodeSignal(signal),'offer')).toEqual(signal);
+  const encoded=encodeSignal(signal);
+  expect(encoded).toMatch(/^z\./);
+  expect(decodeSignal(encoded,'offer')).toEqual(signal);
+  const legacy=Buffer.from(JSON.stringify(signal),'utf8').toString('base64url');
+  expect(decodeSignal(legacy,'offer')).toEqual(signal);
   expect(()=>decodeSignal('not-a-code','offer')).toThrow(/valid InfiMaze offer/);
   expect(()=>decodeSignal(encodeSignal({...signal,kind:'answer',description:{type:'answer',sdp:'v=0'}}),'offer')).toThrow();
 });

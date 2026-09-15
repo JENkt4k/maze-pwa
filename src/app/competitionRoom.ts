@@ -2,6 +2,7 @@ import type { PlayHistoryEntry } from './history';
 import type { HistoryMazeParams } from './history';
 import { validateSettings } from './state';
 import type { MazeGraph } from '../maze/graph';
+import { strFromU8,strToU8,zlibSync,unzlibSync } from 'fflate';
 
 export const COMPETITION_ROOM_STORAGE_PREFIX='maze:competition-room:v1:';
 export const COMPETITION_LAST_ROOM_PREFIX='maze:competition-last-room:v1:';
@@ -13,10 +14,18 @@ const finite=(value:unknown):value is number=>typeof value==='number'&&Number.is
 const bytesToBase64=(bytes:Uint8Array)=>{let value='';for(const byte of bytes)value+=String.fromCharCode(byte);return btoa(value).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');};
 const base64ToBytes=(value:string)=>{const normalized=value.replace(/-/g,'+').replace(/_/g,'/');const decoded=atob(normalized+'='.repeat((4-normalized.length%4)%4));return Uint8Array.from(decoded,char=>char.charCodeAt(0));};
 
-export function encodeSignal(signal:SignalCode):string{return bytesToBase64(new TextEncoder().encode(JSON.stringify(signal)));}
+const COMPRESSED_SIGNAL_PREFIX='z.';
+
+export function encodeSignal(signal:SignalCode):string{
+  return COMPRESSED_SIGNAL_PREFIX+bytesToBase64(zlibSync(strToU8(JSON.stringify(signal)),{level:9}));
+}
 export function decodeSignal(code:string,kind:'offer'|'answer'):SignalCode{
   try{
-    const value:unknown=JSON.parse(new TextDecoder().decode(base64ToBytes(code.trim())));
+    const trimmed=code.trim();
+    const json=trimmed.startsWith(COMPRESSED_SIGNAL_PREFIX)
+      ?strFromU8(unzlibSync(base64ToBytes(trimmed.slice(COMPRESSED_SIGNAL_PREFIX.length))))
+      :new TextDecoder().decode(base64ToBytes(trimmed));
+    const value:unknown=JSON.parse(json);
     if(!record(value)||value.version!==1||value.kind!==kind||typeof value.roomId!=='string'||!value.roomId||typeof value.mazeId!=='string'||!value.mazeId||!record(value.maze)||!record(value.description)||!['offer','answer'].includes(String(value.description.type))||typeof value.description.sdp!=='string')throw new Error();
     const maze=validateSettings(value.maze);
     if(['width','height','seed','g','b','tau'].some(key=>!(key in maze)))throw new Error();
