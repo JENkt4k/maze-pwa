@@ -366,6 +366,21 @@ test('local leaderboard ranks completed attempts and shows robot benchmark',asyn
   await expect(shared.getByText('Online scores are not configured for this deployment.')).toBeVisible();
 });
 
+test('serverless competition rooms expose manual signaling without an account',async({page})=>{
+  await page.goto('./');
+  await openControlPage(page,'Play');
+  const room=page.getByRole('region',{name:'Serverless competition room'});
+  await expect(room).toContainText('No account or server');
+  await expect(room.getByLabel('Host offer code')).toBeVisible();
+  await room.getByLabel('Host offer code').fill('invalid-code');
+  await room.getByRole('button',{name:'Join from offer'}).click();
+  await expect(room.getByRole('alert')).toContainText('valid InfiMaze offer code');
+  await room.getByRole('button',{name:'Create room'}).click();
+  await expect(room).toContainText('Hosting · 0 connected');
+  await expect(room.getByRole('button',{name:'Add participant'})).toBeVisible();
+  await expect(room.getByRole('button',{name:'Share my best result'})).toBeDisabled();
+});
+
 test('giant maze mode exposes larger sizes and pan and zoom controls',async({page})=>{
   await page.goto('./');
   await page.getByText('Adjust size',{exact:true}).click();

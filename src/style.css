@@ -201,6 +201,9 @@ label { display: grid; gap: 6px; font-size: 12px; color: #3c4557; }
 .leaderboard th,.leaderboard td { padding:7px 5px;border-bottom:1px solid #e6e9ef; }
 .leaderboard th:first-child,.leaderboard td:first-child { text-align:left; }
 .shared-leaderboard { display:grid;gap:10px;border-top:1px solid var(--panel-border);padding-top:12px; }
+.competition-room { display:grid;gap:10px;border-top:1px solid var(--panel-border);padding-top:12px; }
+.competition-room textarea { width:100%;min-height:88px;resize:vertical;border:1px solid var(--control-border);border-radius:10px;padding:9px;background:var(--control-bg);color:var(--text);font:11px/1.35 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere; }
+.competition-room label { gap:6px; }
 .shared-consent { display:flex;grid-template-columns:none;align-items:center;gap:8px; }
 .shared-submit { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px; }
 .shared-error { margin:0;color:#b91c1c;font-size:12px; }

@@ -2,11 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import type { PlayHistoryEntry } from '../history';
 import { leaderboardMazes, rankAttempts, type LeaderboardSort } from '../leaderboard';
 import { SHARED_LEADERBOARD_CONSENT_KEY, SharedLeaderboardClient, submissionFromAttempt, type SharedScore } from '../sharedLeaderboard';
+import type { MazeGraph } from '../../maze/graph';
+import CompetitionRoom from './CompetitionRoom';
+import type { HistoryMazeParams } from '../history';
 
-export type LeaderboardProps={entries:readonly PlayHistoryEntry[];currentMazeId:string;sharedEndpoint?:string};
+export type LeaderboardProps={entries:readonly PlayHistoryEntry[];currentMazeId:string;currentMaze:HistoryMazeParams;currentGraph:MazeGraph;sharedEndpoint?:string};
 const duration=(ms:number)=>{const tenths=Math.floor(ms/100);const seconds=Math.floor(tenths/10);return`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}.${tenths%10}`;};
 
-export default function Leaderboard({entries,currentMazeId,sharedEndpoint}:LeaderboardProps){
+export default function Leaderboard({entries,currentMazeId,currentMaze,currentGraph,sharedEndpoint}:LeaderboardProps){
   const mazes=useMemo(()=>leaderboardMazes(entries),[entries]);
   const [selected,setSelected]=useState(currentMazeId);
   const [sort,setSort]=useState<LeaderboardSort>('time');
@@ -42,6 +45,7 @@ export default function Leaderboard({entries,currentMazeId,sharedEndpoint}:Leade
       <div className="leaderboard-scroll"><table><thead><tr><th>Rank</th><th>Time</th><th>Moves</th><th>Revisits</th></tr></thead><tbody>{ranked.map((entry,index)=><tr key={entry.id}><td>{index+1}</td><td>{duration(entry.elapsedMs)}</td><td>{entry.moves}</td><td>{entry.revisits}</td></tr>)}</tbody></table></div>
       {benchmark&&<section className="robot-benchmark" aria-label="Micromouse benchmark"><strong>Micromouse benchmark</strong><dl className="solver-metrics"><div><dt>Total</dt><dd>{duration(benchmark.totalTimeMs)}</dd></div><div><dt>Speed run</dt><dd>{duration(benchmark.speedTimeMs)}</dd></div><div><dt>Speed route</dt><dd>{benchmark.speedCells} cells</dd></div><div><dt>Explored</dt><dd>{benchmark.exploredPercent}%</dd></div><div><dt>Turns</dt><dd>{benchmark.turns}</dd></div></dl></section>}
     </>}
+    <CompetitionRoom key={currentMazeId} mazeId={currentMazeId} maze={currentMaze} graph={currentGraph} entries={entries}/>
     <section className="shared-leaderboard" aria-label="Shared leaderboard">
       <div className="history-heading"><strong>Shared leaderboard</strong><span className="muted">Optional</span></div>
       <label className="shared-consent"><input name="enable-online-scores" type="checkbox" checked={sharedEnabled} onChange={event=>toggleShared(event.target.checked)}/><span>Enable online scores</span></label>

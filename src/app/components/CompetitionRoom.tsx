@@ -1,0 +1,63 @@
+import { useEffect,useMemo,useRef,useState } from 'react';
+import type { MazeGraph } from '../../maze/graph';
+import type { HistoryMazeParams,PlayHistoryEntry } from '../history';
+import { COMPETITION_LAST_ROOM_PREFIX,COMPETITION_ROOM_STORAGE_PREFIX,decodeSignal,encodeSignal,mergeRoomResults,parseRoomResult,parseStoredRoom,resultFromAttempt,roomResultsCsv,type RoomResult } from '../competitionRoom';
+
+type Props={mazeId:string;maze:HistoryMazeParams;graph:MazeGraph;entries:readonly PlayHistoryEntry[]};
+type Role='idle'|'host'|'guest';
+const ICE_SERVERS:RTCConfiguration={iceServers:[{urls:'stun:stun.l.google.com:19302'}]};
+const duration=(ms:number)=>{const tenths=Math.floor(ms/100),seconds=Math.floor(tenths/10);return`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}.${tenths%10}`;};
+const waitForIce=(peer:RTCPeerConnection)=>peer.iceGatheringState==='complete'?Promise.resolve():new Promise<void>(resolve=>{const done=()=>{if(peer.iceGatheringState==='complete'){peer.removeEventListener('icegatheringstatechange',done);resolve();}};peer.addEventListener('icegatheringstatechange',done);window.setTimeout(()=>{peer.removeEventListener('icegatheringstatechange',done);resolve();},5000);});
+const download=(name:string,type:string,content:string)=>{const url=URL.createObjectURL(new Blob([content],{type})),anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.click();URL.revokeObjectURL(url);};
+
+export default function CompetitionRoom({mazeId,maze,graph,entries}:Props){
+  const restoredRoom=useMemo(()=>{try{return localStorage.getItem(`${COMPETITION_LAST_ROOM_PREFIX}${mazeId}`)??'';}catch{return'';}},[mazeId]);
+  const [role,setRole]=useState<Role>('idle'),[roomId,setRoomId]=useState(restoredRoom),[player,setPlayer]=useState('Player');
+  const [offer,setOffer]=useState(''),[answer,setAnswer]=useState(''),[remoteCode,setRemoteCode]=useState('');
+  const restoredResults=useMemo(()=>{try{return restoredRoom?parseStoredRoom(localStorage.getItem(`${COMPETITION_ROOM_STORAGE_PREFIX}${restoredRoom}`),mazeId,graph):[];}catch{return[];}},[restoredRoom,mazeId,graph]);
+  const [status,setStatus]=useState(restoredResults.length?'Saved standings restored. Start or join a room to reconnect.':'No room connected.'),[error,setError]=useState<string|null>(null),[peerCount,setPeerCount]=useState(0);
+  const [results,setResults]=useState<RoomResult[]>(restoredResults),resultsRef=useRef<RoomResult[]>(restoredResults);
+  const peers=useRef(new Set<RTCPeerConnection>()),channels=useRef(new Set<RTCDataChannel>()),pendingHost=useRef<RTCPeerConnection|null>(null);
+  const best=useMemo(()=>entries.filter(entry=>entry.mazeId===mazeId&&entry.status==='completed'&&(entry.hints??0)===0).sort((a,b)=>a.elapsedMs-b.elapsedMs||a.moves-b.moves)[0],[entries,mazeId]);
+  const sharedMaze=useMemo(()=>({...maze,startIcon:/^data:/i.test(maze.startIcon??'')?null:maze.startIcon,goalIcon:/^data:/i.test(maze.goalIcon??'')?null:maze.goalIcon}),[maze]);
+  useEffect(()=>{resultsRef.current=results;if(roomId)try{localStorage.setItem(`${COMPETITION_ROOM_STORAGE_PREFIX}${roomId}`,JSON.stringify(results));localStorage.setItem(`${COMPETITION_LAST_ROOM_PREFIX}${mazeId}`,roomId);}catch{}},[results,roomId,mazeId]);
+  useEffect(()=>()=>{for(const channel of channels.current)channel.close();for(const peer of peers.current)peer.close();},[]);
+
+  const accept=(incoming:unknown[])=>{
+    const valid=incoming.flatMap(value=>{try{return[parseRoomResult(value,mazeId,graph)];}catch{return[];}});
+    if(!valid.length&&incoming.length)throw new Error('The peer sent no valid results for this maze.');
+    const merged=mergeRoomResults(resultsRef.current,valid);resultsRef.current=merged;setResults(merged);return merged;
+  };
+  const broadcast=(value:unknown,except?:RTCDataChannel)=>{const message=JSON.stringify(value);for(const channel of channels.current)if(channel!==except&&channel.readyState==='open')channel.send(message);};
+  const wireChannel=(channel:RTCDataChannel,isHost:boolean)=>{
+    channels.current.add(channel);
+    channel.addEventListener('open',()=>{setPeerCount([...channels.current].filter(item=>item.readyState==='open').length);setStatus('Connected directly. Results stay on participating devices.');channel.send(JSON.stringify({type:'snapshot',mazeId,results:resultsRef.current}));});
+    channel.addEventListener('close',()=>{channels.current.delete(channel);setPeerCount([...channels.current].filter(item=>item.readyState==='open').length);setStatus('A peer disconnected. Saved room standings remain available.');});
+    channel.addEventListener('message',event=>{try{const message:unknown=JSON.parse(String(event.data));if(!message||typeof message!=='object')throw new Error();const data=message as {type?:unknown;mazeId?:unknown;results?:unknown};if(data.mazeId!==mazeId||!Array.isArray(data.results))throw new Error('The peer is using a different maze.');const merged=accept(data.results);if(isHost)broadcast({type:'snapshot',mazeId,results:merged},channel);}catch(reason){setError(reason instanceof Error?reason.message:'Could not read the peer message.');}});
+  };
+  const wirePeer=(peer:RTCPeerConnection)=>{peers.current.add(peer);peer.addEventListener('connectionstatechange',()=>{if(peer.connectionState==='failed'){setError('Direct connection failed. This network may require a TURN relay, which this zero-cost room does not use.');setStatus('Connection failed.');}if(['closed','disconnected'].includes(peer.connectionState))peers.current.delete(peer);});return peer;};
+  const createRoom=()=>{for(const peer of peers.current)peer.close();peers.current.clear();channels.current.clear();const id=crypto.randomUUID();setRoomId(id);setRole('host');setOffer('');setAnswer('');setRemoteCode('');setResults([]);resultsRef.current=[];setPeerCount(0);setError(null);setStatus('Room created. Generate an offer for each participant.');};
+  const createOffer=async()=>{try{setError(null);const peer=wirePeer(new RTCPeerConnection(ICE_SERVERS)),channel=peer.createDataChannel('infimaze-room');wireChannel(channel,true);await peer.setLocalDescription(await peer.createOffer());await waitForIce(peer);pendingHost.current=peer;setOffer(encodeSignal({version:1,kind:'offer',roomId,mazeId,maze:sharedMaze,description:peer.localDescription!.toJSON()}));setStatus('Send this offer code to one participant, then paste their answer.');}catch(reason){setError(reason instanceof Error?reason.message:'Could not create an offer.');}};
+  const acceptAnswer=async()=>{try{setError(null);if(!pendingHost.current)throw new Error('Generate an offer before importing an answer.');const signal=decodeSignal(remoteCode,'answer');if(signal.roomId!==roomId||signal.mazeId!==mazeId)throw new Error('This answer belongs to a different room or maze.');await pendingHost.current.setRemoteDescription(signal.description);pendingHost.current=null;setRemoteCode('');setOffer('');setStatus('Connecting to participant…');}catch(reason){setError(reason instanceof Error?reason.message:'Could not import the answer.');}};
+  const joinRoom=async()=>{try{setError(null);const signal=decodeSignal(remoteCode,'offer');if(signal.mazeId!==mazeId)throw new Error(`Open the host’s ${signal.maze.width}×${signal.maze.height}, seed ${signal.maze.seed} shared maze before joining this room.`);const peer=wirePeer(new RTCPeerConnection(ICE_SERVERS));peer.addEventListener('datachannel',event=>wireChannel(event.channel,false));await peer.setRemoteDescription(signal.description);await peer.setLocalDescription(await peer.createAnswer());await waitForIce(peer);setRoomId(signal.roomId);setRole('guest');const stored=parseStoredRoom(localStorage.getItem(`${COMPETITION_ROOM_STORAGE_PREFIX}${signal.roomId}`),mazeId,graph);resultsRef.current=stored;setResults(stored);setAnswer(encodeSignal({version:1,kind:'answer',roomId:signal.roomId,mazeId,maze:signal.maze,description:peer.localDescription!.toJSON()}));setRemoteCode('');setStatus('Return this answer code to the host.');}catch(reason){setError(reason instanceof Error?reason.message:'Could not join the room.');}};
+  const submitBest=()=>{try{if(!best)throw new Error('Complete this maze without hints before sharing a result.');const result=resultFromAttempt(best,player),merged=accept([result]);broadcast({type:'snapshot',mazeId,results:merged});setStatus(channels.current.size?'Result shared with connected peers.':'Result saved locally; it will be sent when a peer connects.');setError(null);}catch(reason){setError(reason instanceof Error?reason.message:'Could not share the result.');}};
+  const copy=async(value:string)=>{try{await navigator.clipboard.writeText(value);setStatus('Connection code copied.');}catch{setError('Could not copy automatically. Select and copy the code manually.');}};
+  const leave=()=>{for(const channel of channels.current)channel.close();for(const peer of peers.current)peer.close();channels.current.clear();peers.current.clear();pendingHost.current=null;setRole('idle');setOffer('');setAnswer('');setPeerCount(0);setStatus('Left the room. Saved standings remain on this device.');};
+
+  return <section className="competition-room" aria-label="Serverless competition room">
+    <div className="history-heading"><strong>Serverless competition room</strong><span className="muted">No account or server</span></div>
+    <p className="muted">Connect directly with manual offer and answer codes. Open the same shared maze on every device first. Restrictive networks may require TURN and cannot connect.</p>
+    <label>Player name<input className="input" name="competition-player" maxLength={24} value={player} onChange={event=>setPlayer(event.target.value)}/></label>
+    {role==='idle'?<div className="hstack"><button type="button" className="btn btn-primary" onClick={createRoom}>Create room</button><button type="button" className="btn" onClick={joinRoom} disabled={!remoteCode.trim()}>Join from offer</button></div>:<div className="history-heading"><span>{role==='host'?'Hosting':'Joined'} · {peerCount} connected</span><button type="button" className="btn btn-sm" onClick={leave}>Leave room</button></div>}
+    {(role==='idle'||role==='guest')&&<label>Host offer code<textarea name="competition-offer-import" rows={4} value={remoteCode} onChange={event=>setRemoteCode(event.target.value)} placeholder="Paste the host’s offer code"/></label>}
+    {role==='host'&&<>
+      <button type="button" className="btn" onClick={createOffer} disabled={!!offer}>Add participant</button>
+      {offer&&<label>Offer to participant<textarea name="competition-offer" rows={4} readOnly value={offer}/><button type="button" className="btn btn-sm" onClick={()=>copy(offer)}>Copy offer</button></label>}
+      {offer&&<label>Participant answer<textarea name="competition-answer-import" rows={4} value={remoteCode} onChange={event=>setRemoteCode(event.target.value)} placeholder="Paste their answer code"/><button type="button" className="btn btn-sm btn-primary" disabled={!remoteCode.trim()} onClick={acceptAnswer}>Connect participant</button></label>}
+    </>}
+    {role==='guest'&&answer&&<label>Answer to host<textarea name="competition-answer" rows={4} readOnly value={answer}/><button type="button" className="btn btn-sm" onClick={()=>copy(answer)}>Copy answer</button></label>}
+    <div role="status" className="muted">{status}</div>{error&&<p role="alert" className="shared-error">{error}</p>}
+    {role!=='idle'&&<button type="button" className="btn btn-primary" onClick={submitBest} disabled={!best}>Share my best result</button>}
+    {!!results.length&&<><div className="leaderboard-scroll"><table aria-label="Room standings"><thead><tr><th>Rank</th><th>Player</th><th>Time</th><th>Moves</th><th>Revisits</th></tr></thead><tbody>{results.map((result,index)=><tr key={result.id}><td>{index+1}</td><td>{result.player}</td><td>{duration(result.elapsedMs)}</td><td>{result.moves}</td><td>{result.revisits}</td></tr>)}</tbody></table></div><div className="hstack"><button type="button" className="btn btn-sm" onClick={()=>download(`infimaze-room-${roomId}.json`,'application/json',JSON.stringify({version:1,roomId,mazeId,results},null,2))}>Export JSON</button><button type="button" className="btn btn-sm" onClick={()=>download(`infimaze-room-${roomId}.csv`,'text/csv',roomResultsCsv(results))}>Export CSV</button></div></>}
+  </section>;
+}
