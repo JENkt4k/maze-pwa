@@ -2,8 +2,8 @@
 
 ## Current delivery focus
 
-- **Active:** serverless competition room handoff and recovery ergonomics across mobile and desktop devices.
-- **Next decision point:** validate direct peer connectivity and QR scanning on physical networks, then select a new product milestone.
+- **Active:** serverless competition connection diagnostics and retry guidance across physical networks.
+- **Next decision point:** use the candidate-route and peer-state readout during physical-device validation, then select a new product milestone.
 - **Deferred:** shared online leaderboard infrastructure, which requires a separately deployed service.
 
 Scope rule: work that blocks or directly completes the active phase stays in its PR. Other refinements are recorded for a later phase so feature work does not drift indefinitely.

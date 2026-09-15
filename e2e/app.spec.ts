@@ -395,6 +395,7 @@ test('serverless competition peers complete the manual offer and answer exchange
   await hostRoom.getByRole('button',{name:'Add participant'}).click();
   const hostOffer=hostRoom.getByLabel('Offer to participant');
   await expect(hostOffer).not.toHaveValue('',{timeout:12000});
+  await expect(hostRoom.getByLabel('Connection diagnostics')).toContainText('Direct route');
   await guestRoom.getByLabel('Host offer code').fill(await hostOffer.inputValue());
   await expect(guestRoom.getByRole('button',{name:'Open host maze'})).toBeVisible();
   await guestRoom.getByRole('button',{name:'Open host maze'}).click();
@@ -408,9 +409,11 @@ test('serverless competition peers complete the manual offer and answer exchange
   const signalSummary=signalCodes.map(([code,kind])=>{
     const signal=decodeSignal(code,kind);return{type:signal.description.type,candidates:signal.description.sdp!.split('\r\n').filter(line=>line.startsWith('a=candidate:'))};
   });
-  expect(signalSummary.every(signal=>signal.candidates.length>0)).toBe(true);
+  expect(signalSummary.map(signal=>signal.type)).toEqual(['offer','answer']);
   await hostRoom.getByLabel('Participant answer').fill(await guestAnswer.inputValue());
   await hostRoom.getByRole('button',{name:'Connect participant'}).click();
+  await expect(hostRoom.getByLabel('Connection diagnostics')).toContainText('connected',{timeout:7000});
+  await expect(guestRoom.getByLabel('Connection diagnostics')).toContainText('Open',{timeout:7000});
   await expect(hostRoom).toContainText('Hosting · 1 connected',{timeout:7000});
   await expect(guestRoom).toContainText('Joined · 1 connected',{timeout:7000});
 });
