@@ -66,7 +66,8 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
 - Share links preserve generation parameters and text/emoji markers, including
   compound emojis and empty markers. Uploaded images and drawings stay local;
   image markers become colored dots in shared links. Legacy links remain supported.
-- Create serverless competition rooms using manual WebRTC offer and answer codes.
+- Create serverless competition rooms using copyable or locally generated QR
+  WebRTC offer and answer codes.
   The host can connect multiple participants through free public STUN without an
   account, signaling service, database, or TURN relay. Peers exchange the fixed
   maze definition and complete movement replays; impossible routes and mismatched

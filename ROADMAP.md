@@ -2,8 +2,8 @@
 
 ## Current delivery focus
 
-- **Active:** serverless competition rooms with manual WebRTC signaling, verified replay exchange, local standings, and export.
-- **Next decision point:** evaluate QR signaling and room ergonomics after direct peer connectivity is validated on physical networks.
+- **Active:** serverless competition rooms with text and QR WebRTC signaling, verified replay exchange, local standings, and export.
+- **Next decision point:** validate direct peer connectivity and QR scanning ergonomics on physical networks.
 - **Deferred:** shared online leaderboard infrastructure, which requires a separately deployed service.
 
 Scope rule: work that blocks or directly completes the active phase stays in its PR. Other refinements are recorded for a later phase so feature work does not drift indefinitely.
@@ -52,7 +52,7 @@ Scope rule: work that blocks or directly completes the active phase stays in its
 ## Backlog
 
 1. **Serverless competition follow-up**
-   - Add locally generated QR offer and answer exchange if connection-code testing shows it improves setup.
+   - Refine QR scanning ergonomics after physical-device connection-code testing.
    - Evaluate optional TURN only if a future provider can preserve the no-charge requirement.
 2. **Shared online leaderboard — deferred**
    - Client contract and explicit opt-in integration: in progress.
