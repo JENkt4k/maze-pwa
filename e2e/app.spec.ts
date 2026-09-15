@@ -374,6 +374,7 @@ test('serverless competition rooms expose manual signaling without an account',a
   await expect(room).toContainText('No account or server');
   await expect(room.getByLabel('Host offer code')).toBeVisible();
   await expect(room.getByRole('button',{name:'Paste offer'})).toBeVisible();
+  await expect(room.getByText('Scan offer QR',{exact:true})).toBeVisible();
   await room.getByLabel('Host offer code').fill('invalid-code');
   await room.getByRole('button',{name:'Join from offer'}).click();
   await expect(room.getByRole('alert')).toContainText('valid InfiMaze offer code');
@@ -401,6 +402,8 @@ test('serverless competition peers complete the manual offer and answer exchange
   await guestRoom.getByRole('button',{name:'Join from offer'}).click();
   const guestAnswer=guestRoom.getByLabel('Answer to host');
   await expect(guestAnswer).not.toHaveValue('',{timeout:12000});
+  await expect(guestRoom.getByText('Not connected yet.')).toBeVisible();
+  await expect(hostRoom.getByText('Scan answer QR',{exact:true})).toBeVisible();
   const signalCodes:[[string,'offer'],[string,'answer']]=[[await hostOffer.inputValue(),'offer'],[await guestAnswer.inputValue(),'answer']];
   const signalSummary=signalCodes.map(([code,kind])=>{
     const signal=decodeSignal(code,kind);return{type:signal.description.type,candidates:signal.description.sdp!.split('\r\n').filter(line=>line.startsWith('a=candidate:'))};
