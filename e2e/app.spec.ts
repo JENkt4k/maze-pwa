@@ -141,6 +141,23 @@ test('maze collection exports and restores a versioned JSON backup',async({page}
   expect((await downloadPromise).suggestedFilename()).toMatch(/^infimaze-collection-.*\.json$/);
 });
 
+test('full app backup downloads and restores all InfiMaze storage',async({page})=>{
+  await page.goto('./');
+  await openControlPage(page,'Library');
+  await page.getByText('All app data',{exact:true}).click();
+  const downloadPromise=page.waitForEvent('download');
+  await page.getByRole('button',{name:'Download app backup'}).click();
+  expect((await downloadPromise).suggestedFilename()).toMatch(/^infimaze-app-backup-.*\.json$/);
+  await page.evaluate(()=>localStorage.setItem('unrelated-site-data','keep'));
+  const backup={version:1,exportedAt:new Date().toISOString(),data:{'savedMazes:v1':'[]','maze:play-history:v1':'[]','ui:theme:v1':'dark'}};
+  page.once('dialog',dialog=>dialog.accept());
+  const restored=page.waitForEvent('load');
+  await page.getByLabel('App backup file').setInputFiles({name:'infimaze-app-backup.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(backup))});
+  await restored;
+  await expect.poll(()=>page.evaluate(()=>localStorage.getItem('ui:theme:v1'))).toBe('dark');
+  expect(await page.evaluate(()=>localStorage.getItem('unrelated-site-data'))).toBe('keep');
+});
+
 test('selected saved mazes print as a configurable multi-maze pack',async({page})=>{
   await page.addInitScript(()=>{window.print=()=>{const main=window.top as Window&{printCount?:number;printedMarkup?:string};main.printCount=(main.printCount??0)+1;main.printedMarkup=document.body.innerHTML;window.dispatchEvent(new Event('afterprint'));};});
   await page.goto('./');

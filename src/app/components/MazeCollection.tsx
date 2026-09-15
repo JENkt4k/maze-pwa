@@ -3,6 +3,7 @@ import type { SavedMaze } from '../state';
 import { collectionBackup } from '../mazeCollection';
 import { downloadText } from '../micromouseExport';
 import type { PrintPackOptions } from '../print';
+import { createAppBackup,restoreAppBackup } from '../appBackup';
 
 type Props={saveName:string;setSaveName:(value:string)=>void;saveFolder:string;setSaveFolder:(value:string)=>void;saveTags:string;setSaveTags:(value:string)=>void;saved:SavedMaze[];selectedId:string|null;onSave:()=>void;onLoad:(id:string)=>void;onDelete:(id:string)=>void;onImport:(text:string)=>number;onPrintPack:(ids:string[],options:PrintPackOptions)=>void};
 
@@ -15,6 +16,7 @@ export default function MazeCollection(props:Props){
   const [mazesPerPage,setMazesPerPage]=useState<1|2>(1);
   const [includeDetails,setIncludeDetails]=useState(true);
   const inputRef=useRef<HTMLInputElement>(null);
+  const appBackupRef=useRef<HTMLInputElement>(null);
   const folders=useMemo(()=>[...new Set(props.saved.map(maze=>maze.folder).filter((folder):folder is string=>Boolean(folder)))].sort(),[props.saved]);
   const tags=useMemo(()=>[...new Set(props.saved.flatMap(maze=>maze.tags??[]))].sort(),[props.saved]);
   const visible=props.saved.filter(maze=>(!folderFilter||maze.folder===folderFilter)&&(!tagFilter||maze.tags?.includes(tagFilter)));
@@ -22,6 +24,8 @@ export default function MazeCollection(props:Props){
   const togglePrint=(id:string)=>setPrintSelection(current=>current.includes(id)?current.filter(value=>value!==id):[...current,id]);
   const exportBackup=()=>{downloadText(`infimaze-collection-${new Date().toISOString().slice(0,10)}.json`,collectionBackup(props.saved),'application/json');setMessage(`Exported ${props.saved.length} maze${props.saved.length===1?'':'s'}.`);};
   const importBackup=async(file:File|undefined)=>{if(!file)return;try{const count=props.onImport(await file.text());setMessage(`Imported ${count} maze${count===1?'':'s'}.`);}catch(error){setMessage(error instanceof Error?error.message:'The backup could not be imported.');}finally{if(inputRef.current)inputRef.current.value='';}};
+  const exportAppData=()=>{downloadText(`infimaze-app-backup-${new Date().toISOString().slice(0,10)}.json`,createAppBackup(),'application/json');setMessage('Exported all local InfiMaze data.');};
+  const restoreAppData=async(file:File|undefined)=>{if(!file)return;try{const text=await file.text();if(!window.confirm('Replace all local InfiMaze data on this device with this backup?'))return;restoreAppBackup(text);window.location.reload();}catch(error){setMessage(error instanceof Error?error.message:'The app backup could not be restored.');}finally{if(appBackupRef.current)appBackupRef.current.value='';}};
   return <fieldset className="maze-collection">
     <legend>Maze collection</legend>
     <div className="stack">
@@ -43,6 +47,7 @@ export default function MazeCollection(props:Props){
     </div>:<div style={{fontSize:12,color:'#7a879b',marginTop:8}}>No saved mazes yet.</div>}
     {!!props.saved.length&&<details style={{marginTop:12}}><summary style={{cursor:'pointer',fontWeight:600}}>Printable pack</summary><div className="stack" style={{marginTop:8}}><div className="hstack" style={{gap:8}}><button type="button" className="btn btn-sm" onClick={()=>setPrintSelection([...new Set([...selectedIds,...visible.map(maze=>maze.id)])])}>Select shown</button><button type="button" className="btn btn-sm" disabled={!selectedIds.length} onClick={()=>setPrintSelection([])}>Clear selection</button></div><input className="input" name="pack-title" aria-label="Print pack title" maxLength={120} value={packTitle} onChange={event=>setPackTitle(event.target.value)}/><label>Mazes per page<select name="mazes-per-page" aria-label="Mazes per page" value={mazesPerPage} onChange={event=>setMazesPerPage(Number(event.target.value) as 1|2)}><option value="1">One</option><option value="2">Two</option></select></label><label className="hstack" style={{gap:8}}><input type="checkbox" name="pack-details" checked={includeDetails} onChange={event=>setIncludeDetails(event.target.checked)}/> Include maze details</label><button type="button" className="btn btn-primary" disabled={!selectedIds.length} onClick={()=>props.onPrintPack(selectedIds,{title:packTitle,mazesPerPage,includeDetails})}>Print selected ({selectedIds.length})</button></div></details>}
     <div className="hstack" role="group" aria-label="Collection backup" style={{gap:8,marginTop:12}}><button type="button" className="btn btn-sm" disabled={!props.saved.length} onClick={exportBackup}>Export backup</button><button type="button" className="btn btn-sm" onClick={()=>inputRef.current?.click()}>Import backup</button><input ref={inputRef} hidden type="file" name="collection-backup" aria-label="Collection backup file" accept="application/json,.json" onChange={event=>void importBackup(event.target.files?.[0])}/></div>
+    <details className="app-backup" style={{marginTop:12}}><summary style={{cursor:'pointer',fontWeight:600}}>All app data</summary><div className="stack" style={{marginTop:8}}><p className="muted">Preserve saved mazes, settings, play history, resumable games, rankings, room standings, and appearance preferences before clearing browser data.</p><div className="hstack" role="group" aria-label="Full app backup"><button type="button" className="btn btn-sm" onClick={exportAppData}>Download app backup</button><button type="button" className="btn btn-sm" onClick={()=>appBackupRef.current?.click()}>Restore app backup</button><input ref={appBackupRef} hidden type="file" name="app-backup" aria-label="App backup file" accept="application/json,.json" onChange={event=>void restoreAppData(event.target.files?.[0])}/></div><p className="muted">Restore replaces only InfiMaze data on this device, then reloads the app.</p></div></details>
     {message&&<div role="status" aria-live="polite" style={{fontSize:12,color:'#586174',marginTop:8}}>{message}</div>}
   </fieldset>;
 }
