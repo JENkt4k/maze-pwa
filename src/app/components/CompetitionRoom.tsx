@@ -2,6 +2,7 @@ import { useEffect,useMemo,useRef,useState } from 'react';
 import type { MazeGraph } from '../../maze/graph';
 import type { HistoryMazeParams,PlayHistoryEntry } from '../history';
 import { COMPETITION_LAST_ROOM_PREFIX,COMPETITION_ROOM_STORAGE_PREFIX,decodeSignal,encodeSignal,mergeRoomResults,parseRoomResult,parseStoredRoom,resultFromAttempt,roomResultsCsv,type RoomResult } from '../competitionRoom';
+import { signalQrDataUrl } from '../signalQr';
 
 type Props={mazeId:string;maze:HistoryMazeParams;graph:MazeGraph;entries:readonly PlayHistoryEntry[]};
 type Role='idle'|'host'|'guest';
@@ -9,6 +10,12 @@ const ICE_SERVERS:RTCConfiguration={iceServers:[{urls:'stun:stun.l.google.com:19
 const duration=(ms:number)=>{const tenths=Math.floor(ms/100),seconds=Math.floor(tenths/10);return`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}.${tenths%10}`;};
 const waitForIce=(peer:RTCPeerConnection)=>peer.iceGatheringState==='complete'?Promise.resolve():new Promise<void>(resolve=>{const done=()=>{if(peer.iceGatheringState==='complete'){peer.removeEventListener('icegatheringstatechange',done);resolve();}};peer.addEventListener('icegatheringstatechange',done);window.setTimeout(()=>{peer.removeEventListener('icegatheringstatechange',done);resolve();},5000);});
 const download=(name:string,type:string,content:string)=>{const url=URL.createObjectURL(new Blob([content],{type})),anchor=document.createElement('a');anchor.href=url;anchor.download=name;anchor.click();URL.revokeObjectURL(url);};
+
+function SignalQR({value,label}:{value:string;label:string}){
+  const [source,setSource]=useState(''),[failed,setFailed]=useState(false);
+  useEffect(()=>{let active=true;setFailed(false);signalQrDataUrl(value).then(url=>{if(active)setSource(url);}).catch(()=>{if(active)setFailed(true);});return()=>{active=false;};},[value]);
+  return failed?<p className="muted">This connection code is too large for a reliable QR image. Use Copy instead.</p>:source?<figure className="signal-qr"><img src={source} alt={`${label} QR code`}/><figcaption>Scan on the other device, then paste the decoded connection code.</figcaption></figure>:<p role="status" className="muted">Creating QR code…</p>;
+}
 
 export default function CompetitionRoom({mazeId,maze,graph,entries}:Props){
   const restoredRoom=useMemo(()=>{try{return localStorage.getItem(`${COMPETITION_LAST_ROOM_PREFIX}${mazeId}`)??'';}catch{return'';}},[mazeId]);
@@ -52,10 +59,10 @@ export default function CompetitionRoom({mazeId,maze,graph,entries}:Props){
     {(role==='idle'||role==='guest')&&<label>Host offer code<textarea name="competition-offer-import" rows={4} value={remoteCode} onChange={event=>setRemoteCode(event.target.value)} placeholder="Paste the host’s offer code"/></label>}
     {role==='host'&&<>
       <button type="button" className="btn" onClick={createOffer} disabled={!!offer}>Add participant</button>
-      {offer&&<label>Offer to participant<textarea name="competition-offer" rows={4} readOnly value={offer}/><button type="button" className="btn btn-sm" onClick={()=>copy(offer)}>Copy offer</button></label>}
+      {offer&&<label>Offer to participant<textarea name="competition-offer" rows={4} readOnly value={offer}/><SignalQR value={offer} label="Host offer"/><button type="button" className="btn btn-sm" onClick={()=>copy(offer)}>Copy offer</button></label>}
       {offer&&<label>Participant answer<textarea name="competition-answer-import" rows={4} value={remoteCode} onChange={event=>setRemoteCode(event.target.value)} placeholder="Paste their answer code"/><button type="button" className="btn btn-sm btn-primary" disabled={!remoteCode.trim()} onClick={acceptAnswer}>Connect participant</button></label>}
     </>}
-    {role==='guest'&&answer&&<label>Answer to host<textarea name="competition-answer" rows={4} readOnly value={answer}/><button type="button" className="btn btn-sm" onClick={()=>copy(answer)}>Copy answer</button></label>}
+    {role==='guest'&&answer&&<label>Answer to host<textarea name="competition-answer" rows={4} readOnly value={answer}/><SignalQR value={answer} label="Guest answer"/><button type="button" className="btn btn-sm" onClick={()=>copy(answer)}>Copy answer</button></label>}
     <div role="status" className="muted">{status}</div>{error&&<p role="alert" className="shared-error">{error}</p>}
     {role!=='idle'&&<button type="button" className="btn btn-primary" onClick={submitBest} disabled={!best}>Share my best result</button>}
     {!!results.length&&<><div className="leaderboard-scroll"><table aria-label="Room standings"><thead><tr><th>Rank</th><th>Player</th><th>Time</th><th>Moves</th><th>Revisits</th></tr></thead><tbody>{results.map((result,index)=><tr key={result.id}><td>{index+1}</td><td>{result.player}</td><td>{duration(result.elapsedMs)}</td><td>{result.moves}</td><td>{result.revisits}</td></tr>)}</tbody></table></div><div className="hstack"><button type="button" className="btn btn-sm" onClick={()=>download(`infimaze-room-${roomId}.json`,'application/json',JSON.stringify({version:1,roomId,mazeId,results},null,2))}>Export JSON</button><button type="button" className="btn btn-sm" onClick={()=>download(`infimaze-room-${roomId}.csv`,'text/csv',roomResultsCsv(results))}>Export CSV</button></div></>}
