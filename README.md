@@ -75,7 +75,8 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
   reduced-motion preferences suppress the visual overlay.
 - Print the blank maze without controls, animation, or drawing overlays.
 - After the production service worker is ready, the app, emoji picker, and
-  difficulty search work offline. Install when the browser offers installation.
+  difficulty search work offline. An offline status remains visible until the
+  connection returns. Install when the browser offers installation.
   Updates require clicking **Update** and clear the current drawing.
 
 ## Generation and difficulty

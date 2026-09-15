@@ -644,8 +644,10 @@ test('production service worker supports offline reload, picker and difficulty w
   await page.reload();
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller)).toBe(true);
   await context.setOffline(true);
-  await page.reload();
+  await page.goto('./?seed=77');
   await expect(page.getByRole('heading',{name:'InfiMaze',exact:true})).toBeVisible();
+  await expect(page.getByRole('status')).toContainText('You are offline');
+  await expect(page.getByRole('button',{name:'Close',exact:true})).toHaveCount(0);
   await page.getByRole('button',{name:'Pick emoji',exact:true}).first().click();
   await expect(page.locator('em-emoji-picker')).toBeVisible();
   await page.keyboard.press('Escape');
@@ -694,6 +696,12 @@ test('manifest and icons resolve under the configured deployment base', async ({
   const manifest = await response.json();
   expect(manifest.start_url).toBe(new URL(page.url()).pathname);
   expect(manifest.scope).toBe(manifest.start_url);
+  expect(manifest.id).toBe(manifest.start_url);
+  expect(manifest.short_name).toBe('InfiMaze');
+  expect(manifest.theme_color).toBe('#07172f');
   for (const icon of manifest.icons) expect((await page.request.get(new URL(icon.src,manifestURL).toString())).ok()).toBe(true);
+  const appleIcon=new URL((await page.locator('link[rel="apple-touch-icon"]').getAttribute('href'))!,page.url());
+  expect((await page.request.get(appleIcon.toString())).ok()).toBe(true);
+  expect(await page.locator('link[rel="apple-touch-icon"]').getAttribute('sizes')).toBe('180x180');
   expect(await page.evaluate(() => document.compatMode)).toBe('CSS1Compat');
 });
