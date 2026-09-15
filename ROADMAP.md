@@ -3,7 +3,7 @@
 ## Current delivery focus
 
 - **Completed baseline:** the current feature set, operating manual, screenshot set, full local backup, and dated evolution record are documented.
-- **Next milestone:** competition reconnection and host controls, building on named rooms and participant identities.
+- **Next milestone:** physical-device release validation across representative phones and network combinations.
 - **Deferred:** shared online leaderboard infrastructure and optional TURN, both of which require separately funded services.
 
 Scope rule: work that blocks or directly completes the active phase stays in its PR. Other refinements are recorded for a later phase so feature work does not drift indefinitely.
@@ -32,8 +32,8 @@ See [FEATURE_STATUS.md](FEATURE_STATUS.md) for the supported boundary and eviden
 
 1. **Competition session management**
    - [x] Name rooms and show participant identities rather than only a count.
-   - Add host removal controls and a clear reconnection workflow after refresh or connection loss.
-   - Preserve room identity and replicated standings during reconnection.
+   - [x] Add host removal controls and a clear reconnection workflow after refresh or connection loss.
+   - [x] Preserve room identity and replicated standings during reconnection.
 2. **Physical release validation**
    - Record QR camera support and direct connectivity across representative mobile/desktop and same/cross-network pairs.
    - Use route diagnostics to distinguish application defects from NAT limitations.

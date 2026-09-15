@@ -97,6 +97,8 @@ Full-app backup and restore then protected all local InfiMaze records from brows
 
 Competition session management then added named rooms and stable participant identities to the manual signaling envelope. Connected devices show who is present instead of only a channel count, while older connection codes remain readable with fallback labels.
 
+Room identity, role, and player name became recoverable after refresh. Hosts can resume the same local room, remove a connected participant, and issue fresh offers; guests receive explicit reconnection instructions while all devices retain replicated standings.
+
 **Reasoning:** serverless competition trades a two-way manual handshake and imperfect NAT reachability for zero hosted cost and local data ownership. Full backup closes the main risk of that local-first architecture.
 
 **Model/tools:** GPT-6 Codex for the current documentation session; Git/GitHub automation, deterministic browser capture, local PWA execution, and repository-wide cross-referencing.
