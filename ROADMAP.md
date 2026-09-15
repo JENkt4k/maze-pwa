@@ -3,7 +3,7 @@
 ## Current delivery focus
 
 - **Completed baseline:** the current feature set, operating manual, screenshot set, full local backup, and dated evolution record are documented.
-- **Next milestone:** competition session management for clearer named rooms, participant identity, reconnection, and host controls.
+- **Next milestone:** competition reconnection and host controls, building on named rooms and participant identities.
 - **Deferred:** shared online leaderboard infrastructure and optional TURN, both of which require separately funded services.
 
 Scope rule: work that blocks or directly completes the active phase stays in its PR. Other refinements are recorded for a later phase so feature work does not drift indefinitely.
@@ -31,7 +31,7 @@ See [FEATURE_STATUS.md](FEATURE_STATUS.md) for the supported boundary and eviden
 ## Backlog
 
 1. **Competition session management**
-   - Name rooms and show participant identities rather than only a count.
+   - [x] Name rooms and show participant identities rather than only a count.
    - Add host removal controls and a clear reconnection workflow after refresh or connection loss.
    - Preserve room identity and replicated standings during reconnection.
 2. **Physical release validation**

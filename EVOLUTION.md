@@ -95,6 +95,8 @@ WebRTC rooms introduced manual offer/answer signaling, multi-peer host-centered 
 
 Full-app backup and restore then protected all local InfiMaze records from browser clearing or device migration. The feature manual, completion catalog, screenshot baseline, documentation index, and this evolution record consolidated the product.
 
+Competition session management then added named rooms and stable participant identities to the manual signaling envelope. Connected devices show who is present instead of only a channel count, while older connection codes remain readable with fallback labels.
+
 **Reasoning:** serverless competition trades a two-way manual handshake and imperfect NAT reachability for zero hosted cost and local data ownership. Full backup closes the main risk of that local-first architecture.
 
 **Model/tools:** GPT-6 Codex for the current documentation session; Git/GitHub automation, deterministic browser capture, local PWA execution, and repository-wide cross-referencing.
