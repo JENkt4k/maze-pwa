@@ -1,70 +1,49 @@
-# InfiMaze feature roadmap
+﻿# InfiMaze feature roadmap
 
 ## Current delivery focus
 
-- **Active:** serverless competition connection diagnostics and retry guidance across physical networks.
-- **Next decision point:** use the candidate-route and peer-state readout during physical-device validation, then select a new product milestone.
-- **Deferred:** shared online leaderboard infrastructure, which requires a separately deployed service.
+- **Completed baseline:** the current feature set, operating manual, screenshot set, full local backup, and dated evolution record are documented.
+- **Next milestone:** competition session management for clearer named rooms, participant identity, reconnection, and host controls.
+- **Deferred:** shared online leaderboard infrastructure and optional TURN, both of which require separately funded services.
 
 Scope rule: work that blocks or directly completes the active phase stays in its PR. Other refinements are recorded for a later phase so feature work does not drift indefinitely.
 
 ## Completed
 
-- Solver and generation animation algorithms.
-- Shaped and uploaded silhouette masks.
-- Start and goal placement.
-- Rounded and organic wall rendering.
-- Interactive gameplay with persisted in-progress sessions.
-- Explicit gameplay Quit and later Resume without discarding attempt progress.
-- Freeform graph mazes.
-- Micromouse simulation with search, return, and speed-run phases.
-- Play history with exact local attempt restoration.
-- Per-maze local leaderboards with time and move rankings.
-- Difficulty 2.0 analysis, search, Wilson generation, adversarial braiding, and Giant mode.
-- Gameplay hints, assisted-run tracking, and completion results with personal-best comparison.
-- Server-free challenge links that open fixed mazes directly in gameplay.
-- Micromouse full-size and half-size competition presets with physical dimensions and scaled timing.
-- Offline Micromouse robot profiles with adjustable speed, acceleration, and turn timing.
-- Classic Micromouse open four-cell center goal zones with persistent visual marking and nearest-goal flood-fill behavior.
-- Selectable Micromouse Flood Fill, Trémaux, and Right-Wall exploration strategies.
-- On-demand Micromouse strategy comparison across search and speed-run metrics.
-- Multi-seed Micromouse batch benchmarks with downloadable CSV and JSON results.
-- Deterministic Micromouse sensor range/noise with collision recovery and position-correction timing.
-- Optional diagonal corner smoothing for learned Micromouse speed runs.
-- Configurable Micromouse traction limits applied to live and batch timing.
-- Cancellable worker-based Micromouse batch benchmarks across multiple seeds.
-- Local maze collections with named folders, tags, filters, and versioned JSON backup/restore.
-- Printable multi-page maze packs generated from selected saved mazes.
-- Paged control navigation with an icon-inspired accessible theme and persistent high-contrast mode.
-- Staged Micromouse physics and sensor edits with Apply/Reset controls and mobile-safe slider scrolling.
-- Accessibility pass for control tabs, form names, slider touch targets, and forced-color rendering.
-- Staged maze width and height editing plus explicitly triggered, measured Micromouse calculations.
-- Server-free share links for reproducible Micromouse benchmark configurations.
-- Synchronized side-by-side playback and live metric charts for two solver algorithms.
-- Worker-based aggregate solver charts across multiple maze seeds.
-- Persistent color-blind-safe visualization palette with distinct line patterns.
-- Cohesive icon-inspired control styling with accessible navy, blue, and gold states.
-- Persistent light, dark, and system interface themes while keeping maze and print surfaces white.
-- Per-device maze pipeline timings plus compact SVG animation rendering for large and Giant mazes.
-- Production PWA readiness with branded install metadata, connectivity and registration recovery status, cached subpath navigation, and a physical-device release checklist.
-- Serverless WebRTC competition rooms with manual offer/answer signaling, host-centered multi-peer standings, replay validation, local persistence, and CSV/JSON export.
-- Locally generated QR connection codes for WebRTC room offers and answers.
-- Versioned full-app JSON backup and restore for all local InfiMaze data.
+- Deterministic DFS, Prim, Kruskal, and Wilson grid/freeform generation.
+- Solver and generation animation algorithms, synchronized comparisons, and multi-seed analysis.
+- Built-in shaped masks and uploaded custom silhouettes.
+- Editable reachable start and goal placement.
+- Classic, rounded, and organic wall rendering.
+- Interactive gameplay, hints, completion results, Quit/Resume, and persisted attempts.
+- Play history and per-maze local leaderboards.
+- Difficulty 2.0 analysis, bounded search, difficulty-aware braiding, and Giant mode.
+- Micromouse competition presets, center goals, exploration strategies, realistic motion/sensing, comparisons, worker batches, exports, and benchmark links.
+- Local collections with folders, tags, JSON transfer, printable packs, and versioned full-app backup/restore.
+- Paged accessible controls, staged expensive inputs, light/dark/system themes, high contrast, color-blind-safe visualization, and mobile refinements.
+- Production PWA installation, offline operation, update recovery, subpath deployment, and performance profiling.
+- Deterministic maze/challenge sharing.
+- Serverless WebRTC rooms with compressed offer/answer QR signaling, automatic host-maze loading, replicated local standings, replay validation, exports, and privacy-preserving connection diagnostics.
+- Feature manual, completion catalog, current screenshot set, documentation map, and dated evolution record.
+
+See [FEATURE_STATUS.md](FEATURE_STATUS.md) for the supported boundary and evidence, and [USER_MANUAL.md](USER_MANUAL.md) for operation.
 
 ## Backlog
 
-1. **Serverless competition follow-up**
-   - Validate QR scanning and direct connectivity on separate mobile and desktop networks.
-   - Evaluate optional TURN only if a future provider can preserve the no-charge requirement.
-2. **Shared online leaderboard — deferred**
-   - Client contract and explicit opt-in integration: in progress.
-   - Add the verifying, rate-limited backend as a separate deployment stage.
+1. **Competition session management**
+   - Name rooms and show participant identities rather than only a count.
+   - Add host removal controls and a clear reconnection workflow after refresh or connection loss.
+   - Preserve room identity and replicated standings during reconnection.
+2. **Physical release validation**
+   - Record QR camera support and direct connectivity across representative mobile/desktop and same/cross-network pairs.
+   - Use route diagnostics to distinguish application defects from NAT limitations.
+3. **Shared online leaderboard — deferred**
+   - Retain the existing explicit opt-in client contract.
+   - Add a verifying, rate-limited backend only as a separately approved deployment stage.
    - Follow [SHARED_LEADERBOARD_API.md](SHARED_LEADERBOARD_API.md).
+4. **Optional TURN — deferred**
+   - Evaluate only if a sustainable no-charge provider can preserve the privacy and cost boundary.
 
 ## Ordering decision
 
-Micromouse follows freeform generation because both stages use the same generalized
-graph, geometry, and movement contracts. History and leaderboards come last so the
-storage and ranking model can account for grid mazes, freeform mazes, human runs,
-and Micromouse results without an immediate migration. The Micromouse stage remains
-independent of history storage.
+Competition session management follows the successful two-way room handshake because participant identity and recovery now have a stable transport and replicated result model. Physical-device validation follows the UI work so failures can be classified with the route diagnostics. Hosted services remain last because they add cost, operations, abuse prevention, and privacy obligations to an otherwise local-first application.

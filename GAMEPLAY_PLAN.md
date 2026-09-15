@@ -1,3 +1,5 @@
+> **Status:** Completed engineering record. For current behavior, see the [user manual](USER_MANUAL.md), [feature status](FEATURE_STATUS.md), and [roadmap](ROADMAP.md).
+
 # Maze gameplay and validation
 
 - [x] Branch from merged `main` as `feature/maze-gameplay`.
