@@ -2,8 +2,8 @@
 
 ## Current delivery focus
 
-- **Active:** serverless competition rooms with text and QR WebRTC signaling, verified replay exchange, local standings, and export.
-- **Next decision point:** validate direct peer connectivity and QR scanning ergonomics on physical networks.
+- **Active:** serverless competition room handoff and recovery ergonomics across mobile and desktop devices.
+- **Next decision point:** validate direct peer connectivity and QR scanning on physical networks, then select a new product milestone.
 - **Deferred:** shared online leaderboard infrastructure, which requires a separately deployed service.
 
 Scope rule: work that blocks or directly completes the active phase stays in its PR. Other refinements are recorded for a later phase so feature work does not drift indefinitely.
@@ -48,11 +48,12 @@ Scope rule: work that blocks or directly completes the active phase stays in its
 - Per-device maze pipeline timings plus compact SVG animation rendering for large and Giant mazes.
 - Production PWA readiness with branded install metadata, connectivity and registration recovery status, cached subpath navigation, and a physical-device release checklist.
 - Serverless WebRTC competition rooms with manual offer/answer signaling, host-centered multi-peer standings, replay validation, local persistence, and CSV/JSON export.
+- Locally generated QR connection codes for WebRTC room offers and answers.
 
 ## Backlog
 
 1. **Serverless competition follow-up**
-   - Refine QR scanning ergonomics after physical-device connection-code testing.
+   - Validate QR scanning and direct connectivity on separate mobile and desktop networks.
    - Evaluate optional TURN only if a future provider can preserve the no-charge requirement.
 2. **Shared online leaderboard — deferred**
    - Client contract and explicit opt-in integration: in progress.

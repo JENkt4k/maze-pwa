@@ -18,6 +18,17 @@ release because browser automation cannot reproduce the system install surfaces:
   play history, theme, and settings remain afterward. The drawing overlay may be
   cleared when the update reloads the page, as stated by the prompt.
 
+For serverless competition rooms, use two physical devices before release:
+
+- Connect once on the same Wi-Fi network and once with one device on cellular.
+- Scan the host offer QR, return the guest answer by native Share or QR, and verify
+  both devices report a direct connection.
+- Submit a completed result from each device and verify identical standings.
+- Reload both devices and verify the last room standings remain locally available.
+- Cancel an unused host offer and verify a fresh participant offer can be created.
+- Record connection failure as expected on networks that require TURN; the app
+  must retain standings and explain that its zero-cost mode cannot relay traffic.
+
 Service-worker registration failure is non-fatal: the app displays a dismissible
 message and continues online. Loss of connectivity displays a persistent status
 until the browser reports that the connection has returned.
