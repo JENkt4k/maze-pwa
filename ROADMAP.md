@@ -49,6 +49,7 @@ Scope rule: work that blocks or directly completes the active phase stays in its
 - Production PWA readiness with branded install metadata, connectivity and registration recovery status, cached subpath navigation, and a physical-device release checklist.
 - Serverless WebRTC competition rooms with manual offer/answer signaling, host-centered multi-peer standings, replay validation, local persistence, and CSV/JSON export.
 - Locally generated QR connection codes for WebRTC room offers and answers.
+- Versioned full-app JSON backup and restore for all local InfiMaze data.
 
 ## Backlog
 
