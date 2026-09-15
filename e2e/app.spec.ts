@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { decodeSignal } from '../src/app/competitionRoom';
 
 const settings = {width:7,height:7,seed:42,g:.3,b:.15,tau:.4,generator:'dfs',controlsOpen:true,lockSize:false,solverEnabled:true,solverAlgorithm:'dfs',animationMode:'build-solve',solverStepMs:250,generationColor:'#14b8a6',generationOpacity:.35,solverColor:'#2563eb',solverOpacity:.65};
 test.beforeEach(async ({page}) => {
@@ -384,7 +385,9 @@ test('serverless competition rooms expose manual signaling without an account',a
 
 test('serverless competition peers complete the manual offer and answer exchange',async({page,context})=>{
   const guest=await context.newPage();
-  await Promise.all([page.goto('./'),guest.goto('./')]);
+  await page.goto('./');
+  await guest.addInitScript(()=>{const stored=JSON.parse(localStorage.getItem('maze:settings:v1')??'{}');localStorage.setItem('maze:settings:v1',JSON.stringify({...stored,seed:99}));});
+  await guest.goto('./');
   await openControlPage(page,'Play');await openControlPage(guest,'Play');
   const hostRoom=page.getByRole('region',{name:'Serverless competition room'}),guestRoom=guest.getByRole('region',{name:'Serverless competition room'});
   await hostRoom.getByRole('button',{name:'Create room'}).click();
@@ -392,13 +395,16 @@ test('serverless competition peers complete the manual offer and answer exchange
   const hostOffer=hostRoom.getByLabel('Offer to participant');
   await expect(hostOffer).not.toHaveValue('',{timeout:12000});
   await guestRoom.getByLabel('Host offer code').fill(await hostOffer.inputValue());
+  await expect(guestRoom.getByRole('button',{name:'Open host maze'})).toBeVisible();
+  await guestRoom.getByRole('button',{name:'Open host maze'}).click();
+  await expect(guestRoom.getByRole('button',{name:'Join from offer'})).toBeVisible();
   await guestRoom.getByRole('button',{name:'Join from offer'}).click();
   const guestAnswer=guestRoom.getByLabel('Answer to host');
   await expect(guestAnswer).not.toHaveValue('',{timeout:12000});
-  const signalSummary=await guest.evaluate(([offerCode,answerCode])=>{
-    const decode=(code:string)=>JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(code.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-code.length%4)%4)),char=>char.charCodeAt(0))));
-    return[offerCode,answerCode].map(code=>{const signal=decode(code);return{type:signal.description.type,candidates:signal.description.sdp.split('\r\n').filter((line:string)=>line.startsWith('a=candidate:'))};});
-  },[await hostOffer.inputValue(),await guestAnswer.inputValue()]);
+  const signalCodes:[[string,'offer'],[string,'answer']]=[[await hostOffer.inputValue(),'offer'],[await guestAnswer.inputValue(),'answer']];
+  const signalSummary=signalCodes.map(([code,kind])=>{
+    const signal=decodeSignal(code,kind);return{type:signal.description.type,candidates:signal.description.sdp!.split('\r\n').filter(line=>line.startsWith('a=candidate:'))};
+  });
   expect(signalSummary.every(signal=>signal.candidates.length>0)).toBe(true);
   await hostRoom.getByLabel('Participant answer').fill(await guestAnswer.inputValue());
   await hostRoom.getByRole('button',{name:'Connect participant'}).click();
