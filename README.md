@@ -66,6 +66,12 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
 - Share links preserve generation parameters and text/emoji markers, including
   compound emojis and empty markers. Uploaded images and drawings stay local;
   image markers become colored dots in shared links. Legacy links remain supported.
+- Create serverless competition rooms using manual WebRTC offer and answer codes.
+  The host can connect multiple participants through free public STUN without an
+  account, signaling service, database, or TURN relay. Peers exchange the fixed
+  maze definition and complete movement replays; impossible routes and mismatched
+  metrics are rejected. Accepted standings persist on each participating device
+  and can be exported as JSON or CSV. Restrictive networks may prevent a direct connection.
 - Open **Animation Algorithms** to replay construction, solving, or both as one
   timeline. Choose randomized DFS, Prim, or Kruskal generation independently from
   DFS, breadth-first search, Dijkstra, or A* solving. One playback system provides
