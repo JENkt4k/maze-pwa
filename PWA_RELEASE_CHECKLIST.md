@@ -1,3 +1,5 @@
+> **Status:** Active release checklist for the completed PWA baseline. Product operation is documented in the [user manual](USER_MANUAL.md).
+
 # PWA release checklist
 
 Automated production checks cover the generated manifest and icons, base-path

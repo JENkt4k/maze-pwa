@@ -3,12 +3,19 @@
 InfiMaze is a React, TypeScript, and Vite PWA for generating, drawing on, saving,
 sharing, and printing mazes.
 
-![InfiMaze screenshot](screenshots/maze.png)
+## Documentation
 
-NEW SOLVER + BUILDER ANIMATIONS!
+- [User manual with current screenshots](USER_MANUAL.md)
+- [Feature and completion record](FEATURE_STATUS.md)
+- [Current roadmap](ROADMAP.md)
+- [Dated evolution and model/tooling record](EVOLUTION.md)
+- [Documentation map and historical engineering plans](DOCUMENTATION.md)
+- [PWA release checklist](PWA_RELEASE_CHECKLIST.md)
 
-![InfiMaze screenshot](screenshots/animation-1-new.png)
-![InfiMaze screenshot](screenshots/animation-2-new.png)
+![Current InfiMaze interface](docs/images/01-overview.png)
+
+The [user manual](USER_MANUAL.md) contains the complete current desktop/mobile
+screenshot set and operating instructions for every feature area.
 
 ## Run locally
 
@@ -62,7 +69,9 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
   over the maze. Drawing is session-only and is not a validated solution.
 - Save/load/delete mazes in browser storage, including their parameters and markers.
   Settings also persist. Storage failures are shown instead of reporting a
-  successful save. Clearing browser data removes local saves.
+  successful save. Library backups can transfer maze collections independently;
+  the full-app backup preserves settings, saved mazes, history, resumable games,
+  rankings, room standings, and appearance preferences before browser data is cleared.
 - Share links preserve generation parameters and text/emoji markers, including
   compound emojis and empty markers. Uploaded images and drawings stay local;
   image markers become colored dots in shared links. Legacy links remain supported.
@@ -77,7 +86,7 @@ On Windows, use `npm.cmd` and `npx.cmd` if PowerShell blocks the corresponding
   Visible ICE-gathering and connection states distinguish normal negotiation from
   failures. Restrictive networks may prevent a direct connection.
 - Open **Animation Algorithms** to replay construction, solving, or both as one
-  timeline. Choose randomized DFS, Prim, or Kruskal generation independently from
+  timeline. Choose randomized DFS, Prim, Kruskal, or Wilson generation independently from
   DFS, breadth-first search, Dijkstra, or A* solving. One playback system provides
   pause/play, restart, single-step, progress seeking, speed control, phase colors,
   construction and solver color/opacity pickers, final routes, and comparable solver metrics. Randomized DFS generation and DFS
@@ -195,8 +204,8 @@ Micromouse benchmark. Visual hints identify the next shortest-path move; runs th
 use hints remain in history but are excluded from competitive rankings. Completed
 runs show time, movement metrics, difficulty, and personal-best comparison. A
 challenge link opens the same deterministic maze directly in gameplay mode.
-Difficulty 2.0 and Giant mode are complete; see
-[ROADMAP.md](ROADMAP.md) for the remaining hosted leaderboard work.
+Difficulty 2.0 and Giant mode are complete; see the [feature status](FEATURE_STATUS.md)
+for the supported boundary and [roadmap](ROADMAP.md) for upcoming work.
 The unified animation replays maze construction first and then continues into
 solver exploration using separate colors, independent algorithm selectors, and
 shared playback controls.

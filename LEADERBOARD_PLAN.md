@@ -1,3 +1,5 @@
+> **Status:** Completed engineering record. For current behavior, see the [user manual](USER_MANUAL.md), [feature status](FEATURE_STATUS.md), and [roadmap](ROADMAP.md).
+
 # Local leaderboard plan
 
 - [x] Rank completed human attempts within the same stable maze identity.

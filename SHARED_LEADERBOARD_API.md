@@ -1,3 +1,5 @@
+> **Status:** Deferred service contract. The local and serverless room features are complete; no hosted backend is currently funded or deployed. See the [feature status](FEATURE_STATUS.md) and [roadmap](ROADMAP.md).
+
 # InfiMaze shared leaderboard API v1
 
 The shared leaderboard is optional. The PWA only contacts this service after the
