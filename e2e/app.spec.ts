@@ -408,6 +408,9 @@ test('serverless competition peers complete the manual offer and answer exchange
   await guest.goto('./');
   await openControlPage(page,'Play');await openControlPage(guest,'Play');
   const hostRoom=page.getByRole('region',{name:'Serverless competition room'}),guestRoom=guest.getByRole('region',{name:'Serverless competition room'});
+  await hostRoom.getByLabel('Player name').fill('Host Alice');
+  await hostRoom.getByLabel('Room name').fill('Tuesday sprint');
+  await guestRoom.getByLabel('Player name').fill('Guest Bob');
   await hostRoom.getByRole('button',{name:'Create room'}).click();
   await hostRoom.getByRole('button',{name:'Add participant'}).click();
   const hostOffer=hostRoom.getByLabel('Offer to participant');
@@ -433,6 +436,9 @@ test('serverless competition peers complete the manual offer and answer exchange
   await expect(guestRoom.getByLabel('Connection diagnostics')).toContainText('Open',{timeout:7000});
   await expect(hostRoom).toContainText('Hosting · 1 connected',{timeout:7000});
   await expect(guestRoom).toContainText('Joined · 1 connected',{timeout:7000});
+  await expect(hostRoom.getByRole('region',{name:'Room participants'})).toContainText('Tuesday sprint');
+  await expect(hostRoom.getByRole('region',{name:'Room participants'})).toContainText('Guest Bob');
+  await expect(guestRoom.getByRole('region',{name:'Room participants'})).toContainText('Host Alice');
 });
 
 test('giant maze mode exposes larger sizes and pan and zoom controls',async({page})=>{

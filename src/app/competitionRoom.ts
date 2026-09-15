@@ -6,8 +6,9 @@ import { strFromU8,strToU8,zlibSync,unzlibSync } from 'fflate';
 
 export const COMPETITION_ROOM_STORAGE_PREFIX='maze:competition-room:v1:';
 export const COMPETITION_LAST_ROOM_PREFIX='maze:competition-last-room:v1:';
+export const COMPETITION_PARTICIPANT_ID='maze:competition-participant-id:v1';
 export type RoomResult=Readonly<{id:string;player:string;mazeId:string;elapsedMs:number;moves:number;revisits:number;route:readonly string[];completedAt:number}>;
-export type SignalCode=Readonly<{version:1;kind:'offer'|'answer';roomId:string;mazeId:string;maze:HistoryMazeParams;description:RTCSessionDescriptionInit}>;
+export type SignalCode=Readonly<{version:1;kind:'offer'|'answer';roomId:string;roomName?:string;participantId?:string;participantName?:string;mazeId:string;maze:HistoryMazeParams;description:RTCSessionDescriptionInit}>;
 export type CandidateRoute='none'|'local'|'stun'|'relay';
 
 const record=(value:unknown):value is Record<string,unknown>=>typeof value==='object'&&value!==null&&!Array.isArray(value);
@@ -30,7 +31,10 @@ export function decodeSignal(code:string,kind:'offer'|'answer'):SignalCode{
     if(!record(value)||value.version!==1||value.kind!==kind||typeof value.roomId!=='string'||!value.roomId||typeof value.mazeId!=='string'||!value.mazeId||!record(value.maze)||!record(value.description)||!['offer','answer'].includes(String(value.description.type))||typeof value.description.sdp!=='string')throw new Error();
     const maze=validateSettings(value.maze);
     if(['width','height','seed','g','b','tau'].some(key=>!(key in maze)))throw new Error();
-    return{version:1,kind,roomId:value.roomId,mazeId:value.mazeId,maze:maze as HistoryMazeParams,description:{type:value.description.type as RTCSdpType,sdp:value.description.sdp}};
+    const roomName=typeof value.roomName==='string'?value.roomName.trim().slice(0,40):undefined;
+    const participantId=typeof value.participantId==='string'?value.participantId.trim().slice(0,80):undefined;
+    const participantName=typeof value.participantName==='string'?value.participantName.trim().slice(0,24):undefined;
+    return{version:1,kind,roomId:value.roomId,roomName:roomName||undefined,participantId:participantId||undefined,participantName:participantName||undefined,mazeId:value.mazeId,maze:maze as HistoryMazeParams,description:{type:value.description.type as RTCSdpType,sdp:value.description.sdp}};
   }catch{throw new Error(`This is not a valid InfiMaze ${kind} code.`);}
 }
 

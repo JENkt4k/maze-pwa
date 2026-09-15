@@ -166,12 +166,12 @@ Open **Play → Local rankings → Serverless competition room**.
 
 ### Connect a participant
 
-1. The host selects **Create room**, then **Add participant**.
+1. Enter a player name and room name. The host selects **Create room**, then **Add participant**.
 2. The participant scans or pastes the host offer.
 3. If needed, **Open host maze** applies the host’s full maze configuration.
 4. The participant selects **Join from offer**, which produces an answer.
 5. The host scans or pastes that answer and selects **Connect participant**.
-6. Both devices show one connected participant when the encrypted data channel opens.
+6. Both devices show the room name and connected participant names when the encrypted data channel opens.
 
 This two-way exchange is WebRTC signaling performed manually, so no signaling account, database, or paid server is required. A public STUN service helps devices discover routes but does not store the room or carry leaderboard data. Without a TURN relay, restrictive NAT or firewalls can prevent a connection.
 
