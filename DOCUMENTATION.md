@@ -3,6 +3,7 @@
 | Document | Audience | Authority |
 | --- | --- | --- |
 | [README](README.md) | New users and contributors | Product summary, setup, architecture, and verification entry point |
+| [Changelog](CHANGELOG.md) | Users and release operators | Version history, release scope, and known limits |
 | [User manual](USER_MANUAL.md) | Maze players, authors, teachers, and robot experimenters | Current operating instructions and screenshots |
 | [Feature status](FEATURE_STATUS.md) | Product owners and reviewers | Current completion boundary, evidence, constraints, and deferrals |
 | [Roadmap](ROADMAP.md) | Product planning | Active milestone and ordered backlog |
