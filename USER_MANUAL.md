@@ -188,6 +188,8 @@ WebRTC connection descriptions expire with their peer connections, so reconnecti
 
 Connection diagnostics report whether a public STUN route or only a local-network route was found, the browser peer state, and whether the data channel opened. Candidate addresses are never displayed.
 
+For release testing, expand **Device test report** inside connection diagnostics. Select the same-Wi-Fi or cross-network scenario, record the QR camera result and device details, then download the JSON evidence. The report includes browser capabilities and summarized connection state; it excludes network addresses, maze data, player names, and standings. The maintained test matrix is in [DEVICE_VALIDATION.md](DEVICE_VALIDATION.md).
+
 ## Install, update, and use offline
 
 Install appears when the browser exposes PWA installation. After the service worker finishes caching, the app shell, maze features, emoji picker, and calculation workers operate offline. An offline indicator remains visible until connectivity returns. When an update is ready, select **Update**; save or finish session-only drawings first because reload clears them.

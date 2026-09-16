@@ -434,6 +434,10 @@ test('serverless competition peers complete the manual offer and answer exchange
   await hostRoom.getByRole('button',{name:'Connect participant'}).click();
   await expect(hostRoom.getByLabel('Connection diagnostics')).toContainText('connected',{timeout:7000});
   await expect(guestRoom.getByLabel('Connection diagnostics')).toContainText('Open',{timeout:7000});
+  await hostRoom.getByText('Device test report',{exact:true}).click();
+  await hostRoom.getByLabel('Test scenario').selectOption('same-wifi');
+  await hostRoom.getByLabel('QR camera result').selectOption('passed');
+  await expect(hostRoom.getByRole('button',{name:'Download device test report'})).toBeVisible();
   await expect(hostRoom).toContainText('Hosting · 1 connected',{timeout:7000});
   await expect(guestRoom).toContainText('Joined · 1 connected',{timeout:7000});
   await expect(hostRoom.getByRole('region',{name:'Room participants'})).toContainText('Tuesday sprint');
