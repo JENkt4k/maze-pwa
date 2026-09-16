@@ -27,7 +27,7 @@ This is the authoritative product-level completion catalog. Engineering plans pr
 | Themes and access | Light/dark/system themes, high contrast, color-blind palette, keyboard tabs, named forms | Keep controls usable across visual and input needs | Component, forced-color, focus, and mobile checks |
 | PWA | Install metadata, offline cache, update recovery, subpath hosting | Make InfiMaze installable and usable offline | Manifest, service worker, offline reload, and GitHub Pages tests |
 | Sharing | Maze, challenge, and benchmark links | Reproduce configurations without accounts | Versioned parsing and compatibility tests |
-| Serverless rooms | Named rooms, participant identities, QR/manual WebRTC handshake, multi-peer host, local replicated standings, diagnostics and exports | Run small competitions without hosted infrastructure | Signal validation and complete desktop/mobile peer exchange |
+| Serverless rooms | Named rooms, participant identities, host removal, refresh recovery, QR/manual WebRTC handshake, replicated standings, diagnostics and exports | Run and recover small competitions without hosted infrastructure | Signal validation, persistence, and complete desktop/mobile peer exchange |
 
 ## Deliberately constrained
 

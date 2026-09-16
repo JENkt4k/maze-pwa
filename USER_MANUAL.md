@@ -177,6 +177,15 @@ This two-way exchange is WebRTC signaling performed manually, so no signaling ac
 
 Each peer persists a merged local standings copy. The host validates routes and metrics, merges result IDs, and broadcasts the updated snapshot. Devices that were offline catch up only after reconnecting. Export room standings as JSON or CSV for a durable final record.
 
+### Disconnect, remove, and reconnect
+
+- **Leave room** closes this device’s live channels but retains the saved room identity and standings.
+- A host can select **Remove** beside a connected participant. That connection closes and requires a fresh invitation before it can return.
+- After refresh or connection loss, the saved-room card explains that direct channels have closed. Hosts select **Resume hosting** and create fresh offers. Guests select **Reconnect to room**, then paste or scan a fresh host offer.
+- **Forget room** removes the reconnection shortcut while retaining the locally stored standings.
+
+WebRTC connection descriptions expire with their peer connections, so reconnection intentionally uses a new offer and answer. The saved room ID lets the devices merge back into the same local standings record.
+
 Connection diagnostics report whether a public STUN route or only a local-network route was found, the browser peer state, and whether the data channel opened. Candidate addresses are never displayed.
 
 ## Install, update, and use offline
