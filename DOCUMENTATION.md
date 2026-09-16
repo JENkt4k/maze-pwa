@@ -8,6 +8,7 @@
 | [Roadmap](ROADMAP.md) | Product planning | Active milestone and ordered backlog |
 | [Evolution record](EVOLUTION.md) | Maintainers and project historians | Dated feature history and recorded model/tool maturity |
 | [PWA release checklist](PWA_RELEASE_CHECKLIST.md) | Release operators | Production and physical-device checks |
+| [Physical-device validation](DEVICE_VALIDATION.md) | Release operators and testers | Required device/network matrix and diagnostic evidence |
 | [Shared leaderboard API](SHARED_LEADERBOARD_API.md) | Future service implementers | Deferred hosted API and safety contract |
 
 ## Historical engineering plans

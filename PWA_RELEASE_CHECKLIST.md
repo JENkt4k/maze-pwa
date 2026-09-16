@@ -1,5 +1,7 @@
 > **Status:** Active release checklist for the completed PWA baseline. Product operation is documented in the [user manual](USER_MANUAL.md).
 
+Record physical outcomes and downloaded diagnostic evidence in [DEVICE_VALIDATION.md](DEVICE_VALIDATION.md).
+
 # PWA release checklist
 
 Automated production checks cover the generated manifest and icons, base-path
@@ -30,6 +32,8 @@ For serverless competition rooms, use two physical devices before release:
 - Cancel an unused host offer and verify a fresh participant offer can be created.
 - Record connection failure as expected on networks that require TURN; the app
   must retain standings and explain that its zero-cost mode cannot relay traffic.
+- On both devices, expand **Connection diagnostics → Device test report**, record
+  the network scenario and QR outcome, and download the privacy-safe JSON report.
 
 Service-worker registration failure is non-fatal: the app displays a dismissible
 message and continues online. Loss of connectivity displays a persistent status

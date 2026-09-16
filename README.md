@@ -11,6 +11,7 @@ sharing, and printing mazes.
 - [Dated evolution and model/tooling record](EVOLUTION.md)
 - [Documentation map and historical engineering plans](DOCUMENTATION.md)
 - [PWA release checklist](PWA_RELEASE_CHECKLIST.md)
+- [Physical-device validation matrix](DEVICE_VALIDATION.md)
 
 ![Current InfiMaze interface](docs/images/01-overview.png)
 

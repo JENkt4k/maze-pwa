@@ -99,6 +99,8 @@ Competition session management then added named rooms and stable participant ide
 
 Room identity, role, and player name became recoverable after refresh. Hosts can resume the same local room, remove a connected participant, and issue fresh offers; guests receive explicit reconnection instructions while all devices retain replicated standings.
 
+Physical release validation gained a maintained device/network matrix and downloadable privacy-safe reports. This separates automated mobile emulation from evidence collected on installed Android, iOS, desktop, same-Wi-Fi, and cross-network runs.
+
 **Reasoning:** serverless competition trades a two-way manual handshake and imperfect NAT reachability for zero hosted cost and local data ownership. Full backup closes the main risk of that local-first architecture.
 
 **Model/tools:** GPT-6 Codex for the current documentation session; Git/GitHub automation, deterministic browser capture, local PWA execution, and repository-wide cross-referencing.
