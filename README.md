@@ -1,4 +1,6 @@
-﻿# InfiMaze
+# InfiMaze
+
+**Current release:** 0.9.0 Public Beta. See [CHANGELOG.md](CHANGELOG.md) for release notes and [DEVICE_VALIDATION.md](DEVICE_VALIDATION.md) for the remaining physical checks before 1.0.0.
 
 InfiMaze is a React, TypeScript, and Vite PWA for generating, drawing on, saving,
 sharing, and printing mazes.
